@@ -1,0 +1,21 @@
+name = "virtual-gallery"
+main = "worker/index.ts"
+compatibility_date = "2025-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "virtual-gallery-db"
+database_id = "6a536feb-6aba-482e-9d6a-73dea2b043d7"
+migrations_dir = "migrations"
+
+[[analytics_engine_datasets]]
+binding = "AE"
+dataset = "gallery_events"
+
+[vars]
+GOOGLE_OAUTH_CLIENT_ID = "660457062165-6f0920km3t94bdq79f3bqpl5ig8t276n.apps.googleusercontent.com"
+
+# Secrets (set via `wrangler secret put <NAME>`):
+# 1. GOOGLE_OAUTH_CLIENT_SECRET
+# 2. JWT_SECRET_KEY

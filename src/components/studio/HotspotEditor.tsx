@@ -1,0 +1,328 @@
+import { useState, type MouseEvent } from 'react';
+import type { Artwork, ArtworkHotspot } from '../../types/schema';
+import { getImageUrl } from '../../lib/media/gdrive';
+
+interface HotspotEditorProps {
+  artwork: Artwork;
+  hotspots: ArtworkHotspot[];
+  onHotspotsUpdated(updated: ArtworkHotspot[]): void;
+  onClose(): void;
+}
+
+export function HotspotEditor({
+  artwork,
+  hotspots,
+  onHotspotsUpdated,
+  onClose,
+}: HotspotEditorProps) {
+  const [selectedHotspot, setSelectedHotspot] = useState<ArtworkHotspot | null>(null);
+  const [newPin, setNewPin] = useState<{ x: number; y: number } | null>(null);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [audioTimestamp, setAudioTimestamp] = useState<string>('');
+  const [audioFileId, setAudioFileId] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const imageUrl = artwork.media_file_id
+    ? getImageUrl(artwork.media_file_id, 'original')
+    : null;
+
+  const handleImageClick = (e: MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    const clampedX = Math.max(0, Math.min(100, Math.round(x * 10) / 10));
+    const clampedY = Math.max(0, Math.min(100, Math.round(y * 10) / 10));
+
+    setSelectedHotspot(null);
+    setNewPin({ x: clampedX, y: clampedY });
+    setTitle('');
+    setDescription('');
+    setAudioTimestamp('');
+    setAudioFileId('');
+    setError(null);
+  };
+
+  const handleCreateHotspot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPin) return;
+    setError(null);
+    setSaving(true);
+
+    const cleanAudioId = audioFileId.trim();
+    // Extract drive file id if a full Google Drive link was pasted
+    const match = cleanAudioId.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || cleanAudioId.match(/id=([a-zA-Z0-9_-]+)/);
+    const resolvedAudioId = match ? match[1] : cleanAudioId;
+
+    try {
+      const res = await fetch('/api/hotspots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          artwork_id: artwork.id,
+          x_percent: newPin.x,
+          y_percent: newPin.y,
+          title: title.trim() || 'Detail Hotspot',
+          description: description.trim(),
+          audio_timestamp_seconds: audioTimestamp.trim()
+            ? parseFloat(audioTimestamp)
+            : null,
+          audio_file_id: resolvedAudioId || null,
+        }),
+      });
+
+      if (!res.ok) {
+        setError(await res.text());
+        return;
+      }
+
+      const created = (await res.json()) as ArtworkHotspot;
+      onHotspotsUpdated([...hotspots, created]);
+      setNewPin(null);
+      setTitle('');
+      setDescription('');
+      setAudioTimestamp('');
+      setAudioFileId('');
+    } catch {
+      setError('Failed to create hotspot.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteHotspot = async (id: string) => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/hotspots/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        onHotspotsUpdated(hotspots.filter((h) => h.id !== id));
+        setSelectedHotspot(null);
+      } else {
+        setError('Failed to delete hotspot.');
+      }
+    } catch {
+      setError('Network error deleting hotspot.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card modal-card--lg" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h2>Interactive Hotspot Editor</h2>
+            <p className="subtitle">Artwork: {artwork.title}</p>
+          </div>
+          <button className="btn btn--ghost" onClick={onClose} aria-label="Close">
+            ×
+          </button>
+        </div>
+
+        <div className="hotspot-editor-layout">
+          {/* Visual Image View with Pins */}
+          <div className="hotspot-canvas-container">
+            <p className="canvas-instruction">
+              💡 Click anywhere on the artwork image to drop a new interpretive hotspot pin.
+            </p>
+            {imageUrl ? (
+              <div className="hotspot-image-wrapper" onClick={handleImageClick}>
+                <img
+                  src={imageUrl}
+                  alt={artwork.title}
+                  className="hotspot-image"
+                  draggable={false}
+                />
+
+                {/* Existing Hotspot Pins */}
+                {hotspots.map((h) => (
+                  <button
+                    key={h.id}
+                    type="button"
+                    className={`hotspot-pin ${selectedHotspot?.id === h.id ? 'selected' : ''}`}
+                    style={{
+                      position: 'absolute',
+                      left: `${h.x_percent}%`,
+                      top: `${h.y_percent}%`,
+                      transform: 'translate(-50%, -50%)',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNewPin(null);
+                      setSelectedHotspot(h);
+                    }}
+                    title={h.title}
+                  >
+                    <span className="hotspot-pin__dot" />
+                  </button>
+                ))}
+
+                {/* Newly Placed Pin Indicator */}
+                {newPin && (
+                  <div
+                    className="hotspot-pin new-pin"
+                    style={{
+                      position: 'absolute',
+                      left: `${newPin.x}%`,
+                      top: `${newPin.y}%`,
+                      transform: 'translate(-50%, -50%)',
+                    }}
+                  >
+                    <span className="hotspot-pin__dot" />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p>No image file associated with this artwork.</p>
+            )}
+          </div>
+
+          {/* Hotspot Form & Details Panel */}
+          <div className="hotspot-sidebar">
+            {newPin && (
+              <form onSubmit={handleCreateHotspot} className="hotspot-pin-form">
+                <h3>New Hotspot Pin</h3>
+                <p className="coords-readout">
+                  Location: X: {newPin.x}%, Y: {newPin.y}%
+                </p>
+
+                <div className="form-group">
+                  <label htmlFor="hs-title" className="form-label">Hotspot Title</label>
+                  <input
+                    id="hs-title"
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="e.g. Signature, Craquelure, Symbolism"
+                    required
+                    className="input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="hs-desc" className="form-label">Interpretive Text</label>
+                  <textarea
+                    id="hs-desc"
+                    rows={4}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Description displayed when visitor clicks this pin"
+                    required
+                    className="input textarea"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="hs-seek" className="form-label">
+                    Option A: Audio Guide Timestamp (Seconds)
+                  </label>
+                  <input
+                    id="hs-seek"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={audioTimestamp}
+                    onChange={(e) => setAudioTimestamp(e.target.value)}
+                    placeholder="e.g. 42.5 (jump in main audio guide)"
+                    className="input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="hs-audio" className="form-label">
+                    Option B: Dedicated Audio File Link (Google Drive / URL)
+                  </label>
+                  <input
+                    id="hs-audio"
+                    type="text"
+                    value={audioFileId}
+                    onChange={(e) => setAudioFileId(e.target.value)}
+                    placeholder="https://drive.google.com/file/d/... or direct audio URL"
+                    className="input"
+                  />
+                  <p className="hint">
+                    💡 You can provide a dedicated audio clip narration specific to this hotspot.
+                  </p>
+                </div>
+
+                {error && <p className="error">{error}</p>}
+
+                <div className="form-actions">
+                  <button type="submit" className="btn btn--primary" disabled={saving}>
+                    {saving ? 'Saving…' : 'Add Hotspot Pin'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    onClick={() => setNewPin(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {selectedHotspot && !newPin && (
+              <div className="hotspot-details-card">
+                <h3>{selectedHotspot.title}</h3>
+                <p className="coords-readout">
+                  Pin at: X: {selectedHotspot.x_percent}%, Y: {selectedHotspot.y_percent}%
+                </p>
+                <p className="hotspot-desc">{selectedHotspot.description}</p>
+                {selectedHotspot.audio_timestamp_seconds != null && (
+                  <p className="audio-tag">
+                    ⏱️ Audio Guide Seek: {selectedHotspot.audio_timestamp_seconds}s
+                  </p>
+                )}
+                {selectedHotspot.audio_file_id && (
+                  <p className="audio-tag">
+                    🎵 Dedicated Audio File: {selectedHotspot.audio_file_id}
+                  </p>
+                )}
+
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="btn btn--danger"
+                    onClick={() => handleDeleteHotspot(selectedHotspot.id)}
+                    disabled={saving}
+                  >
+                    {saving ? 'Deleting…' : 'Delete Hotspot Pin'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    onClick={() => setSelectedHotspot(null)}
+                  >
+                    Deselect
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!newPin && !selectedHotspot && (
+              <div className="hotspot-empty-state">
+                <p>Click on the image to place a pin, or click an existing pin to inspect/delete it.</p>
+                <p>Total hotspots on this artwork: {hotspots.length}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          <button type="button" className="btn btn--secondary" onClick={onClose}>
+            Done Editing Hotspots
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

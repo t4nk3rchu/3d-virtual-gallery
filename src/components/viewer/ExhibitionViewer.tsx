@@ -1,0 +1,316 @@
+/**
+ * Task 10: Exhibition viewer — the main 3D viewer page
+ *
+ * Fetches exhibition by slug, builds scene, wires camera/interaction/scaler,
+ * renders FocusPanel and InspectLightbox. Falls back to FallbackCatalog when
+ * WebGL2 is unavailable.
+ */
+import { useEffect, useRef, useState } from 'react';
+import type { ExhibitionDetail, ArtworkHotspot } from '../../types/schema';
+import type { AbstractMesh } from '@babylonjs/core';
+import type { InteractionController } from '../../lib/babylon/interaction';
+import type { CameraController } from '../../lib/babylon/camera-controller';
+import { isWebGLSupported, FallbackCatalog } from './FallbackCatalog';
+import { FocusPanel } from './FocusPanel';
+import { InspectLightbox } from './InspectLightbox';
+import { SettingsModal, getStoredViewerSettings, type ViewerSettings } from './SettingsModal';
+import { trackEvent } from '../../lib/analytics';
+
+interface ExhibitionViewerProps {
+  slug: string;
+}
+
+type LoadState = 'loading' | 'loaded' | 'error';
+type ViewerArtwork = ExhibitionDetail['artworks'][number];
+
+export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [loadState, setLoadState] = useState<LoadState>('loading');
+  const [exhibition, setExhibition] = useState<ExhibitionDetail | null>(null);
+  const [focusedArtwork, setFocusedArtwork] = useState<ViewerArtwork | null>(null);
+  const [inspectedArtwork, setInspectedArtwork] = useState<ViewerArtwork | null>(null);
+  const [inspectedHotspots, setInspectedHotspots] = useState<ArtworkHotspot[]>([]);
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [settings, setSettings] = useState<ViewerSettings>(getStoredViewerSettings);
+  const [showSettings, setShowSettings] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const interactionRef = useRef<InteractionController | null>(null);
+  const cameraControllerRef = useRef<CameraController | null>(null);
+  const dwellStartRef = useRef<{ artworkId: string; artworkType?: ViewerArtwork['artwork_type']; startTime: number } | null>(null);
+
+  const webglSupported = isWebGLSupported();
+
+  // Fetch exhibition data
+  useEffect(() => {
+    fetch(`/api/exhibitions/by-slug/${slug}`, { credentials: 'include' })
+      .then(async (r) => {
+        if (!r.ok) throw new Error('Not found');
+        return (await r.json()) as ExhibitionDetail;
+      })
+      .then((data) => {
+        setExhibition(data);
+        setLoadState('loaded');
+      })
+      .catch(() => setLoadState('error'));
+  }, [slug]);
+
+  // Analytics dwell helper
+  const flushDwell = () => {
+    if (dwellStartRef.current && exhibition) {
+      const dwellSeconds = Math.round((Date.now() - dwellStartRef.current.startTime) / 1000);
+      if (dwellSeconds > 0) {
+        trackEvent({
+          kind: 'artwork_dwell',
+          exhibition_id: exhibition.id,
+          room_id: exhibition.room_id,
+          artwork_id: dwellStartRef.current.artworkId,
+          artwork_type: dwellStartRef.current.artworkType,
+          dwell_seconds: dwellSeconds,
+        });
+      }
+      dwellStartRef.current = null;
+    }
+  };
+
+  // Mount Babylon scene once exhibition data is loaded and WebGL is available
+  useEffect(() => {
+    if (!exhibition || !webglSupported || !canvasRef.current) return;
+
+    let disposed = false;
+    let sceneHandle: import('../../lib/babylon/engine').SceneHandle | null = null;
+
+    (async () => {
+      const { initScene } = await import('../../lib/babylon/engine');
+      const { loadGlbRoom } = await import('../../lib/babylon/room-loader');
+      const { createArtworkMesh } = await import('../../lib/babylon/artwork-factory');
+      const { CameraController } = await import('../../lib/babylon/camera-controller');
+      const { wireInteraction } = await import('../../lib/babylon/interaction');
+
+      if (disposed || !canvasRef.current) return;
+
+      sceneHandle = initScene(canvasRef.current);
+      const { scene, scaler } = sceneHandle;
+      const cameraController = new CameraController(scene, canvasRef.current);
+      cameraController.updateConfig(settings);
+      cameraControllerRef.current = cameraController;
+
+      cameraController.onMovement = () => {
+        flushDwell();
+        interactionRef.current?.leaveFocus();
+        setFocusedArtwork(null);
+        setInspectedArtwork(null);
+      };
+
+      // Auto focus canvas so WASD works immediately without extra click
+      canvasRef.current.focus();
+
+      // Apply spawn position from room
+      cameraController.applySpawn(exhibition.room.spawn_json);
+
+      // Load GLB
+      try {
+        await loadGlbRoom(scene, exhibition.room.glb_file_id, (p) => {
+          setLoadProgress(Math.round(p.fraction * 100));
+        });
+      } catch (e) {
+        console.error('[viewer] GLB load failed:', e);
+      }
+
+      // Place artworks
+      for (const artwork of exhibition.artworks) {
+        createArtworkMesh(scene, artwork);
+      }
+
+      // Wire interaction controller
+      interactionRef.current = wireInteraction(scene, cameraController, scaler, {
+        onArtworkFocus: (artworkId, _mesh: AbstractMesh) => {
+          flushDwell();
+          const art = exhibition.artworks.find((a) => a.id === artworkId);
+          setFocusedArtwork(art ?? null);
+          setInspectedArtwork(null);
+
+          if (art) {
+            dwellStartRef.current = {
+              artworkId: art.id,
+              artworkType: art.artwork_type,
+              startTime: Date.now(),
+            };
+            trackEvent({
+              kind: 'artwork_focus',
+              exhibition_id: exhibition.id,
+              room_id: exhibition.room_id,
+              artwork_id: art.id,
+              artwork_type: art.artwork_type,
+            });
+          }
+        },
+        onArtworkInspect: (artworkId: string) => {
+          const art = exhibition.artworks.find((a) => a.id === artworkId);
+          if (!art) return;
+          setInspectedArtwork(art);
+          setInspectedHotspots(art.hotspots ?? []);
+
+          trackEvent({
+            kind: 'artwork_inspect',
+            exhibition_id: exhibition.id,
+            room_id: exhibition.room_id,
+            artwork_id: art.id,
+            artwork_type: art.artwork_type,
+          });
+        },
+        onStateChange: (state) => {
+          if (state === 'ROAM') {
+            flushDwell();
+            setFocusedArtwork(null);
+            setInspectedArtwork(null);
+          }
+        },
+      });
+    })();
+
+    return () => {
+      disposed = true;
+      flushDwell();
+      interactionRef.current?.dispose();
+      sceneHandle?.dispose();
+    };
+  }, [exhibition, webglSupported]);
+
+  // Analytics: fire exhibition_view event on mount
+  useEffect(() => {
+    if (!exhibition) return;
+    trackEvent({
+      kind: 'exhibition_view',
+      exhibition_id: exhibition.id,
+      room_id: exhibition.room_id,
+    });
+  }, [exhibition]);
+
+  if (loadState === 'loading') {
+    return (
+      <div className="viewer-loading" role="status" aria-live="polite">
+        Loading exhibition…
+      </div>
+    );
+  }
+
+  if (loadState === 'error' || !exhibition) {
+    return (
+      <div className="viewer-error" role="alert">
+        Exhibition not found or not yet published.
+      </div>
+    );
+  }
+
+  if (!webglSupported) {
+    return (
+      <FallbackCatalog
+        title={exhibition.title}
+        curatorName={exhibition.curator_name}
+        description={exhibition.description}
+        artworks={exhibition.artworks}
+      />
+    );
+  }
+
+  return (
+    <div className="viewer" aria-label={`3D exhibition: ${exhibition.title}`}>
+      {/* Loading progress */}
+      {loadProgress < 100 && (
+        <div
+          className="viewer-progress"
+          role="progressbar"
+          aria-valuenow={loadProgress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div className="viewer-progress__bar" style={{ width: `${loadProgress}%` }} />
+          <span className="viewer-progress__label">Loading room… {loadProgress}%</span>
+        </div>
+      )}
+
+      {/* 3D canvas */}
+      <canvas
+        ref={canvasRef}
+        className="viewer__canvas"
+        aria-label="3D gallery"
+        tabIndex={0}
+      />
+
+      {/* Focus panel slide-out */}
+      {focusedArtwork && !inspectedArtwork && (
+        <FocusPanel
+          artwork={focusedArtwork}
+          onInspect={() => {
+            interactionRef.current?.inspectArtwork(focusedArtwork.id);
+            setInspectedArtwork(focusedArtwork);
+            setInspectedHotspots(focusedArtwork.hotspots ?? []);
+          }}
+          onClose={() => {
+            flushDwell();
+            interactionRef.current?.leaveFocus();
+            setFocusedArtwork(null);
+          }}
+        />
+      )}
+
+      {/* Inspect lightbox */}
+      {inspectedArtwork && (
+        <InspectLightbox
+          artwork={inspectedArtwork}
+          hotspots={inspectedHotspots}
+          settings={settings}
+          onClose={() => {
+            interactionRef.current?.leaveInspect();
+            setInspectedArtwork(null);
+          }}
+          onAudioSeek={(seconds) => {
+            if (audioRef.current && inspectedArtwork) {
+              const audioSrc =
+                inspectedArtwork.audio_guide_file_id ||
+                (inspectedArtwork.artwork_type === 'AUDIO' ? inspectedArtwork.media_file_id : null);
+              if (audioSrc) {
+                const url = `/api/media/${audioSrc}`;
+                if (!audioRef.current.src.endsWith(url)) {
+                  audioRef.current.src = url;
+                }
+                audioRef.current.currentTime = seconds;
+                audioRef.current.play().catch(() => { });
+              }
+            }
+          }}
+        />
+      )}
+
+      {/* Gallery Controls HUD & Settings */}
+      <div className="viewer-controls-hint">
+        <span>🕹️ <strong>WASD</strong> to walk</span>
+        <span>🖱️ <strong>Click &amp; Drag</strong> to look</span>
+        <span>🖼️ <strong>Click Artwork</strong> to focus (90°)</span>
+        <span>🎯 <strong>Click Floor</strong> to teleport</span>
+        <button
+          type="button"
+          className="btn-settings-hud"
+          onClick={() => setShowSettings(true)}
+          title="Gallery &amp; Control Settings"
+        >
+          ⚙️ Settings
+        </button>
+      </div>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <SettingsModal
+          settings={settings}
+          onChange={(newSettings) => {
+            setSettings(newSettings);
+            cameraControllerRef.current?.updateConfig(newSettings);
+          }}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
+      <audio ref={audioRef} style={{ display: 'none' }} />
+    </div>
+  );
+}

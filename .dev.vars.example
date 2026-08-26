@@ -1,0 +1,5 @@
+# Google OAuth (Optional for local development — local curator registration is supported out of the box)
+GOOGLE_OAUTH_CLIENT_SECRET="your-google-oauth-client-secret"
+
+# JWT Secret Key for Session Authentication
+JWT_SECRET_KEY="your-256-bit-jwt-secret-key-here"
