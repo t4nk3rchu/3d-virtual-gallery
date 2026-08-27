@@ -232,4 +232,27 @@ describe('handleMediaProxy', () => {
     expect(res.status).toBe(502);
     expect(fakeCache.put).not.toHaveBeenCalled();
   });
+
+  // ── Test 8: version-aware cache key (?v=) ───────────────────────────────────
+  it('uses a version-specific cache key so different versions do not collide', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () =>
+        new Response(fileBody, {
+          status: 200,
+          headers: { 'Content-Type': 'audio/mpeg', 'Content-Length': '256' },
+        })
+      )
+    );
+    const ctx = makeFakeCtx();
+    const reqV1 = new Request('https://gallery.example.com/api/media/abc123?v=100');
+    const reqV2 = new Request('https://gallery.example.com/api/media/abc123?v=200');
+
+    await handleMediaProxy(reqV1, ctx);
+    await handleMediaProxy(reqV2, ctx);
+
+    const putKeys = fakeCache.put.mock.calls.map((c) => (c[0] as Request).url);
+    expect(putKeys).toContain('https://media/abc123?v=100');
+    expect(putKeys).toContain('https://media/abc123?v=200');
+  });
 });

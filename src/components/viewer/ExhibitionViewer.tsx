@@ -6,15 +6,18 @@
  * WebGL2 is unavailable.
  */
 import { useEffect, useRef, useState } from 'react';
-import type { ExhibitionDetail, ArtworkHotspot } from '../../types/schema';
+import type { ExhibitionDetail, ArtworkHotspot, Artist } from '../../types/schema';
 import type { AbstractMesh } from '@babylonjs/core';
 import type { InteractionController } from '../../lib/babylon/interaction';
 import type { CameraController } from '../../lib/babylon/camera-controller';
 import { isWebGLSupported, FallbackCatalog } from './FallbackCatalog';
 import { FocusPanel } from './FocusPanel';
 import { InspectLightbox } from './InspectLightbox';
+import { ArtistDetailModal } from './ArtistDetailModal';
+import { IntroVideoLoader } from './IntroVideoLoader';
 import { SettingsModal, getStoredViewerSettings, type ViewerSettings } from './SettingsModal';
 import { trackEvent } from '../../lib/analytics';
+import { proxyMediaUrl } from '../../lib/media/gdrive';
 
 interface ExhibitionViewerProps {
   slug: string;
@@ -30,6 +33,9 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
   const [focusedArtwork, setFocusedArtwork] = useState<ViewerArtwork | null>(null);
   const [inspectedArtwork, setInspectedArtwork] = useState<ViewerArtwork | null>(null);
   const [inspectedHotspots, setInspectedHotspots] = useState<ArtworkHotspot[]>([]);
+  const [activeArtistProfile, setActiveArtistProfile] = useState<Artist | null>(null);
+  const [isIntroDismissed, setIsIntroDismissed] = useState(false);
+  const [isSceneReady, setIsSceneReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [settings, setSettings] = useState<ViewerSettings>(getStoredViewerSettings);
   const [showSettings, setShowSettings] = useState(false);
@@ -109,9 +115,14 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
 
       // Load GLB
       try {
-        await loadGlbRoom(scene, exhibition.room.glb_file_id, (p) => {
-          setLoadProgress(Math.round(p.fraction * 100));
-        });
+        await loadGlbRoom(
+          scene,
+          exhibition.room.glb_file_id,
+          (p) => {
+            setLoadProgress(Math.round(p.fraction * 100));
+          },
+          exhibition.room.created_at
+        );
       } catch (e) {
         console.error('[viewer] GLB load failed:', e);
       }
@@ -120,6 +131,8 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
       for (const artwork of exhibition.artworks) {
         createArtworkMesh(scene, artwork);
       }
+
+      setIsSceneReady(true);
 
       // Wire interaction controller
       interactionRef.current = wireInteraction(scene, cameraController, scaler, {
@@ -215,8 +228,17 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
 
   return (
     <div className="viewer" aria-label={`3D exhibition: ${exhibition.title}`}>
-      {/* Loading progress */}
-      {loadProgress < 100 && (
+      {/* Intro Video Loader (plays at start to hide loading screen) */}
+      {exhibition.intro_video_file_id && !isIntroDismissed && (
+        <IntroVideoLoader
+          videoFileId={exhibition.intro_video_file_id}
+          isSceneReady={isSceneReady}
+          onEnterGallery={() => setIsIntroDismissed(true)}
+        />
+      )}
+
+      {/* Loading progress (if no intro video or intro dismissed during loading) */}
+      {(!exhibition.intro_video_file_id || isIntroDismissed) && loadProgress < 100 && (
         <div
           className="viewer-progress"
           role="progressbar"
@@ -246,6 +268,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
             setInspectedArtwork(focusedArtwork);
             setInspectedHotspots(focusedArtwork.hotspots ?? []);
           }}
+          onOpenArtist={(artist) => setActiveArtistProfile(artist)}
           onClose={() => {
             flushDwell();
             interactionRef.current?.leaveFocus();
@@ -260,6 +283,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
           artwork={inspectedArtwork}
           hotspots={inspectedHotspots}
           settings={settings}
+          onOpenArtist={(artist) => setActiveArtistProfile(artist)}
           onClose={() => {
             interactionRef.current?.leaveInspect();
             setInspectedArtwork(null);
@@ -270,7 +294,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
                 inspectedArtwork.audio_guide_file_id ||
                 (inspectedArtwork.artwork_type === 'AUDIO' ? inspectedArtwork.media_file_id : null);
               if (audioSrc) {
-                const url = `/api/media/${audioSrc}`;
+                const url = proxyMediaUrl(audioSrc, inspectedArtwork.updated_at);
                 if (!audioRef.current.src.endsWith(url)) {
                   audioRef.current.src = url;
                 }
@@ -279,6 +303,14 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
               }
             }
           }}
+        />
+      )}
+
+      {/* Fullscreen Artist Detail Profile Modal */}
+      {activeArtistProfile && (
+        <ArtistDetailModal
+          artist={activeArtistProfile}
+          onClose={() => setActiveArtistProfile(null)}
         />
       )}
 

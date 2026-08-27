@@ -6,7 +6,7 @@
  * audio players, and YouTube embeds.
  */
 import type { Artwork } from '../../types/schema';
-import { getImageUrl } from '../../lib/media/gdrive';
+import { getImageUrl, proxyMediaUrl } from '../../lib/media/gdrive';
 
 /**
  * Detect WebGL2 support.
@@ -89,7 +89,7 @@ export function FallbackCatalog({
                 </span>
                 <audio
                   controls
-                  src={`/api/media/${artwork.media_file_id}`}
+                  src={proxyMediaUrl(artwork.media_file_id, artwork.updated_at)}
                   aria-label={`Audio: ${artwork.title}`}
                 />
               </div>
@@ -113,7 +113,7 @@ export function FallbackCatalog({
               <audio
                 className="fallback-catalog__audio-guide"
                 controls
-                src={`/api/media/${artwork.audio_guide_file_id}`}
+                src={proxyMediaUrl(artwork.audio_guide_file_id, artwork.updated_at)}
                 aria-label={`Audio guide: ${artwork.title}`}
               />
             )}

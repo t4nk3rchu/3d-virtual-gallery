@@ -13,7 +13,6 @@ import {
   DefaultRenderingPipeline,
 } from '@babylonjs/core';
 import { DracoCompression } from '@babylonjs/core/Meshes/Compression/dracoCompression';
-import { KhronosTextureContainer2 } from '@babylonjs/core/Misc/khronosTextureContainer2';
 import { ResolutionScaler } from './resolution-scaler';
 
 export interface SceneHandle {
@@ -34,19 +33,6 @@ function configureSelfHostedDecoders(): void {
       wasmBinaryUrl: '/decoders/draco_decoder_gltf.wasm',
       fallbackUrl: '/decoders/draco_decoder_gltf.js',
     },
-  };
-
-  KhronosTextureContainer2.URLConfig = {
-    jsDecoderModule: '/decoders/basis_transcoder.js',
-    wasmUASTCToASTC: '/decoders/uastc_to_astc.wasm',
-    wasmUASTCToBC7: '/decoders/uastc_to_bc7.wasm',
-    wasmUASTCToRGBA_UNORM: '/decoders/uastc_to_rgba_unorm.wasm',
-    wasmUASTCToRGBA_SRGB: '/decoders/uastc_to_rgba_srgb.wasm',
-    wasmUASTCToR8_UNORM: '/decoders/uastc_to_r8_unorm.wasm',
-    wasmUASTCToRG8_UNORM: '/decoders/uastc_to_rg8_unorm.wasm',
-    jsMSCTranscoder: '/decoders/basis_transcoder.js',
-    wasmMSCTranscoder: '/decoders/basis_transcoder.wasm',
-    wasmZSTDDecoder: '/decoders/zstddec.wasm',
   };
 }
 

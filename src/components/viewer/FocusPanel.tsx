@@ -8,15 +8,17 @@
  *   - If artwork is VIDEO → YouTube embed
  *   - "Inspect" button → triggers Inspect state
  */
-import type { Artwork } from '../../types/schema';
+import type { Artwork, Artist } from '../../types/schema';
+import { proxyMediaUrl } from '../../lib/media/gdrive';
 
 interface FocusPanelProps {
-  artwork: Artwork;
+  artwork: Artwork & { artist_profile?: Artist | null };
   onInspect(): void;
+  onOpenArtist?(artist: Artist): void;
   onClose(): void;
 }
 
-export function FocusPanel({ artwork, onInspect, onClose }: FocusPanelProps) {
+export function FocusPanel({ artwork, onInspect, onOpenArtist, onClose }: FocusPanelProps) {
   return (
     <aside
       className="focus-panel"
@@ -34,7 +36,19 @@ export function FocusPanel({ artwork, onInspect, onClose }: FocusPanelProps) {
       <div className="focus-panel__meta">
         <h2 className="focus-panel__title">{artwork.title}</h2>
         {artwork.artist && (
-          <p className="focus-panel__artist">{artwork.artist}</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <p className="focus-panel__artist" style={{ margin: 0 }}>{artwork.artist}</p>
+            {artwork.artist_profile && (
+              <button
+                type="button"
+                className="focus-panel__artist-link-btn"
+                onClick={() => onOpenArtist?.(artwork.artist_profile!)}
+                title={`Read biography of ${artwork.artist_profile.name}`}
+              >
+                👤 Read Artist Bio →
+              </button>
+            )}
+          </div>
         )}
         {(artwork.medium || artwork.year) && (
           <p className="focus-panel__medium">
@@ -54,7 +68,7 @@ export function FocusPanel({ artwork, onInspect, onClose }: FocusPanelProps) {
         <div className="focus-panel__audio">
           <audio
             controls
-            src={`/api/media/${artwork.media_file_id}`}
+            src={proxyMediaUrl(artwork.media_file_id, artwork.updated_at)}
             aria-label="Artwork audio track"
           />
         </div>
@@ -65,7 +79,7 @@ export function FocusPanel({ artwork, onInspect, onClose }: FocusPanelProps) {
         <div className="focus-panel__audio">
           <audio
             controls
-            src={`/api/media/${artwork.audio_guide_file_id}`}
+            src={proxyMediaUrl(artwork.audio_guide_file_id, artwork.updated_at)}
             aria-label="Audio guide"
           />
         </div>

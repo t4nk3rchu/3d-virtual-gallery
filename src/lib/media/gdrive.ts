@@ -50,7 +50,7 @@ export function extractGoogleDriveFileId(urlOrId: string): string | null {
  */
 export function getImageUrl(
   fileId: string,
-  tier: 'thumbnail' | 'gallery' | 'original'
+  tier: 'thumbnail' | 'gallery' | 'original' = 'thumbnail'
 ): string {
   if (
     fileId.startsWith('http://') ||
@@ -62,4 +62,19 @@ export function getImageUrl(
   }
   const size = tier === 'thumbnail' ? '=w400' : tier === 'gallery' ? '=w1600' : '=s0';
   return `https://lh3.googleusercontent.com/d/${fileId}${size}`;
+}
+
+/**
+ * Single chokepoint for proxy-served media URLs (GLB + audio).
+ * `version` (room.created_at for GLBs, artwork.updated_at for audio) segments
+ * the edge cache so recreated rooms / edited artworks never serve stale bytes.
+ */
+export function proxyMediaUrl(fileId: string, version?: string | number): string {
+  // Curator-provided direct link (or an already-built path) — use as-is, no proxy.
+  // Single place the "is this already a URL?" rule lives (was duplicated at call sites).
+  if (fileId.startsWith('http://') || fileId.startsWith('https://') || fileId.startsWith('/')) {
+    return fileId;
+  }
+  const base = `/api/media/${fileId}`;
+  return version == null || version === '' ? base : `${base}?v=${version}`;
 }

@@ -1,6 +1,8 @@
 import { useState, type MouseEvent } from 'react';
-import type { Artwork, ArtworkHotspot } from '../../types/schema';
+import type { Artwork, ArtworkHotspot, FrameConfig, HotspotTransition } from '../../types/schema';
 import { getImageUrl } from '../../lib/media/gdrive';
+import { HOTSPOT_TRANSITIONS, getHotspotAnimation } from '../../lib/viewer/hotspot-animations';
+import { HotspotTransitionPreview } from './HotspotTransitionPreview';
 
 interface HotspotEditorProps {
   artwork: Artwork;
@@ -23,6 +25,49 @@ export function HotspotEditor({
   const [audioFileId, setAudioFileId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const initialFrameConfig: FrameConfig = (() => {
+    try {
+      return artwork.frame_config_json ? JSON.parse(artwork.frame_config_json) : {};
+    } catch {
+      return {} as FrameConfig;
+    }
+  })();
+
+  const [transitionStyle, setTransitionStyle] = useState<HotspotTransition>(
+    initialFrameConfig.hotspotTransition || 'arc_dip'
+  );
+  const [savingTransition, setSavingTransition] = useState(false);
+  const [transitionSavedMsg, setTransitionSavedMsg] = useState<string | null>(null);
+
+  const handleTransitionChange = async (newStyle: HotspotTransition) => {
+    setTransitionStyle(newStyle);
+    setSavingTransition(true);
+    setTransitionSavedMsg(null);
+    try {
+      const updatedConfig: FrameConfig = {
+        ...initialFrameConfig,
+        hotspotTransition: newStyle,
+      };
+      const res = await fetch(`/api/artworks/${artwork.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          frame_config_json: JSON.stringify(updatedConfig),
+        }),
+      });
+      if (res.ok) {
+        artwork.frame_config_json = JSON.stringify(updatedConfig);
+        setTransitionSavedMsg('✓ Transition saved');
+        setTimeout(() => setTransitionSavedMsg(null), 3000);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setSavingTransition(false);
+    }
+  };
 
   const imageUrl = artwork.media_file_id
     ? getImageUrl(artwork.media_file_id, 'original')
@@ -125,6 +170,60 @@ export function HotspotEditor({
           <button className="btn btn--ghost" onClick={onClose} aria-label="Close">
             ×
           </button>
+        </div>
+
+        {/* Hotspot Camera Transition Selector Toolbar */}
+        <div
+          className="hotspot-transition-bar"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1.25rem',
+            padding: '0.75rem 1rem',
+            marginBottom: '1rem',
+            backgroundColor: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <label
+                htmlFor="hotspot-anim-select"
+                style={{ fontWeight: 600, fontSize: '0.9rem', color: '#e0e0e0', whiteSpace: 'nowrap' }}
+              >
+                🎥 Transition Animation:
+              </label>
+              <select
+                id="hotspot-anim-select"
+                value={transitionStyle}
+                onChange={(e) => handleTransitionChange(e.target.value as HotspotTransition)}
+                disabled={savingTransition}
+                className="input select"
+                style={{ minWidth: '220px', padding: '0.35rem 0.6rem' }}
+              >
+                {HOTSPOT_TRANSITIONS.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label} ({preset.durationMs}ms)
+                  </option>
+                ))}
+              </select>
+
+              {savingTransition && <span style={{ fontSize: '0.85rem', color: '#aaa' }}>Saving…</span>}
+              {transitionSavedMsg && (
+                <span style={{ fontSize: '0.85rem', color: '#4ade80', fontWeight: 600 }}>
+                  {transitionSavedMsg}
+                </span>
+              )}
+            </div>
+
+            <p style={{ margin: 0, fontSize: '0.82rem', color: '#a0a0a0' }}>
+              {getHotspotAnimation(transitionStyle).description}
+            </p>
+          </div>
+
+          <HotspotTransitionPreview transition={transitionStyle} />
         </div>
 
         <div className="hotspot-editor-layout">

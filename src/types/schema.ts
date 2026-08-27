@@ -48,11 +48,29 @@ export interface Exhibition {
   is_published: 0 | 1;
   cover_image_url: string | null;
   settings_json: string | null;    // JSON: { backgroundAudioFileId?, ambientLightIntensity?, defaultEyeHeight? }
+  intro_video_file_id: string | null;
+  curation_type: 'solo' | 'group';
   created_at: number;
   // No password_hash — phase 2
 }
 
 export type ExhibitionInput = Omit<Exhibition, 'id' | 'created_at'>;
+
+// ─── Artists ──────────────────────────────────────────────────────────────────
+export interface Artist {
+  id: string;
+  exhibition_id: string;
+  name: string;
+  life_dates?: string | null;
+  quote?: string | null;
+  biography?: string | null;
+  contact_info?: string | null;
+  portrait_file_id?: string | null;
+  order_index: number;
+  created_at: number;
+}
+
+export type ArtistInput = Omit<Artist, 'id' | 'created_at'>;
 
 // ─── Artworks ─────────────────────────────────────────────────────────────────
 export type ArtworkType = 'IMAGE_2D' | 'VIDEO' | 'AUDIO';
@@ -61,6 +79,7 @@ export type ArtworkType = 'IMAGE_2D' | 'VIDEO' | 'AUDIO';
 export interface Artwork {
   id: string;
   exhibition_id: string;
+  artist_id?: string | null;
   title: string;
   artist: string;
   year: string | null;
@@ -74,9 +93,17 @@ export interface Artwork {
   transform_json: string;           // JSON: { position:[x,y,z], rotation:[x,y,z], scale:[x,y,z] }
   frame_config_json: string;        // JSON: FrameConfig (see below)
   order_index: number;
+  updated_at: number;   // unix epoch; bumped on every edit (media cache versioning)
 }
 
-export type ArtworkInput = Omit<Artwork, 'id'>;
+export type ArtworkInput = Omit<Artwork, 'id' | 'updated_at'>;
+
+export type HotspotTransition =
+  | 'arc_dip'
+  | 'linear_glide'
+  | 'deep_pullback'
+  | 'instant_cut'
+  | 'spring_overshoot';
 
 export interface FrameConfig {
   frameType: 'wood' | 'metal_black' | 'float_white' | 'canvas_wrap' | 'none';
@@ -84,6 +111,7 @@ export interface FrameConfig {
   matWidth: number;
   matColor: string;
   showPlacard: boolean;
+  hotspotTransition?: HotspotTransition;
 }
 
 // ─── Hotspots ─────────────────────────────────────────────────────────────────
@@ -102,10 +130,16 @@ export type ArtworkHotspotInput = Omit<ArtworkHotspot, 'id'>;
 
 // ─── API shapes ───────────────────────────────────────────────────────────────
 
-/** Public exhibition payload (includes room + artworks + hotspots) */
+/** Public exhibition payload (includes room + artworks + hotspots + artists) */
 export interface ExhibitionDetail extends Exhibition {
   room: Room;
-  artworks: Array<Artwork & { hotspots: ArtworkHotspot[] }>;
+  artists?: Artist[];
+  artworks: Array<
+    Artwork & {
+      hotspots: ArtworkHotspot[];
+      artist_profile?: Artist | null;
+    }
+  >;
 }
 
 /** Analytics event types sent to /api/events */

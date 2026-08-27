@@ -11,7 +11,22 @@ import type {
   Exhibition, ExhibitionInput, ExhibitionDetail,
   Artwork, ArtworkInput,
   ArtworkHotspot, ArtworkHotspotInput,
+  Artist, ArtistInput,
 } from '../src/types/schema';
+
+const EXHIBITION_UPDATE_COLS = new Set([
+  'room_id', 'title', 'description', 'curator_name',
+  'start_date', 'end_date', 'is_published', 'cover_image_url', 'settings_json',
+  'intro_video_file_id', 'curation_type',
+]); // NOTE: slug and user_id are intentionally NOT updatable
+const ARTWORK_UPDATE_COLS = new Set([
+  'title', 'artist', 'year', 'medium', 'dimensions', 'description',
+  'artwork_type', 'media_file_id', 'youtube_video_id', 'audio_guide_file_id',
+  'transform_json', 'frame_config_json', 'order_index', 'artist_id',
+]);
+const ARTIST_UPDATE_COLS = new Set([
+  'name', 'life_dates', 'quote', 'biography', 'contact_info', 'portrait_file_id', 'order_index',
+]);
 
 // ─── Exhibitions ──────────────────────────────────────────────────────────────
 
@@ -48,6 +63,8 @@ export async function getExhibitionBySlug(
     is_published: row.is_published as 0 | 1,
     cover_image_url: row.cover_image_url as string | null,
     settings_json: row.settings_json as string | null,
+    intro_video_file_id: (row.intro_video_file_id as string | null) ?? null,
+    curation_type: ((row.curation_type as string | null) ?? 'solo') as 'solo' | 'group',
     created_at: row.created_at as number,
   };
 
@@ -64,22 +81,30 @@ export async function getExhibitionBySlug(
     created_at: row.r_created as number,
   };
 
+  const artists = await getArtistsForExhibition(db, exhibition.id);
+  const artistsMap = new Map<string, Artist>(artists.map((a) => [a.id, a]));
+
   const artworkRows = await db
     .prepare('SELECT * FROM artworks WHERE exhibition_id = ? ORDER BY order_index ASC')
     .bind(exhibition.id)
     .all<Artwork>();
 
-  const artworks: Array<Artwork & { hotspots: ArtworkHotspot[] }> = await Promise.all(
-    (artworkRows.results ?? []).map(async (a) => {
-      const hotspotRows = await db
-        .prepare('SELECT * FROM artwork_hotspots WHERE artwork_id = ?')
-        .bind(a.id)
-        .all<ArtworkHotspot>();
-      return { ...a, hotspots: hotspotRows.results ?? [] };
-    })
-  );
+  const artworks: Array<Artwork & { hotspots: ArtworkHotspot[]; artist_profile?: Artist | null }> =
+    await Promise.all(
+      (artworkRows.results ?? []).map(async (a) => {
+        const hotspotRows = await db
+          .prepare('SELECT * FROM artwork_hotspots WHERE artwork_id = ?')
+          .bind(a.id)
+          .all<ArtworkHotspot>();
+        return {
+          ...a,
+          hotspots: hotspotRows.results ?? [],
+          artist_profile: a.artist_id ? artistsMap.get(a.artist_id) ?? null : null,
+        };
+      })
+    );
 
-  return { ...exhibition, room, artworks };
+  return { ...exhibition, room, artworks, artists };
 }
 
 export async function getExhibitionById(
@@ -115,6 +140,8 @@ export async function getExhibitionById(
     is_published: row.is_published as 0 | 1,
     cover_image_url: row.cover_image_url as string | null,
     settings_json: row.settings_json as string | null,
+    intro_video_file_id: (row.intro_video_file_id as string | null) ?? null,
+    curation_type: ((row.curation_type as string | null) ?? 'solo') as 'solo' | 'group',
     created_at: row.created_at as number,
   };
 
@@ -131,22 +158,30 @@ export async function getExhibitionById(
     created_at: row.r_created as number,
   };
 
+  const artists = await getArtistsForExhibition(db, exhibition.id);
+  const artistsMap = new Map<string, Artist>(artists.map((a) => [a.id, a]));
+
   const artworkRows = await db
     .prepare('SELECT * FROM artworks WHERE exhibition_id = ? ORDER BY order_index ASC')
     .bind(exhibition.id)
     .all<Artwork>();
 
-  const artworks: Array<Artwork & { hotspots: ArtworkHotspot[] }> = await Promise.all(
-    (artworkRows.results ?? []).map(async (a) => {
-      const hotspotRows = await db
-        .prepare('SELECT * FROM artwork_hotspots WHERE artwork_id = ?')
-        .bind(a.id)
-        .all<ArtworkHotspot>();
-      return { ...a, hotspots: hotspotRows.results ?? [] };
-    })
-  );
+  const artworks: Array<Artwork & { hotspots: ArtworkHotspot[]; artist_profile?: Artist | null }> =
+    await Promise.all(
+      (artworkRows.results ?? []).map(async (a) => {
+        const hotspotRows = await db
+          .prepare('SELECT * FROM artwork_hotspots WHERE artwork_id = ?')
+          .bind(a.id)
+          .all<ArtworkHotspot>();
+        return {
+          ...a,
+          hotspots: hotspotRows.results ?? [],
+          artist_profile: a.artist_id ? artistsMap.get(a.artist_id) ?? null : null,
+        };
+      })
+    );
 
-  return { ...exhibition, room, artworks };
+  return { ...exhibition, room, artworks, artists };
 }
 
 export async function createExhibition(
@@ -160,19 +195,29 @@ export async function createExhibition(
     .prepare(
       `INSERT INTO exhibitions
          (id, user_id, room_id, title, slug, description, curator_name,
-          start_date, end_date, is_published, cover_image_url, settings_json, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          start_date, end_date, is_published, cover_image_url, settings_json,
+          intro_video_file_id, curation_type, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       id, input.user_id, input.room_id, input.title, input.slug,
       input.description ?? null, input.curator_name ?? null,
       input.start_date ?? null, input.end_date ?? null,
       input.is_published, input.cover_image_url ?? null,
-      input.settings_json ?? null, now
+      input.settings_json ?? null,
+      input.intro_video_file_id ?? null,
+      input.curation_type ?? 'solo',
+      now
     )
     .run();
 
-  return { id, ...input, created_at: now };
+  return {
+    id,
+    ...input,
+    intro_video_file_id: input.intro_video_file_id ?? null,
+    curation_type: input.curation_type ?? 'solo',
+    created_at: now,
+  };
 }
 
 export async function getExhibitionsByUser(
@@ -192,21 +237,14 @@ export async function updateExhibition(
   userId: string,
   patch: Partial<ExhibitionInput>
 ): Promise<boolean> {
-  const fields = Object.keys(patch)
-    .filter((k) => k !== 'user_id')
-    .map((k) => `${k} = ?`)
-    .join(', ');
-  if (!fields) return false;
-
-  const values = Object.entries(patch)
-    .filter(([k]) => k !== 'user_id')
-    .map(([, v]) => v);
-
+  const entries = Object.entries(patch).filter(([k]) => EXHIBITION_UPDATE_COLS.has(k));
+  if (entries.length === 0) return false;
+  const fields = entries.map(([k]) => `${k} = ?`).join(', ');
+  const values = entries.map(([, v]) => v);
   const result = await db
     .prepare(`UPDATE exhibitions SET ${fields} WHERE id = ? AND user_id = ?`)
     .bind(...values, id, userId)
     .run();
-
   return (result.meta?.changes ?? 0) > 0;
 }
 
@@ -262,14 +300,15 @@ export async function createArtworkRecord(
   input: ArtworkInput
 ): Promise<Artwork> {
   const id = crypto.randomUUID();
+  const now = Math.floor(Date.now() / 1000);
 
   await db
     .prepare(
       `INSERT INTO artworks
          (id, exhibition_id, title, artist, year, medium, dimensions, description,
           artwork_type, media_file_id, youtube_video_id, audio_guide_file_id,
-          transform_json, frame_config_json, order_index)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          transform_json, frame_config_json, order_index, updated_at, artist_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       id, input.exhibition_id, input.title, input.artist,
@@ -277,29 +316,31 @@ export async function createArtworkRecord(
       input.description ?? null, input.artwork_type,
       input.media_file_id ?? null, input.youtube_video_id ?? null,
       input.audio_guide_file_id ?? null, input.transform_json,
-      input.frame_config_json, input.order_index
+      input.frame_config_json, input.order_index, now,
+      input.artist_id ?? null
     )
     .run();
 
-  return { id, ...input };
+  return { id, ...input, artist_id: input.artist_id ?? null, updated_at: now };
 }
 
 export async function updateArtworkRecord(
   db: D1Database,
   id: string,
   exhibitionId: string,
-  patch: Partial<ArtworkInput>
+  patch: Record<string, unknown>
 ): Promise<boolean> {
-  const fields = Object.keys(patch).map((k) => `${k} = ?`).join(', ');
-  if (!fields) return false;
-
+  const entries = Object.entries(patch).filter(([k]) => ARTWORK_UPDATE_COLS.has(k));
+  if (entries.length === 0) return false; // no real field changed → don't bump updated_at / churn cache
+  const now = Math.floor(Date.now() / 1000);
+  const setParts = entries.map(([k]) => `${k} = ?`);
+  const values = entries.map(([, v]) => v);
+  setParts.push('updated_at = ?');
+  values.push(now);
   const result = await db
-    .prepare(
-      `UPDATE artworks SET ${fields} WHERE id = ? AND exhibition_id = ?`
-    )
-    .bind(...Object.values(patch), id, exhibitionId)
+    .prepare(`UPDATE artworks SET ${setParts.join(', ')} WHERE id = ? AND exhibition_id = ?`)
+    .bind(...values, id, exhibitionId)
     .run();
-
   return (result.meta?.changes ?? 0) > 0;
 }
 
@@ -427,4 +468,74 @@ export async function upsertGoogleUser(
     password_hash: null,
     role: 'curator',
   });
+}
+
+// ─── Artists ──────────────────────────────────────────────────────────────────
+
+export async function createArtistRecord(
+  db: D1Database,
+  input: ArtistInput
+): Promise<Artist> {
+  const id = crypto.randomUUID();
+  const now = Math.floor(Date.now() / 1000);
+
+  await db
+    .prepare(
+      `INSERT INTO artists
+         (id, exhibition_id, name, life_dates, quote, biography, contact_info, portrait_file_id, order_index, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      id, input.exhibition_id, input.name, input.life_dates ?? null,
+      input.quote ?? null, input.biography ?? null, input.contact_info ?? null,
+      input.portrait_file_id ?? null, input.order_index ?? 0, now
+    )
+    .run();
+
+  return { id, ...input, order_index: input.order_index ?? 0, created_at: now };
+}
+
+export async function getArtistsForExhibition(
+  db: D1Database,
+  exhibitionId: string
+): Promise<Artist[]> {
+  const result = await db
+    .prepare('SELECT * FROM artists WHERE exhibition_id = ? ORDER BY order_index ASC, created_at ASC')
+    .bind(exhibitionId)
+    .all<Artist>();
+  return result.results ?? [];
+}
+
+export async function getArtistById(
+  db: D1Database,
+  id: string
+): Promise<Artist | null> {
+  return db.prepare('SELECT * FROM artists WHERE id = ?').bind(id).first<Artist>();
+}
+
+export async function updateArtistRecord(
+  db: D1Database,
+  id: string,
+  patch: Record<string, unknown>
+): Promise<boolean> {
+  const entries = Object.entries(patch).filter(([k]) => ARTIST_UPDATE_COLS.has(k));
+  if (entries.length === 0) return false;
+  const setParts = entries.map(([k]) => `${k} = ?`);
+  const values = entries.map(([, v]) => v);
+  const result = await db
+    .prepare(`UPDATE artists SET ${setParts.join(', ')} WHERE id = ?`)
+    .bind(...values, id)
+    .run();
+  return (result.meta?.changes ?? 0) > 0;
+}
+
+export async function deleteArtistRecord(
+  db: D1Database,
+  id: string
+): Promise<boolean> {
+  const result = await db
+    .prepare('DELETE FROM artists WHERE id = ?')
+    .bind(id)
+    .run();
+  return (result.meta?.changes ?? 0) > 0;
 }

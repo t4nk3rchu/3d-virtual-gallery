@@ -86,7 +86,7 @@ Prerequisites: `wrangler` authenticated (`wrangler login`) to the account that o
    ```bash
    pnpm exec wrangler d1 migrations apply virtual-gallery-db --remote
    ```
-   Applies `0001`–`0004`. D1 migrations are forward-only — review before applying.
+   Applies **all pending migrations** in `migrations/` (currently `0001`–`0004`; later features add higher-numbered ones, e.g. the artist-profiles feature's `0005` — always apply whatever is present at deploy time, not a fixed range). D1 migrations are forward-only — review before applying.
 
 3. **Set secrets** (encrypted at rest; never commit these)
    ```bash

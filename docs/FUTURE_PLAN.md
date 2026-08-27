@@ -10,6 +10,7 @@
 - **Museum Plinth / Pedestal Customizer**: Procedural marble, wood, concrete, and brass plinths generated beneath 3D models.
 - **360° Turntable & Orbit Inspection**: Dedicated turntable rotation in inspect mode allowing visitors to spin and examine sculptures from all vertical and horizontal angles.
 - **Volumetric Bounding & Placement**: Automatic collision bounding boxes and gizmo snapping to pedestals and gallery floors.
+- **KTX2 / Basis GPU Texture Compression**: Deferred from phase 1 (rooms were simple and artwork images are CDN-served, so KTX2 added authoring burden for no measurable win). Re-introduce when curators bring heavy custom rooms (photogrammetry / high-res baked-lighting textures) and mobile GPU VRAM becomes a measured bottleneck. Requires self-hosting the `uastc_to_*` / `zstddec` / `basis_transcoder` decoder assets in `public/decoders/` and restoring `KhronosTextureContainer2.URLConfig` in `engine.ts`. Draco geometry compression remains enabled in phase 1.
 
 ---
 

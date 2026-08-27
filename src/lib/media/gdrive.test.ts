@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractGoogleDriveFileId, getImageUrl } from './gdrive';
+import { extractGoogleDriveFileId, getImageUrl, proxyMediaUrl } from './gdrive';
 
 describe('extractGoogleDriveFileId', () => {
   const VALID_ID = '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms';
@@ -56,5 +56,19 @@ describe('getImageUrl', () => {
     expect(getImageUrl(FILE_ID, 'original')).toBe(
       `https://lh3.googleusercontent.com/d/${FILE_ID}=s0`
     );
+  });
+});
+
+describe('proxyMediaUrl', () => {
+  it('builds a bare proxy url without a version', () => {
+    expect(proxyMediaUrl('fid')).toBe('/api/media/fid');
+  });
+  it('appends a version query param', () => {
+    expect(proxyMediaUrl('fid', 1712345678)).toBe('/api/media/fid?v=1712345678');
+  });
+  it('passes through direct URLs and paths unchanged (no proxy, no version)', () => {
+    expect(proxyMediaUrl('https://example.com/a.glb', 5)).toBe('https://example.com/a.glb');
+    expect(proxyMediaUrl('http://example.com/a.mp3')).toBe('http://example.com/a.mp3');
+    expect(proxyMediaUrl('/local/asset.glb', 5)).toBe('/local/asset.glb');
   });
 });

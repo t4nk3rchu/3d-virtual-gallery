@@ -34,6 +34,7 @@ const artworks: Artwork[] = [
     transform_json: '{}',
     frame_config_json: '{}',
     order_index: 0,
+    updated_at: 1712345678,
   },
   {
     id: 'art2',
@@ -51,6 +52,7 @@ const artworks: Artwork[] = [
     transform_json: '{}',
     frame_config_json: '{}',
     order_index: 1,
+    updated_at: 1712345678,
   },
 ];
 

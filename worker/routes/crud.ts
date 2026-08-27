@@ -19,6 +19,11 @@ import {
   deleteArtworkRecord,
   createHotspot,
   deleteHotspot,
+  createArtistRecord,
+  getArtistsForExhibition,
+  getArtistById,
+  updateArtistRecord,
+  deleteArtistRecord,
 } from '../db';
 import { warmCache } from '../media-proxy';
 
@@ -91,6 +96,13 @@ export async function handleExhibitionById(
     // Strip user_id from patch — ownership is enforced by WHERE user_id = ?
     const { user_id: _drop, ...patch } = body;
 
+    if (typeof patch.room_id === 'string') {
+      const rooms = await getRoomsForUser(env.DB, auth.sub); // returns owned + public rooms
+      if (!rooms.some((r) => r.id === patch.room_id)) {
+        return json({ error: 'Room not found or not accessible' }, 403);
+      }
+    }
+
     const updated = await updateExhibition(env.DB, id, auth.sub, patch as never);
     if (!updated) return json({ error: 'Not found or not authorized' }, 404);
 
@@ -99,14 +111,14 @@ export async function handleExhibitionById(
       const detail = await getExhibitionById(env.DB, id, auth.sub);
       if (detail && ctx) {
         if (detail.room?.glb_file_id) {
-          ctx.waitUntil(warmCache(detail.room.glb_file_id, ctx));
+          ctx.waitUntil(warmCache(detail.room.glb_file_id, ctx, String(detail.room.created_at)));
         }
         for (const art of detail.artworks || []) {
           if (art.media_file_id) {
-            ctx.waitUntil(warmCache(art.media_file_id, ctx));
+            ctx.waitUntil(warmCache(art.media_file_id, ctx, String(art.updated_at)));
           }
           if (art.audio_guide_file_id) {
-            ctx.waitUntil(warmCache(art.audio_guide_file_id, ctx));
+            ctx.waitUntil(warmCache(art.audio_guide_file_id, ctx, String(art.updated_at)));
           }
         }
       }
@@ -209,6 +221,7 @@ export async function handleArtworks(
       transform_json: (body.transform_json as string) ?? '{"position":[0,1,0],"rotation":[0,0,0],"scale":[1,1,1]}',
       frame_config_json: (body.frame_config_json as string) ?? '{"frameType":"wood","frameWidth":0.05,"matWidth":0.03,"matColor":"#FFFFFF","showPlacard":true}',
       order_index: (body.order_index as number) ?? 0,
+      artist_id: (body.artist_id as string) ?? null,
     });
 
     return json(artwork, 201);
@@ -313,6 +326,81 @@ export async function handleHotspotById(
 
   if (req.method === 'DELETE') {
     await deleteHotspot(env.DB, id, row.artwork_id);
+    return json({ ok: true });
+  }
+
+  return json({ error: 'Method Not Allowed' }, 405);
+}
+
+// ─── Artists ──────────────────────────────────────────────────────────────────
+
+export async function handleExhibitionArtists(
+  req: Request,
+  env: Env,
+  auth: JwtPayload,
+  exhibitionId: string
+): Promise<Response> {
+  if (req.method === 'GET') {
+    // Owner-only: the public viewer gets artists via the publish-checked by-slug
+    // endpoint. This studio route must not leak other curators' (or draft) artists.
+    const owner = await getExhibitionOwner(env, exhibitionId);
+    if (owner !== auth.sub) return json({ error: 'Forbidden' }, 403);
+
+    const artists = await getArtistsForExhibition(env.DB, exhibitionId);
+    return json(artists);
+  }
+  return json({ error: 'Method Not Allowed' }, 405);
+}
+
+export async function handleArtists(
+  req: Request,
+  env: Env,
+  auth: JwtPayload
+): Promise<Response> {
+  if (req.method === 'POST') {
+    const body = await req.json<Record<string, unknown>>();
+    const { exhibition_id, name } = body;
+    if (!exhibition_id || !name) {
+      return json({ error: 'Missing exhibition_id or name' }, 400);
+    }
+    const owner = await getExhibitionOwner(env, exhibition_id as string);
+    if (owner !== auth.sub) return json({ error: 'Forbidden' }, 403);
+
+    const artist = await createArtistRecord(env.DB, {
+      exhibition_id: exhibition_id as string,
+      name: name as string,
+      life_dates: (body.life_dates as string) ?? null,
+      quote: (body.quote as string) ?? null,
+      biography: (body.biography as string) ?? null,
+      contact_info: (body.contact_info as string) ?? null,
+      portrait_file_id: (body.portrait_file_id as string) ?? null,
+      order_index: (body.order_index as number) ?? 0,
+    });
+    return json(artist, 201);
+  }
+  return json({ error: 'Method Not Allowed' }, 405);
+}
+
+export async function handleArtistById(
+  req: Request,
+  env: Env,
+  auth: JwtPayload,
+  id: string
+): Promise<Response> {
+  const artist = await getArtistById(env.DB, id);
+  if (!artist) return json({ error: 'Not found' }, 404);
+
+  const owner = await getExhibitionOwner(env, artist.exhibition_id);
+  if (owner !== auth.sub) return json({ error: 'Forbidden' }, 403);
+
+  if (req.method === 'PUT') {
+    const body = await req.json<Record<string, unknown>>();
+    await updateArtistRecord(env.DB, id, body as never);
+    return json({ ok: true });
+  }
+
+  if (req.method === 'DELETE') {
+    await deleteArtistRecord(env.DB, id);
     return json({ ok: true });
   }
 

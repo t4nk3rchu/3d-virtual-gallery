@@ -4,6 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateGlbFile } from './validation';
 import { serializeTransform, deserializeTransform, isValidTransform } from './transform';
+import { buildExhibitionPatch } from './exhibition-patch';
 
 // ─── GLB validation tests ─────────────────────────────────────────────────────
 describe('validateGlbFile', () => {
@@ -81,5 +82,51 @@ describe('transform serialization', () => {
   it('isValidTransform: false for zero scale', () => {
     const zero = { ...transform, scale: [0, 1, 1] as [number, number, number] };
     expect(isValidTransform(serializeTransform(zero))).toBe(false);
+  });
+});
+
+// ─── Exhibition patch builder tests ──────────────────────────────────────────
+describe('buildExhibitionPatch', () => {
+  it('omits slug, keeps set values, and clears blanked optional fields', () => {
+    const patch = buildExhibitionPatch({
+      title: 'T',
+      slug: 'should-be-dropped',
+      description: '', // blanked optional field → cleared (null), not dropped
+      curator_name: 'C',
+      room_id: 'r1',
+    });
+    expect(patch).toEqual({ title: 'T', description: null, curator_name: 'C', room_id: 'r1' });
+    expect('slug' in patch).toBe(false);
+  });
+
+  it('never nulls required NOT-NULL columns when blank', () => {
+    const patch = buildExhibitionPatch({ title: '', room_id: '', curator_name: 'C' });
+    // title/room_id dropped (would violate NOT NULL); curator_name kept
+    expect(patch).toEqual({ curator_name: 'C' });
+  });
+
+  it('sends null to clear each optional field a curator blanks', () => {
+    const patch = buildExhibitionPatch({
+      title: 'T',
+      room_id: 'r1',
+      description: '',
+      curator_name: '',
+      cover_image_url: '',
+      start_date: '',
+      end_date: '',
+      intro_video_file_id: '',
+      curation_type: 'group',
+    });
+    expect(patch).toEqual({
+      title: 'T',
+      room_id: 'r1',
+      description: null,
+      curator_name: null,
+      cover_image_url: null,
+      start_date: null,
+      end_date: null,
+      intro_video_file_id: null,
+      curation_type: 'group',
+    });
   });
 });

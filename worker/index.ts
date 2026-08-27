@@ -21,6 +21,9 @@ import {
   handleArtworkById,
   handleHotspots,
   handleHotspotById,
+  handleArtists,
+  handleArtistById,
+  handleExhibitionArtists,
 } from './routes/crud';
 import { handleEvents } from './routes/events';
 
@@ -111,6 +114,12 @@ export default {
       return handleExhibitions(req, env, auth);
     }
 
+    // Exhibition Artists list
+    const exhibitionArtistsMatch = path.match(/^\/api\/exhibitions\/([^/]+)\/artists$/);
+    if (exhibitionArtistsMatch) {
+      return handleExhibitionArtists(req, env, auth, exhibitionArtistsMatch[1]);
+    }
+
     // Exhibition by ID
     const exhibitionIdMatch = path.match(/^\/api\/exhibitions\/([^/]+)$/);
     if (exhibitionIdMatch) {
@@ -120,6 +129,16 @@ export default {
     // Rooms
     if (path === '/api/rooms') {
       return handleRooms(req, env, auth);
+    }
+
+    // Artists CRUD
+    if (path === '/api/artists') {
+      return handleArtists(req, env, auth);
+    }
+
+    const artistIdMatch = path.match(/^\/api\/artists\/([^/]+)$/);
+    if (artistIdMatch) {
+      return handleArtistById(req, env, auth, artistIdMatch[1]);
     }
 
     // Artworks

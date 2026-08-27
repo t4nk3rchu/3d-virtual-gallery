@@ -16,20 +16,27 @@ import {
   useRef,
   useEffect,
   useCallback,
+  useMemo,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
   type MouseEvent as ReactMouseEvent,
 } from 'react';
-import type { Artwork, ArtworkHotspot } from '../../types/schema';
-import { getImageUrl } from '../../lib/media/gdrive';
+import type { Artwork, ArtworkHotspot, FrameConfig, Artist } from '../../types/schema';
+import { getImageUrl, proxyMediaUrl } from '../../lib/media/gdrive';
 import { HotspotOverlay } from './HotspotOverlay';
 import { type ViewerSettings, getStoredViewerSettings } from './SettingsModal';
+import {
+  getHotspotAnimation,
+  type HotspotAnimationState,
+  type HotspotAnimationPreset,
+} from '../../lib/viewer/hotspot-animations';
 
 interface InspectLightboxProps {
-  artwork: Artwork;
+  artwork: Artwork & { artist_profile?: Artist | null };
   hotspots: ArtworkHotspot[];
   onClose(): void;
   onAudioSeek?(seconds: number): void;
+  onOpenArtist?(artist: Artist): void;
   settings?: ViewerSettings;
 }
 
@@ -41,16 +48,12 @@ interface TransformState {
   ry: number;
 }
 
-interface DipAnimation {
-  from: { s: number; x: number; y: number };
-  to: { s: number; x: number; y: number };
-  dipDrop: number;
-  dur: number;
+interface ActiveHotspotFlight {
+  from: HotspotAnimationState;
+  to: HotspotAnimationState;
+  preset: HotspotAnimationPreset;
+  overviewScale: number;
   start: number;
-}
-
-function easeInOutCubic(t: number): number {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
 export function InspectLightbox({
@@ -58,12 +61,24 @@ export function InspectLightbox({
   hotspots,
   onClose,
   onAudioSeek,
+  onOpenArtist,
   settings: propSettings,
 }: InspectLightboxProps) {
   const settings = propSettings || getStoredViewerSettings();
   const [activeHotspotIndex, setActiveHotspotIndex] = useState<number>(-1);
   const [showHotspotList, setShowHotspotList] = useState<boolean>(false);
+  const [isSidebarMinimized, setIsSidebarMinimized] = useState<boolean>(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+
+  const frameConfig = useMemo<FrameConfig | null>(() => {
+    try {
+      return artwork.frame_config_json ? JSON.parse(artwork.frame_config_json) : null;
+    } catch {
+      return null;
+    }
+  }, [artwork.frame_config_json]);
+
+  const activeTransition = frameConfig?.hotspotTransition ?? 'arc_dip';
 
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -72,7 +87,7 @@ export function InspectLightbox({
 
   const cur = useRef<TransformState>({ s: 1, x: 0, y: 0, rx: 0, ry: 0 });
   const tgt = useRef<TransformState>({ s: 1, x: 0, y: 0, rx: 0, ry: 0 });
-  const anim = useRef<DipAnimation | null>(null);
+  const anim = useRef<ActiveHotspotFlight | null>(null);
 
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   const mode = useRef<'pan' | 'tilt' | 'pinch' | null>(null);
@@ -118,14 +133,20 @@ export function InspectLightbox({
 
       if (anim.current) {
         const elapsed = performance.now() - anim.current.start;
-        const t0 = elapsed / anim.current.dur;
+        const dur = anim.current.preset.durationMs;
+        const t0 = elapsed / dur;
         const t = Math.max(0, Math.min(1, t0));
-        const k = easeInOutCubic(t);
 
-        cur.current.x = anim.current.from.x + (anim.current.to.x - anim.current.from.x) * k;
-        cur.current.y = anim.current.from.y + (anim.current.to.y - anim.current.from.y) * k;
-        const baseS = anim.current.from.s + (anim.current.to.s - anim.current.from.s) * k;
-        cur.current.s = Math.max(0.2, baseS - anim.current.dipDrop * Math.sin(Math.PI * t));
+        const next = anim.current.preset.interpolate(
+          anim.current.from,
+          anim.current.to,
+          t,
+          anim.current.overviewScale
+        );
+
+        cur.current.x = next.x;
+        cur.current.y = next.y;
+        cur.current.s = next.s;
 
         if (t0 >= 1) {
           tgt.current.s = cur.current.s;
@@ -158,21 +179,31 @@ export function InspectLightbox({
     return () => cancelAnimationFrame(reqId);
   }, []);
 
-  // Cinematic "Dip" Arc Flight
-  const triggerDipFlight = useCallback((to: { s: number; x: number; y: number }) => {
-    const from = { s: cur.current.s, x: cur.current.x, y: cur.current.y };
-    const midS = (from.s + to.s) / 2;
-    const dipS = Math.max(0.4, midS * 0.65); // 35% zoom dip mid-flight
-    const dipDrop = Math.max(0, midS - dipS);
+  // Configured Hotspot Transition Flight
+  const triggerTransitionFlight = useCallback(
+    (to: { s: number; x: number; y: number }) => {
+      const from = { s: cur.current.s, x: cur.current.x, y: cur.current.y };
+      const preset = getHotspotAnimation(activeTransition);
 
-    anim.current = {
-      from,
-      to,
-      dipDrop,
-      dur: 1100, // 1.1s smooth drone flight
-      start: performance.now(),
-    };
-  }, []);
+      const vp = viewportRef.current;
+      const img = imgRef.current;
+      let overviewScale = 0.5;
+      if (vp && img && img.naturalWidth && img.naturalHeight) {
+        const vw = vp.clientWidth || window.innerWidth;
+        const vh = vp.clientHeight || window.innerHeight;
+        overviewScale = Math.min((vw * 0.82) / img.naturalWidth, (vh * 0.82) / img.naturalHeight, 1.2);
+      }
+
+      anim.current = {
+        from,
+        to,
+        preset,
+        overviewScale,
+        start: performance.now(),
+      };
+    },
+    [activeTransition]
+  );
 
   // Focus a specific hotspot index (direct zoom vs flight arc)
   const focusHotspot = useCallback(
@@ -203,8 +234,8 @@ export function InspectLightbox({
       const toY = vh / 2 - py * targetScale;
 
       if (useFlightArc) {
-        // Flight arc dip animation for list & detail nav
-        triggerDipFlight({ s: targetScale, x: toX, y: toY });
+        // Flight transition animation for list & detail nav
+        triggerTransitionFlight({ s: targetScale, x: toX, y: toY });
       } else {
         // Direct zoom in for pin clicks
         anim.current = null;
@@ -221,7 +252,7 @@ export function InspectLightbox({
         onAudioSeek(h.audio_timestamp_seconds);
       }
     },
-    [hotspots, onAudioSeek, triggerDipFlight]
+    [hotspots, onAudioSeek, triggerTransitionFlight]
   );
 
   // Pointer event handlers
@@ -361,9 +392,7 @@ export function InspectLightbox({
 
   const resolveAudioUrl = (fileId: string | null) => {
     if (!fileId) return null;
-    return fileId.startsWith('http://') || fileId.startsWith('https://') || fileId.startsWith('/')
-      ? fileId
-      : `/api/media/${fileId}`;
+    return proxyMediaUrl(fileId, artwork.updated_at); // passthrough handles direct URLs
   };
 
   return (
@@ -379,7 +408,19 @@ export function InspectLightbox({
         <div className="inspect-lightbox__title-info">
           <span className="eyebrow">Inspect Mode</span>
           <h2>{artwork.title}</h2>
-          {artwork.artist && <p className="artist">{artwork.artist}</p>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.2rem' }}>
+            {artwork.artist && <p className="artist" style={{ margin: 0 }}>{artwork.artist}</p>}
+            {artwork.artist_profile && (
+              <button
+                type="button"
+                className="btn btn--sm btn--ghost inspect-artist-link"
+                onClick={() => onOpenArtist?.(artwork.artist_profile!)}
+                title={`Read about ${artwork.artist_profile.name}`}
+              >
+                👤 About {artwork.artist_profile.name}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="inspect-lightbox__header-actions">
@@ -481,7 +522,12 @@ export function InspectLightbox({
 
         {/* Side Panel: Active Hotspot Detail OR Hotspots List */}
         {(activeHotspot || showHotspotList) && (
-          <aside className="inspect-lightbox__sidebar" aria-label="Hotspot Details">
+          <aside
+            className={`inspect-lightbox__sidebar ${
+              !showHotspotList && isSidebarMinimized ? 'inspect-lightbox__sidebar--minimized' : ''
+            }`}
+            aria-label="Hotspot Details"
+          >
             {showHotspotList ? (
               <div className="hotspots-list-view">
                 <div className="sidebar-header">
@@ -524,13 +570,24 @@ export function InspectLightbox({
                   <span className="detail-badge">
                     Detail {String(activeHotspotIndex + 1).padStart(2, '0')} of {String(hotspots.length).padStart(2, '0')}
                   </span>
-                  <button
-                    type="button"
-                    className="sidebar-close"
-                    onClick={() => setActiveHotspotIndex(-1)}
-                  >
-                    ✕
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <button
+                      type="button"
+                      className="sidebar-minimize-btn"
+                      onClick={() => setIsSidebarMinimized(!isSidebarMinimized)}
+                      title={isSidebarMinimized ? 'Expand full panel' : 'Minimize to compact text card'}
+                    >
+                      {isSidebarMinimized ? '🗖 Expand' : '🗕 Minimize'}
+                    </button>
+                    <button
+                      type="button"
+                      className="sidebar-close"
+                      onClick={() => setActiveHotspotIndex(-1)}
+                      title="Close panel"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
 
                 <h3 className="hotspot-detail-title">{activeHotspot.title}</h3>

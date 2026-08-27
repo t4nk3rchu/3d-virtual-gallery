@@ -18,9 +18,12 @@
 const FILE_ID_RE = /^[a-zA-Z0-9_-]+$/;
 const DRIVE_DOWNLOAD_BASE = 'https://drive.google.com/uc?export=download&id=';
 
-// Range-agnostic cache key — a single full-body entry regardless of requested range.
-function cacheKey(fileId: string): Request {
-  return new Request(`https://media/${fileId}`);
+// Range-agnostic cache key. Version (?v=) segments the key so a recreated room
+// (new created_at) or edited artwork (new updated_at) never serves stale bytes,
+// even when the Google Drive fileId is reused (overwrite-in-place). Spec §4.1.1.
+function cacheKey(fileId: string, version?: string): Request {
+  const suffix = version ? `?v=${encodeURIComponent(version)}` : '';
+  return new Request(`https://media/${fileId}${suffix}`);
 }
 
 /**
@@ -151,8 +154,10 @@ export async function handleMediaProxy(
     return new Response('Invalid file ID', { status: 400 });
   }
 
+  const url = new URL(req.url);
+  const version = url.searchParams.get('v') ?? undefined;
   const cache = caches.default;
-  const key = cacheKey(fileId);
+  const key = cacheKey(fileId, version);
 
   // Bug #1 fix: explicit cache.match — setting Cache-Control alone does NOT cache
   let full = await cache.match(key);
@@ -189,11 +194,11 @@ export async function handleMediaProxy(
  * Pre-warm the edge cache for a file at publish time (spec §4.1 #6).
  * Called with ctx.waitUntil from the publish route so it doesn't block the response.
  */
-export async function warmCache(fileId: string, ctx: ExecutionContext): Promise<void> {
+export async function warmCache(fileId: string, ctx: ExecutionContext, version?: string): Promise<void> {
   if (!fileId || !FILE_ID_RE.test(fileId)) return;
 
   const cache = caches.default;
-  const key = cacheKey(fileId);
+  const key = cacheKey(fileId, version);
 
   // Only fetch if not already cached
   const existing = await cache.match(key);

@@ -18,6 +18,7 @@ import {
   Vector3,
 } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
+import { proxyMediaUrl } from '../media/gdrive';
 
 export interface LoadProgress {
   total: number;
@@ -196,7 +197,8 @@ export function createProceduralGalleryRoom(
 export async function loadGlbRoom(
   scene: Scene,
   glbFileId: string,
-  onProgress: (p: LoadProgress) => void
+  onProgress: (p: LoadProgress) => void,
+  version?: string | number
 ): Promise<AbstractMesh[]> {
   // Built-in procedural gallery room templates
   if (!glbFileId || glbFileId.startsWith('default-') || glbFileId === 'procedural') {
@@ -209,8 +211,7 @@ export async function loadGlbRoom(
     return createProceduralGalleryRoom(scene, variant);
   }
 
-  const isDirectUrl = glbFileId.startsWith('http://') || glbFileId.startsWith('https://') || glbFileId.startsWith('/');
-  const loadUrl = isDirectUrl ? glbFileId : `/api/media/${glbFileId}`;
+  const loadUrl = proxyMediaUrl(glbFileId, version); // passthrough handles direct URLs
 
   try {
     const result = await SceneLoader.AppendAsync(

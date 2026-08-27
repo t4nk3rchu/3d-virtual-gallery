@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react';
-import type { Artwork, ArtworkType, FrameConfig } from '../../types/schema';
+import type { Artwork, ArtworkType, FrameConfig, Artist } from '../../types/schema';
 import { extractGoogleDriveFileId, getImageUrl } from '../../lib/media/gdrive';
 import { parseYouTubeVideoId } from '../../lib/media/youtube';
 
 interface ArtworkFormProps {
   exhibitionId: string;
   artwork?: Artwork | null;
+  artists?: Artist[];
   onSaved(artwork: Artwork): void;
   onCancel(): void;
 }
@@ -13,6 +14,7 @@ interface ArtworkFormProps {
 export function ArtworkForm({
   exhibitionId,
   artwork,
+  artists = [],
   onSaved,
   onCancel,
 }: ArtworkFormProps) {
@@ -20,6 +22,7 @@ export function ArtworkForm({
 
   const [title, setTitle] = useState(artwork?.title ?? '');
   const [artist, setArtist] = useState(artwork?.artist ?? '');
+  const [artistId, setArtistId] = useState<string>(artwork?.artist_id ?? '');
   const [year, setYear] = useState(artwork?.year ?? '');
   const [medium, setMedium] = useState(artwork?.medium ?? '');
   const [dimensions, setDimensions] = useState(artwork?.dimensions ?? '');
@@ -96,6 +99,7 @@ export function ArtworkForm({
       exhibition_id: exhibitionId,
       title: title.trim() || 'Untitled',
       artist: artist.trim(),
+      artist_id: artistId || null,
       year: year.trim() || null,
       medium: medium.trim() || null,
       dimensions: dimensions.trim() || null,
@@ -139,7 +143,7 @@ export function ArtworkForm({
         onSaved(created);
       }
     } catch {
-      setError('Network error saving artwork.');
+      setError('Network error while saving artwork.');
     } finally {
       setSubmitting(false);
     }
@@ -231,7 +235,7 @@ export function ArtworkForm({
                 type="text"
                 value={youtubeInput}
                 onChange={(e) => setYoutubeInput(e.target.value)}
-                placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ or 11-char ID"
+                placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
                 required
                 className="input"
               />
@@ -301,11 +305,11 @@ export function ArtworkForm({
                     }
                     className="input select"
                   >
-                    <option value="wood">Classic Walnut Wood</option>
-                    <option value="metal_black">Minimalist Black Metal</option>
-                    <option value="float_white">Gallery Floating White</option>
-                    <option value="canvas_wrap">Frameless Canvas Wrap</option>
-                    <option value="none">No Frame</option>
+                    <option value="wood">Natural Wood</option>
+                    <option value="gold">Ornate Gold</option>
+                    <option value="black_matte">Matte Black</option>
+                    <option value="white">Minimal White</option>
+                    <option value="none">Frameless / Canvas Wrap</option>
                   </select>
                 </div>
 
@@ -315,13 +319,13 @@ export function ArtworkForm({
                     id="frame-width"
                     type="number"
                     step="0.01"
-                    min="0"
-                    max="0.3"
+                    min="0.01"
+                    max="0.2"
                     value={frameConfig.frameWidth}
                     onChange={(e) =>
                       setFrameConfig({
                         ...frameConfig,
-                        frameWidth: parseFloat(e.target.value) || 0,
+                        frameWidth: parseFloat(e.target.value) || 0.05,
                       })
                     }
                     className="input"
@@ -383,7 +387,10 @@ export function ArtworkForm({
               />
             </div>
             <div className="form-group">
-              <label htmlFor="art-artist" className="form-label">Artist</label>
+              <label htmlFor="art-artist" className="form-label">
+                Artist Name
+                {artists.length > 0 && <span className="hint"> (or link to profile below)</span>}
+              </label>
               <input
                 id="art-artist"
                 type="text"
@@ -394,6 +401,34 @@ export function ArtworkForm({
               />
             </div>
           </div>
+
+          {artists.length > 0 && (
+            <div className="form-group">
+              <label htmlFor="art-artist-profile" className="form-label">
+                👤 Link to Exhibition Artist Profile
+              </label>
+              <select
+                id="art-artist-profile"
+                className="input select"
+                value={artistId}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  setArtistId(selectedId);
+                  const matched = artists.find((a) => a.id === selectedId);
+                  if (matched && (!artist || artist === '')) {
+                    setArtist(matched.name);
+                  }
+                }}
+              >
+                <option value="">-- No linked artist profile --</option>
+                {artists.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} {a.life_dates ? `(${a.life_dates})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="form-row">
             <div className="form-group">

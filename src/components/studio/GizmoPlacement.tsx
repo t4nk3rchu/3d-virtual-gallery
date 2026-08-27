@@ -201,7 +201,7 @@ export function GizmoPlacement({
 
       // Load Room
       try {
-        await loadGlbRoom(scene, room.glb_file_id, () => {});
+        await loadGlbRoom(scene, room.glb_file_id, () => {}, room.created_at);
       } catch (e) {
         console.error('[studio-gizmo] Failed to load room GLB:', e);
       }
