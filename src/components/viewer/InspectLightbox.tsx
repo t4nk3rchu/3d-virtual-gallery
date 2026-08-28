@@ -67,8 +67,66 @@ export function InspectLightbox({
   const settings = propSettings || getStoredViewerSettings();
   const [activeHotspotIndex, setActiveHotspotIndex] = useState<number>(-1);
   const [showHotspotList, setShowHotspotList] = useState<boolean>(false);
-  const [isSidebarMinimized, setIsSidebarMinimized] = useState<boolean>(false);
+  const [showHotspotInfo, setShowHotspotInfo] = useState<boolean>(false);
+  const [isDescExpanded, setIsDescExpanded] = useState<boolean>(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
+
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth <= 768 || window.innerHeight <= 520 : false
+  );
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768 || window.innerHeight <= 520);
+    };
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const [isSidebarMinimized, setIsSidebarMinimized] = useState<boolean>(false);
+  const [minCardPos, setMinCardPos] = useState<{ x: number; y: number } | null>(null);
+  const isDraggingCard = useRef<boolean>(false);
+  const dragCardOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const onCardPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName.toLowerCase() === 'button' || target.closest('button')) {
+      return;
+    }
+    const cardEl = e.currentTarget.closest('.inspect-lightbox__sidebar') as HTMLElement | null;
+    if (!cardEl) return;
+    const rect = cardEl.getBoundingClientRect();
+    dragCardOffset.current = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+    isDraggingCard.current = true;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+  };
+
+  const onCardPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingCard.current) return;
+    const newX = Math.max(10, Math.min(window.innerWidth - 350, e.clientX - dragCardOffset.current.x));
+    const newY = Math.max(70, Math.min(window.innerHeight - 180, e.clientY - dragCardOffset.current.y));
+    setMinCardPos({ x: newX, y: newY });
+  };
+
+  const onCardPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDraggingCard.current) {
+      isDraggingCard.current = false;
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
+    }
+  };
 
   const frameConfig = useMemo<FrameConfig | null>(() => {
     try {
@@ -95,9 +153,18 @@ export function InspectLightbox({
   const tiltStart = useRef<{ x: number; y: number; rx: number; ry: number } | null>(null);
   const pinchStart = useRef<{ dist: number; scale: number; mid: { x: number; y: number } } | null>(null);
 
-  const imageUrl = artwork.media_file_id
+  const primaryUrl = artwork.media_file_id
+    ? proxyMediaUrl(artwork.media_file_id, artwork.updated_at)
+    : null;
+  const fallbackUrl = artwork.media_file_id
     ? getImageUrl(artwork.media_file_id, 'original')
     : null;
+
+  const [currentSrc, setCurrentSrc] = useState<string | null>(primaryUrl);
+
+  useEffect(() => {
+    setCurrentSrc(primaryUrl);
+  }, [primaryUrl]);
 
   const activeHotspot = activeHotspotIndex >= 0 ? hotspots[activeHotspotIndex] : null;
 
@@ -112,8 +179,10 @@ export function InspectLightbox({
     const iw = img.naturalWidth;
     const ih = img.naturalHeight;
 
-    const scale = Math.min((vw * 0.82) / iw, (vh * 0.82) / ih, 1.2);
-    const clampedScale = Math.max(0.3, Math.min(3, scale));
+    const marginW = vw < 640 ? 0.94 : 0.88;
+    const marginH = vh < 500 ? 0.92 : 0.86;
+    const scale = Math.min((vw * marginW) / iw, (vh * marginH) / ih);
+    const clampedScale = Math.max(0.001, scale);
     const toX = (vw - iw * clampedScale) / 2;
     const toY = (vh - ih * clampedScale) / 2;
 
@@ -122,6 +191,15 @@ export function InspectLightbox({
       cur.current = { ...tgt.current };
     }
   }, []);
+
+  // Handle window resize / orientation changes
+  useEffect(() => {
+    const handleResize = () => {
+      fitToScreen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [fitToScreen]);
 
   // Physics animation tick loop
   useEffect(() => {
@@ -191,7 +269,7 @@ export function InspectLightbox({
       if (vp && img && img.naturalWidth && img.naturalHeight) {
         const vw = vp.clientWidth || window.innerWidth;
         const vh = vp.clientHeight || window.innerHeight;
-        overviewScale = Math.min((vw * 0.82) / img.naturalWidth, (vh * 0.82) / img.naturalHeight, 1.2);
+        overviewScale = Math.min((vw * 0.88) / img.naturalWidth, (vh * 0.86) / img.naturalHeight);
       }
 
       anim.current = {
@@ -210,6 +288,7 @@ export function InspectLightbox({
     (index: number, useFlightArc = false) => {
       if (index < 0 || index >= hotspots.length) {
         setActiveHotspotIndex(-1);
+        setShowHotspotInfo(false);
         return;
       }
 
@@ -228,9 +307,7 @@ export function InspectLightbox({
       const px = (h.x_percent / 100) * iw;
       const py = (h.y_percent / 100) * ih;
 
-      // Shift slightly to the left if side panel will be visible
-      const offsetX = vw > 768 ? -80 : 0;
-      const toX = vw / 2 - px * targetScale + offsetX;
+      const toX = vw / 2 - px * targetScale;
       const toY = vh / 2 - py * targetScale;
 
       if (useFlightArc) {
@@ -264,9 +341,9 @@ export function InspectLightbox({
       // Ignore clicks on hotspot pins, cards, controls, sidebars, or headers
       if (
         (e.target as HTMLElement).closest('.hotspot-pin') ||
-        (e.target as HTMLElement).closest('.hotspot-card') ||
+        (e.target as HTMLElement).closest('.inspect-hotspot-info-modal') ||
+        (e.target as HTMLElement).closest('.inspect-lightbox__drawer') ||
         (e.target as HTMLElement).closest('.inspect-lightbox__controls') ||
-        (e.target as HTMLElement).closest('.inspect-lightbox__sidebar') ||
         (e.target as HTMLElement).closest('.inspect-lightbox__header')
       ) {
         return;
@@ -302,8 +379,9 @@ export function InspectLightbox({
           rx: cur.current.rx,
           ry: cur.current.ry,
         };
-      } else if (e.button === 0) {
-        // Left-click drag: Pan
+        panStart.current = null;
+      } else if (e.button === 0 || e.pointerType === 'touch') {
+        // Left-click / Touch drag: Pan
         mode.current = 'pan';
         panStart.current = {
           x: e.clientX,
@@ -311,89 +389,159 @@ export function InspectLightbox({
           tx: cur.current.x,
           ty: cur.current.y,
         };
+        tiltStart.current = null;
       }
     },
     [settings.tiltEnabled]
   );
 
-  const onPointerMove = useCallback(
-    (e: ReactPointerEvent) => {
-      if (!pointers.current.has(e.pointerId)) return;
-      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const onPointerMove = useCallback((e: ReactPointerEvent) => {
+    if (!pointers.current.has(e.pointerId)) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      if (mode.current === 'pinch' && pinchStart.current) {
-        const p = Array.from(pointers.current.values());
-        if (p.length >= 2) {
-          const dist = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
-          const factor = dist / Math.max(1, pinchStart.current.dist);
-          const newScale = Math.max(0.3, Math.min(5, pinchStart.current.scale * factor));
-          const cx = pinchStart.current.mid.x;
-          const cy = pinchStart.current.mid.y;
-          const px = (cx - tgt.current.x) / tgt.current.s;
-          const py = (cy - tgt.current.y) / tgt.current.s;
-          tgt.current.s = newScale;
-          tgt.current.x = cx - px * newScale;
-          tgt.current.y = cy - py * newScale;
-        }
-      } else if (mode.current === 'tilt' && tiltStart.current && settings.tiltEnabled) {
-        const dx = e.clientX - tiltStart.current.x;
-        const dy = e.clientY - tiltStart.current.y;
-        const sens = 0.32;
-        tgt.current.ry = Math.max(-45, Math.min(45, tiltStart.current.ry + dx * sens));
-        tgt.current.rx = Math.max(-45, Math.min(45, tiltStart.current.rx - dy * sens));
-      } else if (mode.current === 'pan' && panStart.current) {
-        const dx = e.clientX - panStart.current.x;
-        const dy = e.clientY - panStart.current.y;
-        tgt.current.x = panStart.current.tx + dx;
-        tgt.current.y = panStart.current.ty + dy;
+    const vp = viewportRef.current;
+    if (!vp) return;
+
+    if (mode.current === 'pinch' && pinchStart.current && pointers.current.size >= 2) {
+      const p = Array.from(pointers.current.values());
+      const currentDist = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+      if (pinchStart.current.dist > 0) {
+        const factor = currentDist / pinchStart.current.dist;
+        const newScale = Math.max(0.1, Math.min(8, pinchStart.current.scale * factor));
+        const ds = newScale - cur.current.s;
+        tgt.current.x -= (pinchStart.current.mid.x - cur.current.x) * (ds / cur.current.s);
+        tgt.current.y -= (pinchStart.current.mid.y - cur.current.y) * (ds / cur.current.s);
+        tgt.current.s = newScale;
       }
-    },
-    [settings.tiltEnabled]
-  );
+    } else if (mode.current === 'pan' && panStart.current) {
+      const dx = e.clientX - panStart.current.x;
+      const dy = e.clientY - panStart.current.y;
+      tgt.current.x = panStart.current.tx + dx;
+      tgt.current.y = panStart.current.ty + dy;
+    } else if (mode.current === 'tilt' && tiltStart.current) {
+      const dx = e.clientX - tiltStart.current.x;
+      const dy = e.clientY - tiltStart.current.y;
+      // Max tilt clamp [-25deg, 25deg]
+      tgt.current.ry = Math.max(-25, Math.min(25, tiltStart.current.ry + dx * 0.15));
+      tgt.current.rx = Math.max(-25, Math.min(25, tiltStart.current.rx - dy * 0.15));
+    }
+  }, []);
 
   const endPointer = useCallback((e: ReactPointerEvent) => {
     pointers.current.delete(e.pointerId);
-    if (pointers.current.size < 2) pinchStart.current = null;
+    const vp = viewportRef.current;
+    if (vp) {
+      try {
+        vp.releasePointerCapture(e.pointerId);
+      } catch {}
+    }
+
     if (pointers.current.size === 0) {
       mode.current = null;
       panStart.current = null;
       tiltStart.current = null;
+      pinchStart.current = null;
+    } else if (pointers.current.size === 1) {
+      // Revert to panning with remaining pointer
+      mode.current = 'pan';
+      const [remaining] = Array.from(pointers.current.values());
+      panStart.current = {
+        x: remaining.x,
+        y: remaining.y,
+        tx: cur.current.x,
+        ty: cur.current.y,
+      };
+      pinchStart.current = null;
+      tiltStart.current = null;
     }
   }, []);
 
-  // Zoom anchored around cursor position
+  // Mouse wheel zoom to cursor
   const onWheel = useCallback((e: ReactWheelEvent) => {
     e.preventDefault();
-    anim.current = null;
     const vp = viewportRef.current;
     if (!vp) return;
 
     const rect = vp.getBoundingClientRect();
-    const cx = e.clientX - rect.left;
-    const cy = e.clientY - rect.top;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
 
-    const zoomFactor = Math.exp(-e.deltaY * 0.0015);
-    const newScale = Math.max(0.3, Math.min(6, tgt.current.s * zoomFactor));
+    const zoomFactor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    const newScale = Math.max(0.1, Math.min(8, tgt.current.s * zoomFactor));
+    const ds = newScale - tgt.current.s;
 
-    const px = (cx - tgt.current.x) / tgt.current.s;
-    const py = (cy - tgt.current.y) / tgt.current.s;
-
+    tgt.current.x -= (mouseX - tgt.current.x) * (ds / tgt.current.s);
+    tgt.current.y -= (mouseY - tgt.current.y) * (ds / tgt.current.s);
     tgt.current.s = newScale;
-    tgt.current.x = cx - px * newScale;
-    tgt.current.y = cy - py * newScale;
   }, []);
 
-  const onBackdropClick = useCallback(
-    (e: ReactMouseEvent) => {
-      if (e.target === e.currentTarget) onClose();
-    },
-    [onClose]
-  );
+  // Keyboard navigation & ESC close
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isDescExpanded) {
+          setIsDescExpanded(false);
+        } else if (showHotspotInfo) {
+          setShowHotspotInfo(false);
+        } else if (showHotspotList) {
+          setShowHotspotList(false);
+        } else if (activeHotspotIndex >= 0) {
+          setActiveHotspotIndex(-1);
+        } else {
+          onClose();
+        }
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        if (hotspots.length > 0) {
+          const nextIdx =
+            activeHotspotIndex < 0 || activeHotspotIndex >= hotspots.length - 1
+              ? 0
+              : activeHotspotIndex + 1;
+          focusHotspot(nextIdx, true);
+        }
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        if (hotspots.length > 0) {
+          const nextIdx =
+            activeHotspotIndex <= 0 ? hotspots.length - 1 : activeHotspotIndex - 1;
+          focusHotspot(nextIdx, true);
+        }
+      }
+    };
 
-  const resolveAudioUrl = (fileId: string | null) => {
-    if (!fileId) return null;
-    return proxyMediaUrl(fileId, artwork.updated_at); // passthrough handles direct URLs
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeHotspotIndex, focusHotspot, hotspots.length, onClose, isDescExpanded, showHotspotInfo, showHotspotList]);
+
+  const onBackdropClick = (e: ReactMouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
   };
+
+  const resolveAudioUrl = (fileId?: string | null) => {
+    if (!fileId) return null;
+    return proxyMediaUrl(fileId, artwork.updated_at);
+  };
+
+  // Audio playback handler
+  const toggleAudio = useCallback(() => {
+    const audio = audioPlayerRef.current;
+    if (!audio) return;
+    if (isPlayingAudio) {
+      audio.pause();
+    } else {
+      audio.play().catch(() => {});
+    }
+  }, [isPlayingAudio]);
+
+  // When changing hotspot, stop current audio and collapse expanded description
+  useEffect(() => {
+    setIsPlayingAudio(false);
+    setIsDescExpanded(false);
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current.currentTime = 0;
+    }
+  }, [activeHotspotIndex]);
 
   return (
     <div
@@ -404,23 +552,67 @@ export function InspectLightbox({
       onClick={onBackdropClick}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <header className="inspect-lightbox__header">
+      {/* Top Header Bar */}
+      <header className={`inspect-lightbox__header ${isMobile && isDescExpanded ? 'inspect-lightbox__header--expanded' : ''}`}>
         <div className="inspect-lightbox__title-info">
-          <span className="eyebrow">Inspect Mode</span>
-          <h2>{artwork.title}</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.2rem' }}>
-            {artwork.artist && <p className="artist" style={{ margin: 0 }}>{artwork.artist}</p>}
-            {artwork.artist_profile && (
-              <button
-                type="button"
-                className="btn btn--sm btn--ghost inspect-artist-link"
-                onClick={() => onOpenArtist?.(artwork.artist_profile!)}
-                title={`Read about ${artwork.artist_profile.name}`}
-              >
-                👤 About {artwork.artist_profile.name}
-              </button>
-            )}
-          </div>
+          {isMobile && activeHotspot ? (
+            <div className={`inspect-header-dynamic-hotspot ${isDescExpanded ? 'is-expanded' : ''}`}>
+              <span className="eyebrow eyebrow--hotspot">
+                📍 Detail {String(activeHotspotIndex + 1).padStart(2, '0')} of {String(hotspots.length).padStart(2, '0')}
+              </span>
+              <h2 className="inspect-header-title">{activeHotspot.title}</h2>
+              {activeHotspot.description && (
+                <div className="inspect-header-desc-container">
+                  {isDescExpanded ? (
+                    <div className="inspect-header-desc-expanded">
+                      <p className="inspect-header-desc-full">{activeHotspot.description}</p>
+                      <button
+                        type="button"
+                        className="inspect-desc-toggle-btn"
+                        onClick={() => setIsDescExpanded(false)}
+                      >
+                        ▴ See less
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="inspect-header-desc-wrapper">
+                      <p className="inspect-header-desc inspect-header-desc--1line">
+                        {activeHotspot.description}
+                      </p>
+                      {activeHotspot.description.length > 40 && (
+                        <button
+                          type="button"
+                          className="inspect-desc-more-btn"
+                          onClick={() => setIsDescExpanded(true)}
+                          title="See full description"
+                        >
+                          ... See more
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="inspect-header-dynamic-artwork">
+              <span className="eyebrow">Inspect Mode</span>
+              <h2 className="inspect-header-title">{artwork.title}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.2rem' }}>
+                {artwork.artist && <p className="artist" style={{ margin: 0 }}>{artwork.artist}</p>}
+                {artwork.artist_profile && (
+                  <button
+                    type="button"
+                    className="btn btn--sm btn--ghost inspect-artist-link"
+                    onClick={() => onOpenArtist?.(artwork.artist_profile!)}
+                    title={`Read about ${artwork.artist_profile.name}`}
+                  >
+                    👤 About {artwork.artist_profile.name}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="inspect-lightbox__header-actions">
@@ -429,6 +621,7 @@ export function InspectLightbox({
               type="button"
               className={`btn btn--sm ${showHotspotList ? 'btn--primary' : 'btn--secondary'}`}
               onClick={() => setShowHotspotList((prev) => !prev)}
+              title="Toggle Hotspots Directory"
             >
               📍 Hotspots List ({hotspots.length})
             </button>
@@ -439,12 +632,23 @@ export function InspectLightbox({
             className="inspect-lightbox__close"
             onClick={onClose}
             aria-label="Close inspect"
+            title="Exit Inspect Mode"
           >
             ✕
           </button>
         </div>
       </header>
 
+      {/* Subtle Screen Dimmer Backdrop Layer (almost transparent, 2px blur) for Mobile */}
+      {isMobile && isDescExpanded && activeHotspot && (
+        <div
+          className="inspect-desc-blur-backdrop"
+          onClick={() => setIsDescExpanded(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Main Artwork Viewport Canvas Area */}
       <div className="inspect-lightbox__main-area">
         <div
           ref={viewportRef}
@@ -473,12 +677,9 @@ export function InspectLightbox({
               className={`inspect-lightbox__tilt ${settings.tiltEnabled ? 'tilt-enabled' : ''}`}
             >
               <div ref={stageRef} className="inspect-lightbox__stage">
-                {imageUrl && (
+                {currentSrc && (
                   <div className="inspect-lightbox__slab">
-                    {/* 3D Drop Shadow */}
                     <div className="inspect-lightbox__shadow" />
-
-                    {/* 3D Bevel Frame Edges */}
                     <div className="inspect-lightbox__frame-top" />
                     <div className="inspect-lightbox__frame-bottom" />
                     <div className="inspect-lightbox__frame-left" />
@@ -486,7 +687,7 @@ export function InspectLightbox({
 
                     <img
                       ref={imgRef}
-                      src={imageUrl}
+                      src={currentSrc}
                       alt={artwork.title}
                       className="inspect-lightbox__image"
                       draggable={false}
@@ -494,9 +695,13 @@ export function InspectLightbox({
                         setImgLoaded(true);
                         fitToScreen(true);
                       }}
+                      onError={() => {
+                        if (currentSrc !== fallbackUrl && fallbackUrl) {
+                          setCurrentSrc(fallbackUrl);
+                        }
+                      }}
                     />
 
-                    {/* Interactive Hotspots with Hover Tooltips & Auto-Fade */}
                     {imgLoaded && (
                       <HotspotOverlay
                         hotspots={hotspots}
@@ -505,11 +710,14 @@ export function InspectLightbox({
                         onSelectHotspot={(id) => {
                           const idx = hotspots.findIndex((h) => h.id === id);
                           if (idx >= 0) {
-                            focusHotspot(idx, false); // Direct zoom into pin
+                            focusHotspot(idx, false);
                             setShowHotspotList(false);
                           }
                         }}
-                        onDismissActive={() => setActiveHotspotIndex(-1)}
+                        onDismissActive={() => {
+                          setActiveHotspotIndex(-1);
+                          setShowHotspotInfo(false);
+                        }}
                         onAudioSeek={onAudioSeek}
                       />
                     )}
@@ -520,143 +728,176 @@ export function InspectLightbox({
           )}
         </div>
 
-        {/* Side Panel: Active Hotspot Detail OR Hotspots List */}
-        {(activeHotspot || showHotspotList) && (
+        {/* Slide-Over Right Drawer for Hotspots Directory */}
+        {showHotspotList && (
+          <>
+            <div
+              className="inspect-drawer-backdrop"
+              onClick={() => setShowHotspotList(false)}
+            />
+            <aside
+              className="inspect-lightbox__drawer"
+              role="dialog"
+              aria-label="Hotspots Directory"
+            >
+              <div className="sidebar-header">
+                <h3>📍 Hotspots Directory</h3>
+                <button
+                  type="button"
+                  className="sidebar-close"
+                  onClick={() => setShowHotspotList(false)}
+                  aria-label="Close directory"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="sidebar-subtitle">Click any detail point to zoom and inspect.</p>
+              <div className="hotspots-list-items">
+                {hotspots.map((h, i) => (
+                  <button
+                    key={h.id}
+                    type="button"
+                    className={`hotspot-list-item ${activeHotspotIndex === i ? 'active' : ''}`}
+                    onClick={() => {
+                      focusHotspot(i, true);
+                      setShowHotspotList(false);
+                    }}
+                  >
+                    <span className="item-badge">{String(i + 1).padStart(2, '0')}</span>
+                    <div className="item-content">
+                      <h4>{h.title}</h4>
+                      <p>{h.description}</p>
+                      {(h.audio_file_id || h.audio_timestamp_seconds != null) && (
+                        <span className="item-audio-indicator">🎵 Audio Attached</span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </aside>
+          </>
+        )}
+
+        {/* Desktop Side Panel: Active Hotspot Detail (Draggable & Minimizable) */}
+        {!isMobile && activeHotspot && (
           <aside
-            className={`inspect-lightbox__sidebar ${
-              !showHotspotList && isSidebarMinimized ? 'inspect-lightbox__sidebar--minimized' : ''
-            }`}
+            className={`inspect-lightbox__sidebar ${isSidebarMinimized ? 'inspect-lightbox__sidebar--minimized' : ''}`}
+            role="dialog"
             aria-label="Hotspot Details"
+            style={
+              isSidebarMinimized && minCardPos
+                ? { left: `${minCardPos.x}px`, top: `${minCardPos.y}px`, right: 'auto', bottom: 'auto' }
+                : undefined
+            }
           >
-            {showHotspotList ? (
-              <div className="hotspots-list-view">
-                <div className="sidebar-header">
-                  <h3>📍 Hotspots Directory</h3>
-                  <button
-                    type="button"
-                    className="sidebar-close"
-                    onClick={() => setShowHotspotList(false)}
-                  >
-                    ✕
-                  </button>
-                </div>
-                <p className="sidebar-subtitle">Click any detail point to zoom and inspect.</p>
-                <div className="hotspots-list-items">
-                  {hotspots.map((h, i) => (
-                    <button
-                      key={h.id}
-                      type="button"
-                      className={`hotspot-list-item ${activeHotspotIndex === i ? 'active' : ''}`}
-                      onClick={() => {
-                        focusHotspot(i, true); // Flight arc when browsing list
-                        setShowHotspotList(false);
-                      }}
-                    >
-                      <span className="item-badge">{String(i + 1).padStart(2, '0')}</span>
-                      <div className="item-content">
-                        <h4>{h.title}</h4>
-                        <p>{h.description}</p>
-                        {(h.audio_file_id || h.audio_timestamp_seconds != null) && (
-                          <span className="item-audio-indicator">🎵 Audio Attached</span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : activeHotspot ? (
-              <div className="hotspot-detail-view">
-                <div className="sidebar-header">
-                  <span className="detail-badge">
-                    Detail {String(activeHotspotIndex + 1).padStart(2, '0')} of {String(hotspots.length).padStart(2, '0')}
+            <div
+              className="sidebar-header"
+              style={isSidebarMinimized ? { cursor: 'grab' } : undefined}
+              onPointerDown={isSidebarMinimized ? onCardPointerDown : undefined}
+              onPointerMove={isSidebarMinimized ? onCardPointerMove : undefined}
+              onPointerUp={isSidebarMinimized ? onCardPointerUp : undefined}
+              onPointerCancel={isSidebarMinimized ? onCardPointerUp : undefined}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="detail-badge">
+                  Detail {String(activeHotspotIndex + 1).padStart(2, '0')} of {String(hotspots.length).padStart(2, '0')}
+                </span>
+                {isSidebarMinimized && (
+                  <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
+                    (Drag to move)
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <button
-                      type="button"
-                      className="sidebar-minimize-btn"
-                      onClick={() => setIsSidebarMinimized(!isSidebarMinimized)}
-                      title={isSidebarMinimized ? 'Expand full panel' : 'Minimize to compact text card'}
-                    >
-                      {isSidebarMinimized ? '🗖 Expand' : '🗕 Minimize'}
-                    </button>
-                    <button
-                      type="button"
-                      className="sidebar-close"
-                      onClick={() => setActiveHotspotIndex(-1)}
-                      title="Close panel"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-
-                <h3 className="hotspot-detail-title">{activeHotspot.title}</h3>
-                <p className="hotspot-detail-description">{activeHotspot.description}</p>
-
-                {/* Option 1: Dedicated Audio File Player */}
-                {activeHotspot.audio_file_id && (
-                  <div className="hotspot-audio-player">
-                    <label className="audio-label">🎧 Dedicated Hotspot Audio</label>
-                    <audio
-                      controls
-                      src={resolveAudioUrl(activeHotspot.audio_file_id)!}
-                      className="hotspot-audio-element"
-                    />
-                  </div>
                 )}
-
-                {/* Option 2: Exhibition Audio Guide Timestamp Seek */}
-                {activeHotspot.audio_timestamp_seconds != null && onAudioSeek && (
-                  <button
-                    type="button"
-                    className="btn btn--secondary btn--sm hotspot-seek-action"
-                    onClick={() => onAudioSeek(activeHotspot.audio_timestamp_seconds!)}
-                  >
-                    ▶ Jump to {Math.floor(activeHotspot.audio_timestamp_seconds)}s in Main Audio Guide
-                  </button>
-                )}
-
-                {/* Hotspot Prev/Next navigation */}
-                <div className="sidebar-footer-nav">
-                  <button
-                    type="button"
-                    className="btn btn--ghost btn--sm"
-                    onClick={() => {
-                      const nextIdx =
-                        activeHotspotIndex <= 0 ? hotspots.length - 1 : activeHotspotIndex - 1;
-                      focusHotspot(nextIdx, true); // Flight arc on prev
-                    }}
-                  >
-                    ◀ Prev
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn--ghost btn--sm"
-                    onClick={() => {
-                      const nextIdx =
-                        activeHotspotIndex >= hotspots.length - 1 ? 0 : activeHotspotIndex + 1;
-                      focusHotspot(nextIdx, true); // Flight arc on next
-                    }}
-                  >
-                    Next ▶
-                  </button>
-                </div>
               </div>
-            ) : null}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  className="sidebar-minimize-btn"
+                  onClick={() => setIsSidebarMinimized((prev) => !prev)}
+                  title={isSidebarMinimized ? 'Expand full panel' : 'Minimize to compact card'}
+                >
+                  {isSidebarMinimized ? '🗖 Expand' : '🗕 Minimize'}
+                </button>
+                <button
+                  type="button"
+                  className="sidebar-close"
+                  onClick={() => setActiveHotspotIndex(-1)}
+                  title="Close panel"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="hotspot-detail-view">
+              <h3 className="hotspot-detail-title">{activeHotspot.title}</h3>
+              <p className="hotspot-detail-description">{activeHotspot.description}</p>
+
+              {/* Dedicated Audio Player on Desktop */}
+              {activeHotspot.audio_file_id && (
+                <div className="hotspot-audio-player">
+                  <label className="audio-label">🎧 Dedicated Hotspot Audio</label>
+                  <audio
+                    controls
+                    src={resolveAudioUrl(activeHotspot.audio_file_id)!}
+                    className="hotspot-audio-element"
+                  />
+                </div>
+              )}
+
+              {/* Exhibition Audio Guide Timestamp Seek on Desktop */}
+              {activeHotspot.audio_timestamp_seconds != null && onAudioSeek && (
+                <button
+                  type="button"
+                  className="btn btn--secondary btn--sm hotspot-seek-action"
+                  onClick={() => onAudioSeek(activeHotspot.audio_timestamp_seconds!)}
+                >
+                  ▶ Jump to {Math.floor(activeHotspot.audio_timestamp_seconds)}s in Main Audio Guide
+                </button>
+              )}
+
+              <div className="sidebar-footer-nav">
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => {
+                    const nextIdx =
+                      activeHotspotIndex <= 0 ? hotspots.length - 1 : activeHotspotIndex - 1;
+                    focusHotspot(nextIdx, true);
+                  }}
+                >
+                  ◀ Prev
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => {
+                    const nextIdx =
+                      activeHotspotIndex >= hotspots.length - 1 ? 0 : activeHotspotIndex + 1;
+                    focusHotspot(nextIdx, true);
+                  }}
+                >
+                  Next ▶
+                </button>
+              </div>
+            </div>
           </aside>
         )}
       </div>
 
-      {/* Bottom Carousel / Quick Navigator */}
+      {/* Direct Bottom-Bar Controls with Navigation & Dedicated Audio Listening */}
       <footer className="inspect-lightbox__controls">
         <button
           type="button"
-          className="btn btn--ghost btn--sm"
+          className="btn btn--ghost btn--sm inspect-btn-reset"
           onClick={() => {
             tgt.current.rx = 0;
             tgt.current.ry = 0;
+            setActiveHotspotIndex(-1);
+            setShowHotspotInfo(false);
             fitToScreen(false);
           }}
+          title="Reset zoom and framing"
         >
           ⟲ Reset View
         </button>
@@ -665,37 +906,91 @@ export function InspectLightbox({
           <div className="inspect-lightbox__carousel">
             <button
               type="button"
-              className="btn btn--secondary btn--sm"
+              className="btn btn--secondary btn--sm inspect-nav-btn"
               onClick={() => {
                 const nextIdx =
                   activeHotspotIndex <= 0 ? hotspots.length - 1 : activeHotspotIndex - 1;
-                focusHotspot(nextIdx, true); // Flight arc on prev
+                focusHotspot(nextIdx, true);
               }}
               title="Previous Detail"
             >
               ◀ Prev
             </button>
 
-            <span className="carousel-counter">
-              {activeHotspotIndex >= 0
-                ? `Detail ${String(activeHotspotIndex + 1).padStart(2, '0')} / ${String(hotspots.length).padStart(2, '0')}: ${hotspots[activeHotspotIndex]?.title || ''}`
-                : `Interactive Details (${hotspots.length})`}
-            </span>
+            <button
+              type="button"
+              className={`carousel-counter-btn ${activeHotspotIndex >= 0 ? 'active' : ''}`}
+              onClick={() => {
+                if (activeHotspotIndex >= 0) {
+                  const nextIdx = (activeHotspotIndex + 1) % hotspots.length;
+                  focusHotspot(nextIdx, true);
+                } else {
+                  setShowHotspotList((prev) => !prev);
+                }
+              }}
+              title={activeHotspotIndex >= 0 ? 'Click to go to next detail' : 'Click to open hotspots directory'}
+            >
+              {activeHotspotIndex >= 0 ? (
+                <>
+                  <span className="carousel-counter-tag">
+                    📍 {String(activeHotspotIndex + 1).padStart(2, '0')}/{String(hotspots.length).padStart(2, '0')}
+                  </span>
+                  <span className="carousel-counter-title">{hotspots[activeHotspotIndex]?.title || ''}</span>
+                </>
+              ) : (
+                <>
+                  <span className="carousel-counter-tag">📍 Details ({hotspots.length})</span>
+                  <span className="carousel-counter-info-icon">📋</span>
+                </>
+              )}
+            </button>
 
             <button
               type="button"
-              className="btn btn--secondary btn--sm"
+              className="btn btn--secondary btn--sm inspect-nav-btn"
               onClick={() => {
                 const nextIdx =
                   activeHotspotIndex < 0 || activeHotspotIndex >= hotspots.length - 1
                     ? 0
                     : activeHotspotIndex + 1;
-                focusHotspot(nextIdx, true); // Flight arc on next
+                focusHotspot(nextIdx, true);
               }}
               title="Next Detail"
             >
               Next ▶
             </button>
+
+            {/* Inline Audio Listening Button on Mobile if Hotspot has Audio */}
+            {isMobile && activeHotspot?.audio_file_id && (
+              <>
+                <audio
+                  ref={audioPlayerRef}
+                  src={resolveAudioUrl(activeHotspot.audio_file_id)!}
+                  onPlay={() => setIsPlayingAudio(true)}
+                  onPause={() => setIsPlayingAudio(false)}
+                  onEnded={() => setIsPlayingAudio(false)}
+                />
+                <button
+                  type="button"
+                  className={`btn btn--sm ${isPlayingAudio ? 'btn--primary' : 'btn--secondary'} inspect-audio-btn`}
+                  onClick={toggleAudio}
+                  title={isPlayingAudio ? 'Pause Audio' : 'Listen to Audio Commentary'}
+                >
+                  {isPlayingAudio ? '⏸ Pause' : '🎧 Listen'}
+                </button>
+              </>
+            )}
+
+            {isMobile && activeHotspot?.audio_timestamp_seconds != null && onAudioSeek && (
+              <button
+                type="button"
+                className="btn btn--sm btn--secondary inspect-audio-btn"
+                onClick={() => onAudioSeek(activeHotspot.audio_timestamp_seconds!)}
+                title={`Jump to ${Math.floor(activeHotspot.audio_timestamp_seconds)}s in Main Audio Guide`}
+              >
+                🎧 Guide ({Math.floor(activeHotspot.audio_timestamp_seconds)}s)
+              </button>
+            )}
           </div>
         )}
 

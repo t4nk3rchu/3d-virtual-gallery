@@ -1,6 +1,6 @@
-import { useState, type MouseEvent } from 'react';
+import { useState, useEffect, type MouseEvent } from 'react';
 import type { Artwork, ArtworkHotspot, FrameConfig, HotspotTransition } from '../../types/schema';
-import { getImageUrl } from '../../lib/media/gdrive';
+import { getImageUrl, proxyMediaUrl } from '../../lib/media/gdrive';
 import { HOTSPOT_TRANSITIONS, getHotspotAnimation } from '../../lib/viewer/hotspot-animations';
 import { HotspotTransitionPreview } from './HotspotTransitionPreview';
 
@@ -69,9 +69,18 @@ export function HotspotEditor({
     }
   };
 
-  const imageUrl = artwork.media_file_id
+  const primaryUrl = artwork.media_file_id
+    ? proxyMediaUrl(artwork.media_file_id, artwork.updated_at)
+    : null;
+  const fallbackUrl = artwork.media_file_id
     ? getImageUrl(artwork.media_file_id, 'original')
     : null;
+
+  const [imgSrc, setImgSrc] = useState<string | null>(primaryUrl);
+
+  useEffect(() => {
+    setImgSrc(primaryUrl);
+  }, [primaryUrl]);
 
   const handleImageClick = (e: MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -232,13 +241,18 @@ export function HotspotEditor({
             <p className="canvas-instruction">
               💡 Click anywhere on the artwork image to drop a new interpretive hotspot pin.
             </p>
-            {imageUrl ? (
+            {imgSrc ? (
               <div className="hotspot-image-wrapper" onClick={handleImageClick}>
                 <img
-                  src={imageUrl}
+                  src={imgSrc}
                   alt={artwork.title}
                   className="hotspot-image"
                   draggable={false}
+                  onError={() => {
+                    if (imgSrc !== fallbackUrl && fallbackUrl) {
+                      setImgSrc(fallbackUrl);
+                    }
+                  }}
                 />
 
                 {/* Existing Hotspot Pins */}

@@ -38,10 +38,10 @@ export function extractGoogleDriveFileId(urlOrId: string): string | null {
 }
 
 /**
- * Build the Google image CDN URL for a given Drive file ID and size tier.
+ * Build the Google image CDN URL for a given Drive file ID or sharing link and size tier.
  *
  * Bug #4 fix: this is the ONE place that constructs image URLs.
- * To swap for a Worker proxy: change this function, every caller updates automatically.
+ * Extracts the fileId if a full Google Drive sharing link is passed.
  *
  * Tiers:
  *   thumbnail  → =w400   (curator picker, artwork list)
@@ -49,32 +49,41 @@ export function extractGoogleDriveFileId(urlOrId: string): string | null {
  *   original   → =s0     (Inspect lightbox deep-zoom)
  */
 export function getImageUrl(
-  fileId: string,
+  fileIdOrUrl: string,
   tier: 'thumbnail' | 'gallery' | 'original' = 'thumbnail'
 ): string {
-  if (
-    fileId.startsWith('http://') ||
-    fileId.startsWith('https://') ||
-    fileId.startsWith('/') ||
-    fileId.startsWith('data:')
-  ) {
-    return fileId;
+  if (!fileIdOrUrl) return '';
+  const trimmed = fileIdOrUrl.trim();
+
+  // If it's a Google Drive link or bare file ID, extract the fileId and use Google's Image CDN
+  const driveId = extractGoogleDriveFileId(trimmed);
+  if (driveId) {
+    const size = tier === 'thumbnail' ? '=w400' : tier === 'gallery' ? '=w1600' : '=s0';
+    return `https://lh3.googleusercontent.com/d/${driveId}${size}`;
   }
-  const size = tier === 'thumbnail' ? '=w400' : tier === 'gallery' ? '=w1600' : '=s0';
-  return `https://lh3.googleusercontent.com/d/${fileId}${size}`;
+
+  // Direct external image URL (e.g. https://domain.com/photo.jpg) or local / data: URI
+  return trimmed;
 }
 
 /**
- * Single chokepoint for proxy-served media URLs (GLB + audio).
- * `version` (room.created_at for GLBs, artwork.updated_at for audio) segments
+ * Single chokepoint for proxy-served media URLs (GLB, audio, video).
+ * `version` (room.created_at for GLBs, artwork.updated_at for audio/video) segments
  * the edge cache so recreated rooms / edited artworks never serve stale bytes.
+ * If a Google Drive sharing link or bare ID is passed, it extracts the fileId and proxies it.
+ * Direct external URLs (e.g. https://domain.com/video.mp4) or local asset paths pass through.
  */
-export function proxyMediaUrl(fileId: string, version?: string | number): string {
-  // Curator-provided direct link (or an already-built path) — use as-is, no proxy.
-  // Single place the "is this already a URL?" rule lives (was duplicated at call sites).
-  if (fileId.startsWith('http://') || fileId.startsWith('https://') || fileId.startsWith('/')) {
-    return fileId;
+export function proxyMediaUrl(fileIdOrUrl: string, version?: string | number): string {
+  if (!fileIdOrUrl) return '';
+  const trimmed = fileIdOrUrl.trim();
+
+  // If it's a Google Drive URL or bare Drive ID, extract the fileId and proxy it
+  const driveId = extractGoogleDriveFileId(trimmed);
+  if (driveId) {
+    const base = `/api/media/${driveId}`;
+    return version == null || version === '' ? base : `${base}?v=${version}`;
   }
-  const base = `/api/media/${fileId}`;
-  return version == null || version === '' ? base : `${base}?v=${version}`;
+
+  // Curator-provided direct web link (e.g. https://domain.com/video.mp4 or /local.mp4)
+  return trimmed;
 }

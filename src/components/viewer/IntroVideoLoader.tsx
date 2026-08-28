@@ -1,15 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { proxyMediaUrl } from '../../lib/media/gdrive';
+import { getIntroAnimation, type IntroTransition } from '../../lib/viewer/intro-animations';
 
 interface IntroVideoLoaderProps {
   videoFileId: string;
   isSceneReady: boolean;
+  transitionStyle?: IntroTransition;
   onEnterGallery(): void;
 }
 
 export function IntroVideoLoader({
   videoFileId,
   isSceneReady,
+  transitionStyle = 'zoom_in',
   onEnterGallery,
 }: IntroVideoLoaderProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -17,8 +20,10 @@ export function IntroVideoLoader({
   const [showUnmuteHint, setShowUnmuteHint] = useState(false);
   const [videoEnded, setVideoEnded] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
 
   const videoUrl = proxyMediaUrl(videoFileId);
+  const animPreset = getIntroAnimation(transitionStyle);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -57,31 +62,44 @@ export function IntroVideoLoader({
     }
   };
 
+  const handleEnterGallery = () => {
+    if (isFadingOut) return;
+    setIsFadingOut(true);
+    setTimeout(() => {
+      onEnterGallery();
+    }, animPreset.durationMs);
+  };
+
   const handleVideoEnded = () => {
     setVideoEnded(true);
     if (isSceneReady) {
-      onEnterGallery();
+      handleEnterGallery();
     }
   };
 
   // If video errored out or cannot load, immediately allow entering or enter if ready
   useEffect(() => {
     if (videoError && isSceneReady) {
-      onEnterGallery();
+      handleEnterGallery();
     }
-  }, [videoError, isSceneReady, onEnterGallery]);
+  }, [videoError, isSceneReady]);
 
   // If the clip finished before the scene was ready, auto-advance once it becomes
-  // ready (spec: seamless crossfade). Without this the visitor is parked on the
-  // "Finalizing…" overlay until they click Enter.
+  // ready with smooth fade crossfade
   useEffect(() => {
     if (videoEnded && isSceneReady) {
-      onEnterGallery();
+      handleEnterGallery();
     }
-  }, [videoEnded, isSceneReady, onEnterGallery]);
+  }, [videoEnded, isSceneReady]);
 
   return (
-    <div className="intro-video-overlay" role="dialog" aria-modal="true" aria-label="Exhibition Intro">
+    <div
+      className={`intro-video-overlay ${isFadingOut ? `intro-video-overlay--fading-out ${animPreset.cssClass}` : ''}`}
+      style={isFadingOut ? { transitionDuration: `${animPreset.durationMs}ms` } : undefined}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Exhibition Intro"
+    >
       {!videoError ? (
         <video
           ref={videoRef}
@@ -122,7 +140,7 @@ export function IntroVideoLoader({
           <button
             type="button"
             className="intro-skip-btn"
-            onClick={onEnterGallery}
+            onClick={handleEnterGallery}
           >
             Enter Exhibition ➔
           </button>

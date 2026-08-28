@@ -8,6 +8,7 @@ export interface ExhibitionEditForm {
   room_id?: string;
   intro_video_file_id?: string;
   curation_type?: 'solo' | 'group';
+  settings_json?: string | null;
 }
 
 const EDITABLE_KEYS: (keyof ExhibitionEditForm)[] = [
@@ -20,6 +21,7 @@ const EDITABLE_KEYS: (keyof ExhibitionEditForm)[] = [
   'room_id',
   'intro_video_file_id',
   'curation_type',
+  'settings_json',
 ];
 
 // NOT-NULL columns: never send these as null/empty (the form marks them `required`).

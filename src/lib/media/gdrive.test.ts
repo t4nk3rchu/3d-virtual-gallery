@@ -57,6 +57,20 @@ describe('getImageUrl', () => {
       `https://lh3.googleusercontent.com/d/${FILE_ID}=s0`
     );
   });
+
+  it('extracts Drive file ID from sharing links', () => {
+    expect(
+      getImageUrl(`https://drive.google.com/file/d/${FILE_ID}/view?usp=sharing`, 'gallery')
+    ).toBe(`https://lh3.googleusercontent.com/d/${FILE_ID}=w1600`);
+    expect(
+      getImageUrl(`https://drive.google.com/open?id=${FILE_ID}`, 'thumbnail')
+    ).toBe(`https://lh3.googleusercontent.com/d/${FILE_ID}=w400`);
+  });
+
+  it('passes through external URLs and data URIs unchanged', () => {
+    expect(getImageUrl('https://example.com/photo.jpg')).toBe('https://example.com/photo.jpg');
+    expect(getImageUrl('data:image/png;base64,123')).toBe('data:image/png;base64,123');
+  });
 });
 
 describe('proxyMediaUrl', () => {
@@ -66,7 +80,15 @@ describe('proxyMediaUrl', () => {
   it('appends a version query param', () => {
     expect(proxyMediaUrl('fid', 1712345678)).toBe('/api/media/fid?v=1712345678');
   });
-  it('passes through direct URLs and paths unchanged (no proxy, no version)', () => {
+  it('extracts Google Drive sharing link and proxies it', () => {
+    expect(proxyMediaUrl('https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms/view?usp=sharing')).toBe(
+      '/api/media/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms'
+    );
+    expect(proxyMediaUrl('https://drive.google.com/open?id=1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms', '2026')).toBe(
+      '/api/media/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms?v=2026'
+    );
+  });
+  it('passes through non-Drive direct URLs and paths unchanged (no proxy, no version)', () => {
     expect(proxyMediaUrl('https://example.com/a.glb', 5)).toBe('https://example.com/a.glb');
     expect(proxyMediaUrl('http://example.com/a.mp3')).toBe('http://example.com/a.mp3');
     expect(proxyMediaUrl('/local/asset.glb', 5)).toBe('/local/asset.glb');

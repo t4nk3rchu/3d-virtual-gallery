@@ -15,6 +15,8 @@ import { FocusPanel } from './FocusPanel';
 import { InspectLightbox } from './InspectLightbox';
 import { ArtistDetailModal } from './ArtistDetailModal';
 import { IntroVideoLoader } from './IntroVideoLoader';
+import { ArtworkHoverTooltip } from './ArtworkHoverTooltip';
+import { VirtualJoystick } from './VirtualJoystick';
 import { SettingsModal, getStoredViewerSettings, type ViewerSettings } from './SettingsModal';
 import { trackEvent } from '../../lib/analytics';
 import { proxyMediaUrl } from '../../lib/media/gdrive';
@@ -31,6 +33,10 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [exhibition, setExhibition] = useState<ExhibitionDetail | null>(null);
   const [focusedArtwork, setFocusedArtwork] = useState<ViewerArtwork | null>(null);
+  const [hoveredArtwork, setHoveredArtwork] = useState<{
+    artwork: ViewerArtwork;
+    position: { x: number; y: number };
+  } | null>(null);
   const [inspectedArtwork, setInspectedArtwork] = useState<ViewerArtwork | null>(null);
   const [inspectedHotspots, setInspectedHotspots] = useState<ArtworkHotspot[]>([]);
   const [activeArtistProfile, setActiveArtistProfile] = useState<Artist | null>(null);
@@ -42,6 +48,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const interactionRef = useRef<InteractionController | null>(null);
   const cameraControllerRef = useRef<CameraController | null>(null);
+  const sceneRef = useRef<import('@babylonjs/core').Scene | null>(null);
   const dwellStartRef = useRef<{ artworkId: string; artworkType?: ViewerArtwork['artwork_type']; startTime: number } | null>(null);
 
   const webglSupported = isWebGLSupported();
@@ -132,6 +139,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
         createArtworkMesh(scene, artwork);
       }
 
+      sceneRef.current = scene;
       setIsSceneReady(true);
 
       // Wire interaction controller
@@ -141,6 +149,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
           const art = exhibition.artworks.find((a) => a.id === artworkId);
           setFocusedArtwork(art ?? null);
           setInspectedArtwork(null);
+          setHoveredArtwork(null);
 
           if (art) {
             dwellStartRef.current = {
@@ -162,6 +171,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
           if (!art) return;
           setInspectedArtwork(art);
           setInspectedHotspots(art.hotspots ?? []);
+          setHoveredArtwork(null);
 
           trackEvent({
             kind: 'artwork_inspect',
@@ -170,6 +180,18 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
             artwork_id: art.id,
             artwork_type: art.artwork_type,
           });
+        },
+        onArtworkHover: (artworkId, pos) => {
+          if (!artworkId || !pos) {
+            setHoveredArtwork(null);
+            return;
+          }
+          const art = exhibition.artworks.find((a) => a.id === artworkId);
+          if (art) {
+            setHoveredArtwork({ artwork: art, position: pos });
+          } else {
+            setHoveredArtwork(null);
+          }
         },
         onStateChange: (state) => {
           if (state === 'ROAM') {
@@ -186,6 +208,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
       flushDwell();
       interactionRef.current?.dispose();
       sceneHandle?.dispose();
+      sceneRef.current = null;
     };
   }, [exhibition, webglSupported]);
 
@@ -215,6 +238,25 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
     );
   }
 
+  const handleNavigateArtwork = (direction: 'prev' | 'next') => {
+    if (!exhibition || !focusedArtwork || exhibition.artworks.length <= 1) return;
+    const currentIdx = exhibition.artworks.findIndex((a) => a.id === focusedArtwork.id);
+    if (currentIdx === -1) return;
+
+    const len = exhibition.artworks.length;
+    const targetIdx = direction === 'next' ? (currentIdx + 1) % len : (currentIdx - 1 + len) % len;
+    const nextArt = exhibition.artworks[targetIdx];
+    if (!nextArt) return;
+
+    const scene = sceneRef.current;
+    const mesh = scene ? scene.getMeshByName(nextArt.id) : null;
+    if (mesh && interactionRef.current) {
+      interactionRef.current.focusArtwork(nextArt.id, mesh);
+    } else {
+      setFocusedArtwork(nextArt);
+    }
+  };
+
   if (!webglSupported) {
     return (
       <FallbackCatalog
@@ -233,6 +275,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
         <IntroVideoLoader
           videoFileId={exhibition.intro_video_file_id}
           isSceneReady={isSceneReady}
+          transitionStyle={settings.introTransition}
           onEnterGallery={() => setIsIntroDismissed(true)}
         />
       )}
@@ -259,7 +302,15 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
         tabIndex={0}
       />
 
-      {/* Focus panel slide-out */}
+      {/* Artwork Hover Tooltip (Roam Mode - Image 1) */}
+      {!focusedArtwork && !inspectedArtwork && hoveredArtwork && (
+        <ArtworkHoverTooltip
+          artwork={hoveredArtwork.artwork}
+          position={hoveredArtwork.position}
+        />
+      )}
+
+      {/* Focus panel slide-out & Top-Right Compact Bar (Images 2 & 3) */}
       {focusedArtwork && !inspectedArtwork && (
         <FocusPanel
           artwork={focusedArtwork}
@@ -269,6 +320,8 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
             setInspectedHotspots(focusedArtwork.hotspots ?? []);
           }}
           onOpenArtist={(artist) => setActiveArtistProfile(artist)}
+          onPreviousArtwork={exhibition.artworks.length > 1 ? () => handleNavigateArtwork('prev') : undefined}
+          onNextArtwork={exhibition.artworks.length > 1 ? () => handleNavigateArtwork('next') : undefined}
           onClose={() => {
             flushDwell();
             interactionRef.current?.leaveFocus();
@@ -314,7 +367,16 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
         />
       )}
 
-      {/* Gallery Controls HUD & Settings */}
+      {/* Mobile Virtual Joystick */}
+      {!focusedArtwork && !inspectedArtwork && !activeArtistProfile && (!exhibition.intro_video_file_id || isIntroDismissed) && (
+        <VirtualJoystick
+          onMove={(x, y) => {
+            cameraControllerRef.current?.move(x, y);
+          }}
+        />
+      )}
+
+      {/* Gallery Controls HUD & Settings (Desktop) */}
       <div className="viewer-controls-hint">
         <span>🕹️ <strong>WASD</strong> to walk</span>
         <span>🖱️ <strong>Click &amp; Drag</strong> to look</span>
@@ -329,6 +391,19 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
           ⚙️ Settings
         </button>
       </div>
+
+      {/* Floating Settings Button for Mobile */}
+      {!focusedArtwork && !inspectedArtwork && !activeArtistProfile && (!exhibition.intro_video_file_id || isIntroDismissed) && (
+        <button
+          type="button"
+          className="btn-mobile-settings"
+          onClick={() => setShowSettings(true)}
+          title="Gallery Settings"
+          aria-label="Gallery Settings"
+        >
+          ⚙️
+        </button>
+      )}
 
       {/* Settings Modal */}
       {showSettings && (

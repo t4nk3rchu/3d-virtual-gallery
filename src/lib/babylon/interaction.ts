@@ -25,6 +25,7 @@ export type ViewerState = 'ROAM' | 'FOCUS' | 'INSPECT';
 export interface InteractionHandlers {
   onArtworkFocus(artworkId: string, mesh: AbstractMesh): void;
   onArtworkInspect(artworkId: string): void;
+  onArtworkHover?(artworkId: string | null, screenPos: { x: number; y: number } | null): void;
   onStateChange(state: ViewerState): void;
 }
 
@@ -56,11 +57,13 @@ export function wireInteraction(
     setState('ROAM');
     cameraController.clearFocus();
     scaler.setTier('WALK');
+    handlers.onArtworkHover?.(null, null);
   }
 
   function leaveInspect() {
     scaler.setTier('FOCUS');
     setState('FOCUS');
+    handlers.onArtworkHover?.(null, null);
   }
 
   function leaveFocus() {
@@ -71,16 +74,36 @@ export function wireInteraction(
     cameraController.focusOnArtwork(mesh);
     scaler.setTier('FOCUS');
     setState('FOCUS');
+    handlers.onArtworkHover?.(null, null);
     handlers.onArtworkFocus(artworkId, mesh);
   }
 
   function inspectArtwork(artworkId: string) {
     scaler.setTier('POPUP');
     setState('INSPECT');
+    handlers.onArtworkHover?.(null, null);
     handlers.onArtworkInspect(artworkId);
   }
 
   const observer = scene.onPointerObservable.add((pointerInfo) => {
+    // ── Hover tracking in ROAM mode ───────────────────────────────────────
+    if (pointerInfo.type === PointerEventTypes.POINTERMOVE) {
+      if (state === 'ROAM') {
+        const pick = scene.pick(scene.pointerX, scene.pointerY, (m) => Boolean(m.metadata?.artworkId));
+        const hoveredArtId: string | undefined = pick?.hit ? pick.pickedMesh?.metadata?.artworkId : undefined;
+        if (hoveredArtId) {
+          const clientX = pointerInfo.event.clientX ?? scene.pointerX;
+          const clientY = pointerInfo.event.clientY ?? scene.pointerY;
+          handlers.onArtworkHover?.(hoveredArtId, { x: clientX, y: clientY });
+        } else {
+          handlers.onArtworkHover?.(null, null);
+        }
+      } else {
+        handlers.onArtworkHover?.(null, null);
+      }
+      return;
+    }
+
     if (pointerInfo.type !== PointerEventTypes.POINTERPICK) return;
     const hit = pointerInfo.pickInfo;
     if (!hit?.hit || !hit.pickedMesh) return;

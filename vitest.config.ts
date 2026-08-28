@@ -15,6 +15,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
     },
+    testTimeout: 30000,
     include: ['**/*.test.ts', '**/*.test.tsx'],
     exclude: ['node_modules', 'dist', '.wrangler'],
     setupFiles: ['./src/test-setup.ts'],

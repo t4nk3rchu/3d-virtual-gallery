@@ -22,7 +22,7 @@ import {
   DynamicTexture,
 } from '@babylonjs/core';
 import type { Artwork } from '../../types/schema';
-import { getImageUrl } from '../media/gdrive';
+import { getImageUrl, proxyMediaUrl } from '../media/gdrive';
 import { getYouTubeThumbnailUrl } from '../media/youtube';
 import { calculateFrameDimensions, createProceduralFrame } from './frame-builder';
 
@@ -115,13 +115,27 @@ function createImage2DArtwork(scene: Scene, artwork: Artwork) {
   plane.metadata = { artworkId: artwork.id };
   plane.isPickable = true;
 
-  // Texture from image CDN (Bug #4 fix: via getImageUrl helper)
-  if (artwork.media_file_id) {
+  // Texture from CORS-enabled media proxy / image CDN
+  const mediaFileId = artwork.media_file_id;
+  if (mediaFileId) {
     const mat = new StandardMaterial(`${artwork.id}_mat`, scene);
-    mat.diffuseTexture = new Texture(
-      getImageUrl(artwork.media_file_id, 'gallery'),
-      scene
+    const textureUrl = proxyMediaUrl(mediaFileId, artwork.updated_at);
+    const tex = new Texture(
+      textureUrl,
+      scene,
+      false, // noMipmap
+      true,  // invertY
+      Texture.TRILINEAR_SAMPLINGMODE,
+      undefined, // onLoad
+      () => {
+        // Fallback to direct image CDN if proxy fails
+        const fallbackUrl = getImageUrl(mediaFileId, 'gallery');
+        if (fallbackUrl && fallbackUrl !== textureUrl) {
+          mat.diffuseTexture = new Texture(fallbackUrl, scene);
+        }
+      }
     );
+    mat.diffuseTexture = tex;
     mat.emissiveColor = new Color3(0.1, 0.1, 0.1);
     plane.material = mat;
   }
@@ -172,7 +186,7 @@ function createVideoArtwork(scene: Scene, artwork: Artwork) {
   // Render YouTube thumbnail on the 3D screen plane
   const mat = new StandardMaterial(`${artwork.id}_screen_mat`, scene);
   const ytThumb = getYouTubeThumbnailUrl(artwork.youtube_video_id);
-  const customCover = artwork.media_file_id ? getImageUrl(artwork.media_file_id, 'gallery') : null;
+  const customCover = artwork.media_file_id ? proxyMediaUrl(artwork.media_file_id, artwork.updated_at) : null;
   const textureUrl = ytThumb || customCover;
 
   if (textureUrl) {

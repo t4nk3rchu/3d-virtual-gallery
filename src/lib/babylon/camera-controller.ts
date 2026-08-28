@@ -254,6 +254,42 @@ export class CameraController {
     });
   }
 
+  /**
+   * Apply joystick / virtual directional movement vector:
+   * @param x -1 (left) to +1 (right)
+   * @param y -1 (backward) to +1 (forward)
+   * @param isSprint optional sprint multiplier
+   */
+  move(x: number, y: number, isSprint = false): void {
+    if (this._animating) return;
+    if (Math.abs(x) < 0.01 && Math.abs(y) < 0.01) return;
+
+    if (this._focusedMesh) {
+      this._onMovementCallback?.();
+    }
+
+    const baseSpeed = isSprint ? CAMERA_CONFIG.sprintSpeed : CAMERA_CONFIG.walkSpeed;
+    const yaw = this.camera.rotation.y;
+    const forwardDir = new Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+    const rightDir = new Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+
+    const moveDir = forwardDir.scale(y).add(rightDir.scale(x));
+    const len = moveDir.length();
+    if (len > 0) {
+      const intensity = Math.min(1, Math.sqrt(x * x + y * y));
+      const moveDelta = moveDir.normalize().scale(baseSpeed * intensity);
+      this.camera.cameraDirection.addInPlace(moveDelta);
+    }
+
+    const bounds = (this.scene.metadata as {
+      roomBounds?: { minX: number; maxX: number; minZ: number; maxZ: number };
+    })?.roomBounds;
+    if (bounds) {
+      this.camera.position.x = Math.max(bounds.minX, Math.min(bounds.maxX, this.camera.position.x));
+      this.camera.position.z = Math.max(bounds.minZ, Math.min(bounds.maxZ, this.camera.position.z));
+    }
+  }
+
   /** Teleport camera to (x, cameraY, z) smoothly */
   teleportTo(x: number, z: number): void {
     const startPos = this.camera.position.clone();

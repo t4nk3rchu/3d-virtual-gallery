@@ -9,9 +9,11 @@
  * Persisted in localStorage.
  */
 import { useState, useCallback } from 'react';
+import { INTRO_TRANSITIONS, type IntroTransition } from '../../lib/viewer/intro-animations';
 
 export interface ViewerSettings {
   tiltEnabled: boolean;
+  introTransition: IntroTransition;
   walkSpeed: number;
   sprintSpeed: number;
   invertMouseX: boolean;
@@ -25,6 +27,7 @@ export interface ViewerSettings {
 
 export const DEFAULT_VIEWER_SETTINGS: ViewerSettings = {
   tiltEnabled: true,
+  introTransition: 'zoom_in',
   walkSpeed: 0.02,
   sprintSpeed: 0.045,
   invertMouseX: false,
@@ -92,7 +95,25 @@ export function SettingsModal({ settings, onChange, onClose }: SettingsModalProp
         <div className="settings-modal__body">
           {/* Section 1: Visuals & 3D Inspect */}
           <section className="settings-section">
-            <h3>🎨 Visuals &amp; Inspect View</h3>
+            <h3>🎨 Visuals &amp; Transitions</h3>
+
+            <div className="settings-select-group" style={{ marginBottom: '14px' }}>
+              <div className="settings-slider-header" style={{ marginBottom: '6px' }}>
+                <span style={{ fontWeight: 600 }}>🎬 Intro-to-Gallery Transition</span>
+              </div>
+              <select
+                value={local.introTransition || 'zoom_in'}
+                onChange={(e) => update({ introTransition: e.target.value as IntroTransition })}
+                className="input select"
+                style={{ width: '100%', padding: '8px 12px', background: 'rgba(255,255,255,0.06)', borderRadius: '8px', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}
+              >
+                {INTRO_TRANSITIONS.map((t) => (
+                  <option key={t.id} value={t.id} style={{ background: '#111827', color: '#fff' }}>
+                    {t.label} — {t.description}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <label className="settings-toggle">
               <input

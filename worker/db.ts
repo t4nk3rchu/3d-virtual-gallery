@@ -173,10 +173,16 @@ export async function getExhibitionById(
           .prepare('SELECT * FROM artwork_hotspots WHERE artwork_id = ?')
           .bind(a.id)
           .all<ArtworkHotspot>();
+        const artistProfile = a.artist_id ? artistsMap.get(a.artist_id) ?? null : null;
+        const effectiveArtist =
+          (!a.artist || a.artist.trim() === '' || a.artist === 'Untitled Artist') && artistProfile?.name
+            ? artistProfile.name
+            : (a.artist || artistProfile?.name || 'Untitled Artist');
         return {
           ...a,
+          artist: effectiveArtist,
           hotspots: hotspotRows.results ?? [],
-          artist_profile: a.artist_id ? artistsMap.get(a.artist_id) ?? null : null,
+          artist_profile: artistProfile,
         };
       })
     );

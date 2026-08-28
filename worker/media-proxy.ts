@@ -84,6 +84,81 @@ async function fetchDriveFollowingInterstitial(fileId: string): Promise<Response
   return res;
 }
 
+function inferContentType(headers: Headers, bodyBuffer?: ArrayBuffer): string {
+  const existing = headers.get('Content-Type');
+  if (
+    existing &&
+    existing !== 'application/octet-stream' &&
+    existing !== 'binary/octet-stream' &&
+    !existing.includes('text/html')
+  ) {
+    return existing;
+  }
+
+  const disposition = headers.get('Content-Disposition') ?? '';
+  if (disposition.includes('.png')) return 'image/png';
+  if (disposition.includes('.jpg') || disposition.includes('.jpeg')) return 'image/jpeg';
+  if (disposition.includes('.webp')) return 'image/webp';
+  if (disposition.includes('.gif')) return 'image/gif';
+  if (disposition.includes('.svg')) return 'image/svg+xml';
+  if (disposition.includes('.mp4')) return 'video/mp4';
+  if (disposition.includes('.webm')) return 'video/webm';
+  if (disposition.includes('.mov')) return 'video/quicktime';
+  if (disposition.includes('.mp3')) return 'audio/mpeg';
+  if (disposition.includes('.ogg')) return 'audio/ogg';
+  if (disposition.includes('.wav')) return 'audio/wav';
+  if (disposition.includes('.glb')) return 'model/gltf-binary';
+  if (disposition.includes('.gltf')) return 'model/gltf+json';
+
+  if (bodyBuffer && bodyBuffer.byteLength >= 8) {
+    const bytes = new Uint8Array(bodyBuffer);
+    // PNG (0x89 0x50 0x4E 0x47)
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+      return 'image/png';
+    }
+    // JPEG (0xFF 0xD8 0xFF)
+    if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+      return 'image/jpeg';
+    }
+    // GIF (0x47 0x49 0x46)
+    if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
+      return 'image/gif';
+    }
+    // WebP ('RIFF'...'WEBP')
+    if (
+      bytes[0] === 0x52 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x46 &&
+      bytes[3] === 0x46 &&
+      bodyBuffer.byteLength >= 12 &&
+      bytes[8] === 0x57 &&
+      bytes[9] === 0x45 &&
+      bytes[10] === 0x42 &&
+      bytes[11] === 0x50
+    ) {
+      return 'image/webp';
+    }
+    // MP4 'ftyp'
+    if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+      return 'video/mp4';
+    }
+    // WebM
+    if (bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3) {
+      return 'video/webm';
+    }
+    // GLB
+    if (bytes[0] === 0x67 && bytes[1] === 0x6C && bytes[2] === 0x54 && bytes[3] === 0x46) {
+      return 'model/gltf-binary';
+    }
+    // MP3 ID3
+    if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) {
+      return 'audio/mpeg';
+    }
+  }
+
+  return existing || 'application/octet-stream';
+}
+
 /**
  * Slices a byte range from a cached full Response.
  * Bug #3 fix: we always store the 200 full body; range slices come from it.
@@ -109,11 +184,12 @@ async function sliceRange(full: Response, rangeHeader: string): Promise<Response
 
   const clampedEnd = Math.min(end, total - 1);
   const slice = body.slice(start, clampedEnd + 1);
+  const contentType = inferContentType(full.headers, slice);
 
   return new Response(slice, {
     status: 206,
     headers: {
-      'Content-Type': full.headers.get('Content-Type') ?? 'application/octet-stream',
+      'Content-Type': contentType,
       'Content-Range': `bytes ${start}-${clampedEnd}/${total}`,
       'Content-Length': String(clampedEnd - start + 1),
       'Accept-Ranges': 'bytes',
@@ -172,13 +248,21 @@ export async function handleMediaProxy(
 
     // Clone before reading — body can only be consumed once
     const toCache = new Response(upstream.clone().body, upstream);
+    const contentType = inferContentType(upstream.headers);
+    toCache.headers.set('Content-Type', contentType);
     toCache.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
     toCache.headers.set('Access-Control-Allow-Origin', '*');
+    toCache.headers.set('Accept-Ranges', 'bytes');
 
     // Bug #1 fix: actually write to the Cache API via ctx.waitUntil
     ctx.waitUntil(cache.put(key, toCache.clone()));
 
     full = toCache;
+  }
+
+  // HEAD request support
+  if (req.method === 'HEAD') {
+    return withCors(new Response(null, { status: 200, headers: full.headers }));
   }
 
   // Bug #3 fix: serve range slices from the full cached body

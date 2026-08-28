@@ -95,10 +95,13 @@ export function ArtworkForm({
       }
     }
 
+    const selectedArtistObj = artists.find((a) => a.id === artistId);
+    const resolvedArtistName = artist.trim() || selectedArtistObj?.name || 'Untitled Artist';
+
     const payload = {
       exhibition_id: exhibitionId,
       title: title.trim() || 'Untitled',
-      artist: artist.trim(),
+      artist: resolvedArtistName,
       artist_id: artistId || null,
       year: year.trim() || null,
       medium: medium.trim() || null,

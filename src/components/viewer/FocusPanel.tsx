@@ -1,13 +1,4 @@
-/**
- * Task 9: Focus info panel — slides out when an artwork is focused
- *
- * Spec §5.1 (Focus state):
- *   - Slide-out panel from screen edge (not a lightbox)
- *   - Shows: title, artist, medium, description
- *   - If artwork has audio_guide_file_id → <audio> player
- *   - If artwork is VIDEO → YouTube embed
- *   - "Inspect" button → triggers Inspect state
- */
+import { useState } from 'react';
 import type { Artwork, Artist } from '../../types/schema';
 import { proxyMediaUrl } from '../../lib/media/gdrive';
 
@@ -15,29 +6,139 @@ interface FocusPanelProps {
   artwork: Artwork & { artist_profile?: Artist | null };
   onInspect(): void;
   onOpenArtist?(artist: Artist): void;
+  onPreviousArtwork?(): void;
+  onNextArtwork?(): void;
   onClose(): void;
 }
 
-export function FocusPanel({ artwork, onInspect, onOpenArtist, onClose }: FocusPanelProps) {
-  return (
-    <aside
-      className="focus-panel"
-      role="complementary"
-      aria-label={`Artwork info: ${artwork.title}`}
-    >
-      <button
-        className="focus-panel__close"
-        onClick={onClose}
-        aria-label="Close info panel"
-      >
-        ×
-      </button>
+export function FocusPanel({
+  artwork,
+  onInspect,
+  onOpenArtist,
+  onPreviousArtwork,
+  onNextArtwork,
+  onClose,
+}: FocusPanelProps) {
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
 
-      <div className="focus-panel__meta">
-        <h2 className="focus-panel__title">{artwork.title}</h2>
-        {artwork.artist && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <p className="focus-panel__artist" style={{ margin: 0 }}>{artwork.artist}</p>
+  const displayArtist =
+    artwork.artist_profile?.name ||
+    (artwork.artist && artwork.artist !== 'Untitled Artist' ? artwork.artist : null) ||
+    artwork.artist ||
+    'Untitled Artist';
+
+  return (
+    <>
+      {/* Top-Right Header Bar with Exit button & clean 'i' button (Image 2) */}
+      <div className="focus-header-bar" role="region" aria-label="Focus mode controls">
+        <button
+          type="button"
+          className="focus-header-bar__exit-btn"
+          onClick={onClose}
+          aria-label="Exit detail view"
+          title="Exit focus view"
+        >
+          <span>Exit detail view</span>
+          <span className="focus-header-bar__exit-icon">✕</span>
+        </button>
+
+        <button
+          type="button"
+          className={`focus-header-bar__info-btn ${isInfoOpen ? 'active' : ''}`}
+          onClick={() => setIsInfoOpen((prev) => !prev)}
+          aria-label={isInfoOpen ? 'Close artwork information' : 'Show artwork information'}
+          title="Artwork details"
+        >
+          <span className="focus-info-icon">ℹ</span>
+        </button>
+      </div>
+
+      {/* Expanded Translucent Info Popover Modal (Image 3) */}
+      {isInfoOpen && (
+        <aside
+          className="focus-info-modal"
+          role="dialog"
+          aria-modal="false"
+          aria-label={`Artwork information: ${artwork.title}`}
+        >
+          {/* Section 1: Fixed Pinned Info (Header, Title, Medium, Dimensions) */}
+          <div className="focus-info-modal__pinned">
+            <div className="focus-info-modal__header">
+              <div className="focus-info-modal__artist">
+                {displayArtist.toUpperCase()}
+              </div>
+              <button
+                type="button"
+                className="focus-info-modal__close"
+                onClick={() => setIsInfoOpen(false)}
+                aria-label="Close information card"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="focus-info-modal__title-year">
+              <strong>{artwork.title}</strong>
+              {artwork.year && <span className="focus-info-modal__year">, {artwork.year}</span>}
+            </div>
+
+            {artwork.medium && (
+              <div className="focus-info-modal__detail-row">
+                <span className="detail-label">Medium:</span> {artwork.medium}
+              </div>
+            )}
+
+            {artwork.dimensions && (
+              <div className="focus-info-modal__detail-row">
+                <span className="detail-label">Dimensions:</span> {artwork.dimensions}
+              </div>
+            )}
+          </div>
+
+          {/* Section 2: Scrollable Content (Description & Media) */}
+          <div className="focus-info-modal__scrollable">
+            {artwork.description && (
+              <p className="focus-info-modal__desc">{artwork.description}</p>
+            )}
+
+            {/* Audio player for AUDIO artworks */}
+            {artwork.artwork_type === 'AUDIO' && artwork.media_file_id && (
+              <div className="focus-info-modal__audio">
+                <audio
+                  controls
+                  src={proxyMediaUrl(artwork.media_file_id, artwork.updated_at)}
+                  aria-label="Artwork audio track"
+                />
+              </div>
+            )}
+
+            {/* Audio guide narration player */}
+            {artwork.audio_guide_file_id && artwork.artwork_type !== 'AUDIO' && (
+              <div className="focus-info-modal__audio">
+                <p className="focus-info-modal__audio-label">🎧 Audio Guide</p>
+                <audio
+                  controls
+                  src={proxyMediaUrl(artwork.audio_guide_file_id, artwork.updated_at)}
+                  aria-label="Audio guide"
+                />
+              </div>
+            )}
+
+            {/* YouTube embed for VIDEO artworks */}
+            {artwork.artwork_type === 'VIDEO' && artwork.youtube_video_id && (
+              <div className="focus-info-modal__video">
+                <iframe
+                  src={`https://www.youtube.com/embed/${artwork.youtube_video_id}?rel=0`}
+                  title={artwork.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Section 3: Fixed Bottom Actions (Read Bio & Inspect buttons) */}
+          <div className="focus-info-modal__actions">
             {artwork.artist_profile && (
               <button
                 type="button"
@@ -48,62 +149,48 @@ export function FocusPanel({ artwork, onInspect, onOpenArtist, onClose }: FocusP
                 👤 Read Artist Bio →
               </button>
             )}
+
+            {((artwork.artwork_type === 'IMAGE_2D' && artwork.media_file_id) ||
+              (artwork.artwork_type === 'VIDEO' && artwork.youtube_video_id)) && (
+              <button
+                type="button"
+                className="focus-info-modal__inspect-btn"
+                onClick={onInspect}
+              >
+                {artwork.artwork_type === 'VIDEO' ? '🎥 Open Cinema Mode →' : '🔍 Inspect Full Resolution →'}
+              </button>
+            )}
           </div>
-        )}
-        {(artwork.medium || artwork.year) && (
-          <p className="focus-panel__medium">
-            {[artwork.medium, artwork.year].filter(Boolean).join(', ')}
-          </p>
-        )}
-        {artwork.dimensions && (
-          <p className="focus-panel__dimensions">{artwork.dimensions}</p>
-        )}
-        {artwork.description && (
-          <p className="focus-panel__description">{artwork.description}</p>
-        )}
-      </div>
+        </aside>
+      )}
 
-      {/* Audio player for AUDIO artworks */}
-      {artwork.artwork_type === 'AUDIO' && artwork.media_file_id && (
-        <div className="focus-panel__audio">
-          <audio
-            controls
-            src={proxyMediaUrl(artwork.media_file_id, artwork.updated_at)}
-            aria-label="Artwork audio track"
-          />
+      {/* Floating Side Rail Navigation Controls (Image 2) */}
+      {(onPreviousArtwork || onNextArtwork) && (
+        <div className="focus-nav-rail" role="navigation" aria-label="Artwork navigation">
+          {onPreviousArtwork && (
+            <button
+              type="button"
+              className="focus-nav-btn"
+              onClick={onPreviousArtwork}
+              title="Previous artwork"
+              aria-label="Previous artwork"
+            >
+              ⏮
+            </button>
+          )}
+          {onNextArtwork && (
+            <button
+              type="button"
+              className="focus-nav-btn"
+              onClick={onNextArtwork}
+              title="Next artwork"
+              aria-label="Next artwork"
+            >
+              ⏭
+            </button>
+          )}
         </div>
       )}
-
-      {/* Audio guide narration player for other artworks */}
-      {artwork.audio_guide_file_id && artwork.artwork_type !== 'AUDIO' && (
-        <div className="focus-panel__audio">
-          <audio
-            controls
-            src={proxyMediaUrl(artwork.audio_guide_file_id, artwork.updated_at)}
-            aria-label="Audio guide"
-          />
-        </div>
-      )}
-
-      {/* YouTube embed for VIDEO artworks */}
-      {artwork.artwork_type === 'VIDEO' && artwork.youtube_video_id && (
-        <div className="focus-panel__video">
-          <iframe
-            src={`https://www.youtube.com/embed/${artwork.youtube_video_id}?rel=0`}
-            title={artwork.title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-      )}
-
-      {/* Inspect / Cinema button */}
-      {((artwork.artwork_type === 'IMAGE_2D' && artwork.media_file_id) ||
-        (artwork.artwork_type === 'VIDEO' && artwork.youtube_video_id)) && (
-        <button className="focus-panel__inspect-btn" onClick={onInspect}>
-          {artwork.artwork_type === 'VIDEO' ? '🎥 Open Cinema Mode →' : 'Inspect full resolution →'}
-        </button>
-      )}
-    </aside>
+    </>
   );
 }

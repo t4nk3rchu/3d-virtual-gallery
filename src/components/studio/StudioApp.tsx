@@ -10,13 +10,14 @@ import type {
   ArtworkHotspot,
   Room,
 } from '../../types/schema';
-import { getImageUrl } from '../../lib/media/gdrive';
+import { getImageUrl, extractGoogleDriveFileId } from '../../lib/media/gdrive';
 import { RoomImporter } from './RoomImporter';
 import { ArtworkForm } from './ArtworkForm';
 import { HotspotEditor } from './HotspotEditor';
 import { GizmoPlacement } from './GizmoPlacement';
 import { ArtistManagerModal } from './ArtistManagerModal';
 import { buildExhibitionPatch } from '../../lib/studio/exhibition-patch';
+import { INTRO_TRANSITIONS, type IntroTransition } from '../../lib/viewer/intro-animations';
 
 type CmsView =
   | { type: 'login' }
@@ -553,6 +554,7 @@ function ExhibitionEditor({ exhibitionId, onBack }: ExhibitionEditorProps) {
     cover_image_url: string;
     room_id: string;
     intro_video_file_id: string;
+    intro_transition: IntroTransition;
     curation_type: 'solo' | 'group';
   }>({
     title: '',
@@ -563,6 +565,7 @@ function ExhibitionEditor({ exhibitionId, onBack }: ExhibitionEditorProps) {
     cover_image_url: '',
     room_id: '',
     intro_video_file_id: '',
+    intro_transition: 'zoom_in',
     curation_type: 'solo',
   });
 
@@ -571,6 +574,11 @@ function ExhibitionEditor({ exhibitionId, onBack }: ExhibitionEditorProps) {
       .then(async (r) => (await r.json()) as ExhibitionDetail)
       .then((data) => {
         setExhibition(data);
+        let parsedSettings: Record<string, unknown> = {};
+        try {
+          parsedSettings = data.settings_json ? JSON.parse(data.settings_json) : {};
+        } catch {}
+
         setForm({
           title: data.title ?? '',
           description: data.description ?? '',
@@ -580,6 +588,7 @@ function ExhibitionEditor({ exhibitionId, onBack }: ExhibitionEditorProps) {
           cover_image_url: data.cover_image_url ?? '',
           room_id: data.room_id ?? '',
           intro_video_file_id: data.intro_video_file_id ?? '',
+          intro_transition: (parsedSettings.introTransition as IntroTransition) || 'zoom_in',
           curation_type: data.curation_type ?? 'solo',
         });
       })
@@ -599,7 +608,21 @@ function ExhibitionEditor({ exhibitionId, onBack }: ExhibitionEditorProps) {
     setSaving(true);
     setStatus(null);
     try {
-      const patch = buildExhibitionPatch(form);
+      let existingSettings: Record<string, unknown> = {};
+      try {
+        existingSettings = exhibition?.settings_json ? JSON.parse(exhibition.settings_json) : {};
+      } catch {}
+
+      const updatedSettingsJson = JSON.stringify({
+        ...existingSettings,
+        introTransition: form.intro_transition,
+      });
+
+      const patch = buildExhibitionPatch({
+        ...form,
+        settings_json: updatedSettingsJson,
+      });
+
       const res = await fetch(`/api/exhibitions/${exhibitionId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -874,7 +897,19 @@ function ExhibitionEditor({ exhibitionId, onBack }: ExhibitionEditorProps) {
             <input
               id="edit-ex-intro-video"
               value={form.intro_video_file_id}
-              onChange={(e) => setForm((f) => ({ ...f, intro_video_file_id: e.target.value }))}
+              onChange={(e) => {
+                const val = e.target.value;
+                const extracted = extractGoogleDriveFileId(val);
+                setForm((f) => ({ ...f, intro_video_file_id: extracted ?? val }));
+              }}
+              onBlur={() => {
+                if (form.intro_video_file_id) {
+                  const extracted = extractGoogleDriveFileId(form.intro_video_file_id);
+                  if (extracted) {
+                    setForm((f) => ({ ...f, intro_video_file_id: extracted }));
+                  }
+                }
+              }}
               placeholder="Google Drive sharing link or file ID (MP4 / WebM)"
               className="input"
             />
@@ -882,6 +917,29 @@ function ExhibitionEditor({ exhibitionId, onBack }: ExhibitionEditorProps) {
               Plays seamlessly during initial exhibition loading. Visitors can skip directly to the 3D room once assets are loaded.
             </p>
           </div>
+
+          {form.intro_video_file_id && (
+            <div className="form-group">
+              <label htmlFor="edit-ex-intro-transition" className="form-label">
+                ✨ Intro-to-Exhibition Transition Animation
+              </label>
+              <select
+                id="edit-ex-intro-transition"
+                value={form.intro_transition}
+                onChange={(e) => setForm((f) => ({ ...f, intro_transition: e.target.value as IntroTransition }))}
+                className="input select"
+              >
+                {INTRO_TRANSITIONS.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label} — {t.description}
+                  </option>
+                ))}
+              </select>
+              <p className="hint">
+                Choose the default visual transition effect when the intro ends and visitors enter the 3D space.
+              </p>
+            </div>
+          )}
 
           <div className="form-group">
             <label htmlFor="edit-ex-desc" className="form-label">
