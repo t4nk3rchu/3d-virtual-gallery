@@ -15,6 +15,7 @@ import {
   getArtistById,
   updateArtistRecord,
   deleteArtistRecord,
+  createHotspot,
 } from './db';
 
 let mf: Miniflare | null = null;
@@ -36,6 +37,7 @@ async function makeTestDb(): Promise<D1Database> {
         '0003_hotspot_audio_file.sql',
         '0004_artwork_updated_at.sql',
         '0005_artists_and_intro_video.sql',
+        '0006_users_team_flag.sql',
       ];
 
       for (const file of migrationFiles) {
@@ -231,4 +233,64 @@ describe('db.ts helpers & column whitelisting', () => {
     const emptyArtists = await getArtistsForExhibition(db, ex.id);
     expect(emptyArtists.length).toBe(0);
   });
+
+  it('hydrates hotspots for multiple artworks correctly (batched)', async () => {
+    const db = await makeTestDb();
+    const user = await createUser(db, {
+      email: `batch-user-${Date.now()}@example.com`,
+      full_name: 'Batch User',
+      auth_provider: 'password',
+    });
+    const room = await createRoom(db, {
+      name: 'R1',
+      glb_file_id: 'g1',
+      glb_source: 'platform_drive',
+    });
+    const ex = await createExhibition(db, {
+      user_id: user.id,
+      room_id: room.id,
+      title: 'Batch Ex',
+      slug: `batch-ex-${Date.now()}`,
+    });
+    const a1 = await createArtworkRecord(db, {
+      exhibition_id: ex.id,
+      title: 'A1',
+      artist: 'X',
+      artwork_type: 'IMAGE_2D',
+      media_file_id: 'm1',
+      transform_json: '{}',
+      frame_config_json: '{}',
+      order_index: 0,
+    } as never);
+    const a2 = await createArtworkRecord(db, {
+      exhibition_id: ex.id,
+      title: 'A2',
+      artist: 'X',
+      artwork_type: 'IMAGE_2D',
+      media_file_id: 'm2',
+      transform_json: '{}',
+      frame_config_json: '{}',
+      order_index: 1,
+    } as never);
+    await createHotspot(db, {
+      artwork_id: a1.id,
+      x_percent: 10,
+      y_percent: 10,
+      title: 'h1',
+      description: 'd1',
+    });
+    await createHotspot(db, {
+      artwork_id: a2.id,
+      x_percent: 20,
+      y_percent: 20,
+      title: 'h2',
+      description: 'd2',
+    });
+
+    const detail = await getExhibitionById(db, ex.id, user.id);
+    const byId = Object.fromEntries(detail!.artworks.map((a) => [a.id, a]));
+    expect(byId[a1.id].hotspots.map((h) => h.title)).toEqual(['h1']);
+    expect(byId[a2.id].hotspots.map((h) => h.title)).toEqual(['h2']);
+  });
 });
+

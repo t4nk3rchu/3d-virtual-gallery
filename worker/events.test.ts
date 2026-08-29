@@ -50,4 +50,35 @@ describe('Analytics Events Endpoint', () => {
     expect(writeDataPoint).toHaveBeenCalledOnce();
     expect(writeDataPoint.mock.calls[0][0].blobs[0]).toBe('exhibition_view');
   });
+
+  it('returns 429 when the rate limiter denies the request', async () => {
+    const env = {
+      EVENTS_LIMITER: { limit: async () => ({ success: false }) },
+      AE: { writeDataPoint: vi.fn() },
+    } as unknown as Env;
+    const req = new Request('https://app.example.com/api/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '1.2.3.4' },
+      body: JSON.stringify([{ kind: 'exhibition_view', exhibition_id: 'e1' }]),
+    });
+    const res = await handleEvents(req, env);
+    expect(res.status).toBe(429);
+  });
+
+  it('writes normally when under the limit', async () => {
+    const writeDataPoint = vi.fn();
+    const env = {
+      EVENTS_LIMITER: { limit: async () => ({ success: true }) },
+      AE: { writeDataPoint },
+    } as unknown as Env;
+    const req = new Request('https://app.example.com/api/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '1.2.3.4' },
+      body: JSON.stringify([{ kind: 'exhibition_view', exhibition_id: 'e1' }]),
+    });
+    const res = await handleEvents(req, env);
+    expect(res.status).toBe(204);
+    expect(writeDataPoint).toHaveBeenCalledTimes(1);
+  });
 });
+

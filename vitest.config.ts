@@ -6,19 +6,30 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
-    environment: 'node',
-    environmentMatchGlobs: [
-      // React component tests run in jsdom
-      ['src/components/**/*.test.tsx', 'jsdom'],
-      ['src/components/**/*.test.ts', 'jsdom'],
-    ],
+    testTimeout: 30000,
     coverage: {
       provider: 'v8',
     },
-    testTimeout: 30000,
-    include: ['**/*.test.ts', '**/*.test.tsx'],
-    exclude: ['node_modules', 'dist', '.wrangler'],
-    setupFiles: ['./src/test-setup.ts'],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'dom',
+          environment: 'jsdom',
+          include: ['src/components/**/*.test.{ts,tsx}'],
+          setupFiles: ['./src/test-setup.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'node',
+          environment: 'node',
+          include: ['src/lib/**/*.test.ts', 'worker/**/*.test.ts'],
+          setupFiles: ['./src/test-setup.ts'],
+        },
+      },
+    ],
   },
   resolve: {
     alias: {

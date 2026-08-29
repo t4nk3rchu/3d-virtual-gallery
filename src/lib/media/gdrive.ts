@@ -87,3 +87,13 @@ export function proxyMediaUrl(fileIdOrUrl: string, version?: string | number): s
   // Curator-provided direct web link (e.g. https://domain.com/video.mp4 or /local.mp4)
   return trimmed;
 }
+
+/**
+ * Canonical helper for resolving playable audio URLs from a file ID, sharing link, or direct URL.
+ */
+export function resolveAudioUrl(fileIdOrUrl?: string | null, version?: string | number): string | null {
+  if (!fileIdOrUrl) return null;
+  const resolved = proxyMediaUrl(fileIdOrUrl, version);
+  return resolved || null;
+}
+

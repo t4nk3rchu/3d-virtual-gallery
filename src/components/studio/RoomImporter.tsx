@@ -1,10 +1,12 @@
 import { useState, type ChangeEvent } from 'react';
 import type { Room } from '../../types/schema';
 import { validateGlbFile, extractGoogleDriveFileId } from '../../lib/studio/validation';
+import { DriveFilePicker } from './DriveFilePicker';
 
 interface RoomImporterProps {
   rooms: Room[];
   selectedRoomId: string;
+  isTeam?: boolean;
   onSelectRoom(roomId: string): void;
   onRoomCreated?(room: Room): void;
 }
@@ -12,6 +14,7 @@ interface RoomImporterProps {
 export function RoomImporter({
   rooms,
   selectedRoomId,
+  isTeam = false,
   onSelectRoom,
   onRoomCreated,
 }: RoomImporterProps) {
@@ -160,9 +163,20 @@ export function RoomImporter({
           </div>
 
           <div className="form-group">
-            <label htmlFor="room-source" className="form-label">
-              2. 3D Model Source (Google Drive Link or Direct GLB URL)
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <label htmlFor="room-source" className="form-label" style={{ marginBottom: 0 }}>
+                2. 3D Model Source (Google Drive Link or Direct GLB URL)
+              </label>
+              <DriveFilePicker
+                mimeTypes="model/gltf-binary,application/octet-stream"
+                isTeam={isTeam}
+                buttonLabel="📁 Pick GLB from Google Drive"
+                onPicked={(fileId) => setSourceInput(fileId)}
+                onRejected={(fileName) =>
+                  setApiError(`"${fileName}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
+                }
+              />
+            </div>
             <input
               id="room-source"
               type="text"

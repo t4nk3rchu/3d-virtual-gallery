@@ -5,6 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { validateGlbFile } from './validation';
 import { serializeTransform, deserializeTransform, isValidTransform } from './transform';
 import { buildExhibitionPatch } from './exhibition-patch';
+import { isAnyoneWithLink } from './drive-share';
 
 // ─── GLB validation tests ─────────────────────────────────────────────────────
 describe('validateGlbFile', () => {
@@ -130,3 +131,15 @@ describe('buildExhibitionPatch', () => {
     });
   });
 });
+
+// ─── Drive Sharing Permission tests ───────────────────────────────────────────
+describe('isAnyoneWithLink', () => {
+  it('true when an anyone permission exists', () => {
+    expect(isAnyoneWithLink([{ type: 'user' }, { type: 'anyone' }])).toBe(true);
+  });
+  it('false for private files', () => {
+    expect(isAnyoneWithLink([{ type: 'user' }, { type: 'domain' }])).toBe(false);
+    expect(isAnyoneWithLink([])).toBe(false);
+  });
+});
+

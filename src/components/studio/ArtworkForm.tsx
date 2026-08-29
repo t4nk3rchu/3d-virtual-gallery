@@ -2,11 +2,13 @@ import { useState, type FormEvent } from 'react';
 import type { Artwork, ArtworkType, FrameConfig, Artist } from '../../types/schema';
 import { extractGoogleDriveFileId, getImageUrl } from '../../lib/media/gdrive';
 import { parseYouTubeVideoId } from '../../lib/media/youtube';
+import { DriveFilePicker } from './DriveFilePicker';
 
 interface ArtworkFormProps {
   exhibitionId: string;
   artwork?: Artwork | null;
   artists?: Artist[];
+  isTeam?: boolean;
   onSaved(artwork: Artwork): void;
   onCancel(): void;
 }
@@ -15,6 +17,7 @@ export function ArtworkForm({
   exhibitionId,
   artwork,
   artists = [],
+  isTeam = false,
   onSaved,
   onCancel,
 }: ArtworkFormProps) {
@@ -194,9 +197,19 @@ export function ArtworkForm({
           {/* Media Input based on Type */}
           {artworkType === 'IMAGE_2D' && (
             <div className="form-group">
-              <label htmlFor="art-drive-img" className="form-label">
-                Google Drive Image Link or File ID
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <label htmlFor="art-drive-img" className="form-label" style={{ marginBottom: 0 }}>
+                  Google Drive Image Link or File ID
+                </label>
+                <DriveFilePicker
+                  mimeTypes="image/png,image/jpeg,image/webp,image/gif"
+                  isTeam={isTeam}
+                  onPicked={(fileId) => setDriveInput(fileId)}
+                  onRejected={(name) =>
+                    setError(`"${name}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
+                  }
+                />
+              </div>
               <input
                 id="art-drive-img"
                 type="text"
@@ -257,9 +270,19 @@ export function ArtworkForm({
 
           {artworkType === 'AUDIO' && (
             <div className="form-group">
-              <label htmlFor="art-audio" className="form-label">
-                Google Drive Audio File Link or ID (MP3 / WAV / OGG)
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <label htmlFor="art-audio" className="form-label" style={{ marginBottom: 0 }}>
+                  Google Drive Audio File Link or ID (MP3 / WAV / OGG)
+                </label>
+                <DriveFilePicker
+                  mimeTypes="audio/mp3,audio/mpeg,audio/wav,audio/ogg"
+                  isTeam={isTeam}
+                  onPicked={(fileId) => setDriveInput(fileId)}
+                  onRejected={(name) =>
+                    setError(`"${name}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
+                  }
+                />
+              </div>
               <input
                 id="art-audio"
                 type="text"
@@ -277,9 +300,19 @@ export function ArtworkForm({
 
           {/* Optional Audio Guide Narration for any artwork */}
           <div className="form-group">
-            <label htmlFor="art-audio-guide" className="form-label">
-              Audio Guide Narration (Optional Google Drive File ID)
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <label htmlFor="art-audio-guide" className="form-label" style={{ marginBottom: 0 }}>
+                Audio Guide Narration (Optional Google Drive File ID)
+              </label>
+              <DriveFilePicker
+                mimeTypes="audio/mp3,audio/mpeg,audio/wav,audio/ogg"
+                isTeam={isTeam}
+                onPicked={(fileId) => setAudioGuideInput(fileId)}
+                onRejected={(name) =>
+                  setError(`"${name}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
+                }
+              />
+            </div>
             <input
               id="art-audio-guide"
               type="text"

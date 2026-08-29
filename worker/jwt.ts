@@ -36,8 +36,29 @@ export interface JwtPayload {
   sub: string;    // user id
   email: string;
   role: string;
+  is_team?: boolean;
   iat: number;
   exp: number;
+}
+
+/**
+ * Read a single cookie value from a request.
+ */
+export function readCookie(req: Request, name: string): string | null {
+  const header = req.headers.get('Cookie') ?? '';
+  const m = header.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
+  return m ? m[1] : null;
+}
+
+/**
+ * Build a Set-Cookie header value for the OAuth state.
+ */
+export function buildStateCookie(state: string): string {
+  return `oauth_state=${state}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600`;
+}
+
+export function clearStateCookie(): string {
+  return 'oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0';
 }
 
 /**
@@ -111,11 +132,10 @@ export async function requireAuth(
   req: Request,
   secret: string
 ): Promise<JwtPayload | null> {
-  const cookieHeader = req.headers.get('Cookie') ?? '';
-  const match = cookieHeader.match(/(?:^|;\s*)auth_token=([^;]+)/);
-  if (!match) return null;
+  const token = readCookie(req, 'auth_token');
+  if (!token) return null;
 
-  return verifyJwt(match[1], secret);
+  return verifyJwt(token, secret);
 }
 
 /**
@@ -128,3 +148,4 @@ export function buildAuthCookie(token: string, maxAge = 60 * 60 * 24 * 7): strin
 export function clearAuthCookie(): string {
   return 'auth_token=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0';
 }
+

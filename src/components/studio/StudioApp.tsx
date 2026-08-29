@@ -16,6 +16,7 @@ import { ArtworkForm } from './ArtworkForm';
 import { HotspotEditor } from './HotspotEditor';
 import { GizmoPlacement } from './GizmoPlacement';
 import { ArtistManagerModal } from './ArtistManagerModal';
+import { DriveFilePicker } from './DriveFilePicker';
 import { buildExhibitionPatch } from '../../lib/studio/exhibition-patch';
 import { INTRO_TRANSITIONS, type IntroTransition } from '../../lib/viewer/intro-animations';
 
@@ -30,6 +31,7 @@ interface CuratorUser {
   email: string;
   full_name: string;
   role: string;
+  is_team?: boolean;
 }
 
 export function StudioApp() {
@@ -83,6 +85,7 @@ export function StudioApp() {
     return (
       <ExhibitionEditor
         exhibitionId={view.exhibitionId}
+        isTeam={user.is_team}
         onBack={() => setView({ type: 'dashboard' })}
       />
     );
@@ -91,6 +94,7 @@ export function StudioApp() {
   if (view.type === 'new-exhibition') {
     return (
       <NewExhibitionForm
+        isTeam={user.is_team}
         onCreated={(id) => setView({ type: 'editor', exhibitionId: id })}
         onCancel={() => setView({ type: 'dashboard' })}
       />
@@ -377,11 +381,12 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
 // ─── New Exhibition Form ───────────────────────────────────────────────────────
 
 interface NewExhibitionFormProps {
+  isTeam?: boolean;
   onCreated(id: string): void;
   onCancel(): void;
 }
 
-function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
+function NewExhibitionForm({ isTeam = false, onCreated, onCancel }: NewExhibitionFormProps) {
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
@@ -505,6 +510,7 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
         <RoomImporter
           rooms={rooms}
           selectedRoomId={roomId}
+          isTeam={isTeam}
           onSelectRoom={setRoomId}
           onRoomCreated={(r) => setRooms((prev) => [r, ...prev])}
         />
@@ -536,10 +542,11 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
 
 interface ExhibitionEditorProps {
   exhibitionId: string;
+  isTeam?: boolean;
   onBack(): void;
 }
 
-function ExhibitionEditor({ exhibitionId, onBack }: ExhibitionEditorProps) {
+function ExhibitionEditor({ exhibitionId, isTeam = false, onBack }: ExhibitionEditorProps) {
   const [exhibition, setExhibition] = useState<ExhibitionDetail | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [saving, setSaving] = useState(false);
@@ -891,9 +898,20 @@ function ExhibitionEditor({ exhibitionId, onBack }: ExhibitionEditorProps) {
           </div>
 
           <div className="form-group">
-            <label htmlFor="edit-ex-intro-video" className="form-label">
-              🎬 Intro Video File Link or ID (Optional 5-10s clip)
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <label htmlFor="edit-ex-intro-video" className="form-label" style={{ marginBottom: 0 }}>
+                🎬 Intro Video File Link or ID (Optional, ≤20s · ≤30 MB · use YouTube for artwork video)
+              </label>
+              <DriveFilePicker
+                mimeTypes="video/mp4,video/webm"
+                isTeam={isTeam}
+                buttonLabel="📁 Pick Video from Google Drive"
+                onPicked={(fileId) => setForm((f) => ({ ...f, intro_video_file_id: fileId }))}
+                onRejected={(fileName) =>
+                  setStatus(`"${fileName}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
+                }
+              />
+            </div>
             <input
               id="edit-ex-intro-video"
               value={form.intro_video_file_id}
@@ -915,6 +933,10 @@ function ExhibitionEditor({ exhibitionId, onBack }: ExhibitionEditorProps) {
             />
             <p className="hint">
               Plays seamlessly during initial exhibition loading. Visitors can skip directly to the 3D room once assets are loaded.
+            </p>
+            <p className="hint" style={{ marginTop: '0.25rem' }}>
+              Recommended: MP4 / WebM, ≤ 20 MB, 5–10s duration. Long or high-bitrate clips stall the loader
+              (served from Google Drive; artwork video should use YouTube instead).
             </p>
           </div>
 
@@ -976,6 +998,7 @@ function ExhibitionEditor({ exhibitionId, onBack }: ExhibitionEditorProps) {
       {/* Artworks Management Section */}
       <ArtworkManager
         exhibition={exhibition}
+        isTeam={isTeam}
         onArtworksChanged={fetchExhibition}
       />
     </div>
@@ -986,10 +1009,11 @@ function ExhibitionEditor({ exhibitionId, onBack }: ExhibitionEditorProps) {
 
 interface ArtworkManagerProps {
   exhibition: ExhibitionDetail;
+  isTeam?: boolean;
   onArtworksChanged(): void;
 }
 
-function ArtworkManager({ exhibition, onArtworksChanged }: ArtworkManagerProps) {
+function ArtworkManager({ exhibition, isTeam = false, onArtworksChanged }: ArtworkManagerProps) {
   const [formArtwork, setFormArtwork] = useState<Artwork | null | 'new'>(null);
   const [hotspotArtwork, setHotspotArtwork] = useState<Artwork | null>(null);
   const [gizmoActive, setGizmoActive] = useState(false);
@@ -1220,6 +1244,7 @@ function ArtworkManager({ exhibition, onArtworksChanged }: ArtworkManagerProps) 
           exhibitionId={exhibition.id}
           artwork={formArtwork === 'new' ? null : formArtwork}
           artists={artists}
+          isTeam={isTeam}
           onSaved={() => {
             setFormArtwork(null);
             onArtworksChanged();
@@ -1236,6 +1261,7 @@ function ArtworkManager({ exhibition, onArtworksChanged }: ArtworkManagerProps) 
             exhibition.artworks.find((a) => a.id === hotspotArtwork.id)
               ?.hotspots || []
           }
+          isTeam={isTeam}
           onHotspotsUpdated={() => {
             onArtworksChanged();
           }}

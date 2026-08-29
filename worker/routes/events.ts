@@ -18,6 +18,12 @@ export async function handleEvents(req: Request, env: Env): Promise<Response> {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
+  const ip = req.headers.get('CF-Connecting-IP') ?? 'anon';
+  if (env.EVENTS_LIMITER) {
+    const { success } = await env.EVENTS_LIMITER.limit({ key: ip });
+    if (!success) return new Response('Too Many Requests', { status: 429 });
+  }
+
   let events: EngagementEvent[];
   try {
     const body = await req.json<unknown>();

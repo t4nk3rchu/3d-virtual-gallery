@@ -20,6 +20,9 @@ importers:
       '@babylonjs/post-processes':
         specifier: ^7.38.0
         version: 7.54.3(@babylonjs/core@7.54.3)
+      '@googleworkspace/drive-picker-react':
+        specifier: ^0.2.0
+        version: 0.2.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react:
         specifier: ^19.2.8
         version: 19.2.8
@@ -581,6 +584,15 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@googleworkspace/drive-picker-element@0.7.3':
+    resolution: {integrity: sha512-z1hZh1HsPAQ19lencw2x3FcUVoymWYexcWgq66iXum4mUfWWaQ37oGtQ6hGvM8dyrC81G79P26gq7HhRtbGb2Q==}
+
+  '@googleworkspace/drive-picker-react@0.2.0':
+    resolution: {integrity: sha512-3CIEZ7U+HDKd8UoXG3l/fPSZFhxajC3MYNIqAZQSba2totuYKVTQMOJsgonO7OnnJq88YD35n7whCF4i5QUyvA==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -2244,6 +2256,14 @@ snapshots:
     optional: true
 
   '@exodus/bytes@1.15.1': {}
+
+  '@googleworkspace/drive-picker-element@0.7.3': {}
+
+  '@googleworkspace/drive-picker-react@0.2.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      '@googleworkspace/drive-picker-element': 0.7.3
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
 
   '@img/colour@1.1.0': {}
 

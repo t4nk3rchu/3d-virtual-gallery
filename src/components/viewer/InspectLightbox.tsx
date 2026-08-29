@@ -22,8 +22,9 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 import type { Artwork, ArtworkHotspot, FrameConfig, Artist } from '../../types/schema';
-import { getImageUrl, proxyMediaUrl } from '../../lib/media/gdrive';
+import { getImageUrl, proxyMediaUrl, resolveAudioUrl } from '../../lib/media/gdrive';
 import { HotspotOverlay } from './HotspotOverlay';
+import { InspectDesktopSidebar } from './InspectDesktopSidebar';
 import { type ViewerSettings, getStoredViewerSettings } from './SettingsModal';
 import {
   getHotspotAnimation,
@@ -67,7 +68,6 @@ export function InspectLightbox({
   const settings = propSettings || getStoredViewerSettings();
   const [activeHotspotIndex, setActiveHotspotIndex] = useState<number>(-1);
   const [showHotspotList, setShowHotspotList] = useState<boolean>(false);
-  const [showHotspotInfo, setShowHotspotInfo] = useState<boolean>(false);
   const [isDescExpanded, setIsDescExpanded] = useState<boolean>(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -84,49 +84,6 @@ export function InspectLightbox({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  const [isSidebarMinimized, setIsSidebarMinimized] = useState<boolean>(false);
-  const [minCardPos, setMinCardPos] = useState<{ x: number; y: number } | null>(null);
-  const isDraggingCard = useRef<boolean>(false);
-  const dragCardOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-
-  const onCardPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.tagName.toLowerCase() === 'button' || target.closest('button')) {
-      return;
-    }
-    const cardEl = e.currentTarget.closest('.inspect-lightbox__sidebar') as HTMLElement | null;
-    if (!cardEl) return;
-    const rect = cardEl.getBoundingClientRect();
-    dragCardOffset.current = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
-    isDraggingCard.current = true;
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      // ignore
-    }
-  };
-
-  const onCardPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDraggingCard.current) return;
-    const newX = Math.max(10, Math.min(window.innerWidth - 350, e.clientX - dragCardOffset.current.x));
-    const newY = Math.max(70, Math.min(window.innerHeight - 180, e.clientY - dragCardOffset.current.y));
-    setMinCardPos({ x: newX, y: newY });
-  };
-
-  const onCardPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (isDraggingCard.current) {
-      isDraggingCard.current = false;
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch {
-        // ignore
-      }
-    }
-  };
 
   const frameConfig = useMemo<FrameConfig | null>(() => {
     try {
@@ -288,7 +245,6 @@ export function InspectLightbox({
     (index: number, useFlightArc = false) => {
       if (index < 0 || index >= hotspots.length) {
         setActiveHotspotIndex(-1);
-        setShowHotspotInfo(false);
         return;
       }
 
@@ -481,8 +437,6 @@ export function InspectLightbox({
       if (e.key === 'Escape') {
         if (isDescExpanded) {
           setIsDescExpanded(false);
-        } else if (showHotspotInfo) {
-          setShowHotspotInfo(false);
         } else if (showHotspotList) {
           setShowHotspotList(false);
         } else if (activeHotspotIndex >= 0) {
@@ -509,17 +463,12 @@ export function InspectLightbox({
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [activeHotspotIndex, focusHotspot, hotspots.length, onClose, isDescExpanded, showHotspotInfo, showHotspotList]);
+  }, [activeHotspotIndex, focusHotspot, hotspots.length, onClose, isDescExpanded, showHotspotList]);
 
   const onBackdropClick = (e: ReactMouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
-  };
-
-  const resolveAudioUrl = (fileId?: string | null) => {
-    if (!fileId) return null;
-    return proxyMediaUrl(fileId, artwork.updated_at);
   };
 
   // Audio playback handler
@@ -716,7 +665,6 @@ export function InspectLightbox({
                         }}
                         onDismissActive={() => {
                           setActiveHotspotIndex(-1);
-                          setShowHotspotInfo(false);
                         }}
                         onAudioSeek={onAudioSeek}
                       />
@@ -780,108 +728,14 @@ export function InspectLightbox({
 
         {/* Desktop Side Panel: Active Hotspot Detail (Draggable & Minimizable) */}
         {!isMobile && activeHotspot && (
-          <aside
-            className={`inspect-lightbox__sidebar ${isSidebarMinimized ? 'inspect-lightbox__sidebar--minimized' : ''}`}
-            role="dialog"
-            aria-label="Hotspot Details"
-            style={
-              isSidebarMinimized && minCardPos
-                ? { left: `${minCardPos.x}px`, top: `${minCardPos.y}px`, right: 'auto', bottom: 'auto' }
-                : undefined
-            }
-          >
-            <div
-              className="sidebar-header"
-              style={isSidebarMinimized ? { cursor: 'grab' } : undefined}
-              onPointerDown={isSidebarMinimized ? onCardPointerDown : undefined}
-              onPointerMove={isSidebarMinimized ? onCardPointerMove : undefined}
-              onPointerUp={isSidebarMinimized ? onCardPointerUp : undefined}
-              onPointerCancel={isSidebarMinimized ? onCardPointerUp : undefined}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="detail-badge">
-                  Detail {String(activeHotspotIndex + 1).padStart(2, '0')} of {String(hotspots.length).padStart(2, '0')}
-                </span>
-                {isSidebarMinimized && (
-                  <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
-                    (Drag to move)
-                  </span>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <button
-                  type="button"
-                  className="sidebar-minimize-btn"
-                  onClick={() => setIsSidebarMinimized((prev) => !prev)}
-                  title={isSidebarMinimized ? 'Expand full panel' : 'Minimize to compact card'}
-                >
-                  {isSidebarMinimized ? '🗖 Expand' : '🗕 Minimize'}
-                </button>
-                <button
-                  type="button"
-                  className="sidebar-close"
-                  onClick={() => setActiveHotspotIndex(-1)}
-                  title="Close panel"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            <div className="hotspot-detail-view">
-              <h3 className="hotspot-detail-title">{activeHotspot.title}</h3>
-              <p className="hotspot-detail-description">{activeHotspot.description}</p>
-
-              {/* Dedicated Audio Player on Desktop */}
-              {activeHotspot.audio_file_id && (
-                <div className="hotspot-audio-player">
-                  <label className="audio-label">🎧 Dedicated Hotspot Audio</label>
-                  <audio
-                    controls
-                    src={resolveAudioUrl(activeHotspot.audio_file_id)!}
-                    className="hotspot-audio-element"
-                  />
-                </div>
-              )}
-
-              {/* Exhibition Audio Guide Timestamp Seek on Desktop */}
-              {activeHotspot.audio_timestamp_seconds != null && onAudioSeek && (
-                <button
-                  type="button"
-                  className="btn btn--secondary btn--sm hotspot-seek-action"
-                  onClick={() => onAudioSeek(activeHotspot.audio_timestamp_seconds!)}
-                >
-                  ▶ Jump to {Math.floor(activeHotspot.audio_timestamp_seconds)}s in Main Audio Guide
-                </button>
-              )}
-
-              <div className="sidebar-footer-nav">
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => {
-                    const nextIdx =
-                      activeHotspotIndex <= 0 ? hotspots.length - 1 : activeHotspotIndex - 1;
-                    focusHotspot(nextIdx, true);
-                  }}
-                >
-                  ◀ Prev
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => {
-                    const nextIdx =
-                      activeHotspotIndex >= hotspots.length - 1 ? 0 : activeHotspotIndex + 1;
-                    focusHotspot(nextIdx, true);
-                  }}
-                >
-                  Next ▶
-                </button>
-              </div>
-            </div>
-          </aside>
+          <InspectDesktopSidebar
+            activeHotspot={activeHotspot}
+            activeHotspotIndex={activeHotspotIndex}
+            totalHotspots={hotspots.length}
+            onClose={() => setActiveHotspotIndex(-1)}
+            onNavigate={(idx) => focusHotspot(idx, true)}
+            onAudioSeek={onAudioSeek}
+          />
         )}
       </div>
 
@@ -894,7 +748,6 @@ export function InspectLightbox({
             tgt.current.rx = 0;
             tgt.current.ry = 0;
             setActiveHotspotIndex(-1);
-            setShowHotspotInfo(false);
             fitToScreen(false);
           }}
           title="Reset zoom and framing"

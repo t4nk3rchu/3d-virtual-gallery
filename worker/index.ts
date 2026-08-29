@@ -83,6 +83,7 @@ export default {
           email: auth.email,
           full_name: auth.email,
           role: auth.role,
+          is_team: auth.is_team ?? false,
         }),
         { headers: { 'Content-Type': 'application/json' } }
       );

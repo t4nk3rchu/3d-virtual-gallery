@@ -3,10 +3,12 @@ import type { Artwork, ArtworkHotspot, FrameConfig, HotspotTransition } from '..
 import { getImageUrl, proxyMediaUrl } from '../../lib/media/gdrive';
 import { HOTSPOT_TRANSITIONS, getHotspotAnimation } from '../../lib/viewer/hotspot-animations';
 import { HotspotTransitionPreview } from './HotspotTransitionPreview';
+import { DriveFilePicker } from './DriveFilePicker';
 
 interface HotspotEditorProps {
   artwork: Artwork;
   hotspots: ArtworkHotspot[];
+  isTeam?: boolean;
   onHotspotsUpdated(updated: ArtworkHotspot[]): void;
   onClose(): void;
 }
@@ -14,6 +16,7 @@ interface HotspotEditorProps {
 export function HotspotEditor({
   artwork,
   hotspots,
+  isTeam = false,
   onHotspotsUpdated,
   onClose,
 }: HotspotEditorProps) {
@@ -350,9 +353,20 @@ export function HotspotEditor({
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="hs-audio" className="form-label">
-                    Option B: Dedicated Audio File Link (Google Drive / URL)
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label htmlFor="hs-audio" className="form-label" style={{ marginBottom: 0 }}>
+                      Option B: Dedicated Audio File Link (Google Drive / URL)
+                    </label>
+                    <DriveFilePicker
+                      mimeTypes="audio/mp3,audio/mpeg,audio/wav,audio/ogg"
+                      isTeam={isTeam}
+                      buttonLabel="📁 Pick Audio from Google Drive"
+                      onPicked={(fileId) => setAudioFileId(fileId)}
+                      onRejected={(name) =>
+                        setError(`"${name}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
+                      }
+                    />
+                  </div>
                   <input
                     id="hs-audio"
                     type="text"

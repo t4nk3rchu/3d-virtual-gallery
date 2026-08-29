@@ -3,7 +3,14 @@
  */
 import type { Env } from './types';
 import { hashPassword, verifyPassword } from './crypto';
-import { signJwt, buildAuthCookie, clearAuthCookie } from './jwt';
+import {
+  signJwt,
+  buildAuthCookie,
+  clearAuthCookie,
+  buildStateCookie,
+  clearStateCookie,
+  readCookie,
+} from './jwt';
 import { getUserByEmail, upsertGoogleUser, createUser } from './db';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
@@ -19,15 +26,22 @@ function getRedirectUri(req: Request): string {
 
 export function handleGoogleAuthStart(req: Request, env: Env): Response {
   const redirectUri = getRedirectUri(req);
+  const state = crypto.randomUUID();
+  // Note: Login flow requests identity scopes only. Drive Picker uses drive.file on demand.
   const params = new URLSearchParams({
     client_id: env.GOOGLE_OAUTH_CLIENT_ID,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'openid email profile https://www.googleapis.com/auth/drive.readonly',
-    access_type: 'offline',
-    prompt: 'consent',
+    scope: 'openid email profile',
+    state,
   });
-  return Response.redirect(`${GOOGLE_AUTH_URL}?${params}`);
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: `${GOOGLE_AUTH_URL}?${params}`,
+      'Set-Cookie': buildStateCookie(state),
+    },
+  });
 }
 
 export async function handleGoogleAuthCallback(
@@ -36,8 +50,15 @@ export async function handleGoogleAuthCallback(
 ): Promise<Response> {
   const url = new URL(req.url);
   const code = url.searchParams.get('code');
+  const stateParam = url.searchParams.get('state');
+  const stateCookie = readCookie(req, 'oauth_state');
+
   if (!code) {
     return new Response('Missing auth code', { status: 400 });
+  }
+
+  if (!stateParam || !stateCookie || stateParam !== stateCookie) {
+    return new Response('Invalid OAuth state', { status: 403 });
   }
 
   // Exchange code for tokens
@@ -82,16 +103,22 @@ export async function handleGoogleAuthCallback(
   );
 
   const token = await signJwt(
-    { sub: user.id, email: user.email, role: user.role },
+    {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      is_team: user.role === 'admin' || (user as any).is_team_member === 1,
+    },
     env.JWT_SECRET_KEY
   );
 
+  const headers = new Headers({ Location: '/' });
+  headers.append('Set-Cookie', buildAuthCookie(token));
+  headers.append('Set-Cookie', clearStateCookie());
+
   return new Response(null, {
     status: 302,
-    headers: {
-      Location: '/',
-      'Set-Cookie': buildAuthCookie(token),
-    },
+    headers,
   });
 }
 
@@ -129,7 +156,12 @@ export async function handlePasswordRegister(
   });
 
   const token = await signJwt(
-    { sub: user.id, email: user.email, role: user.role },
+    {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      is_team: user.role === 'admin' || (user as any).is_team_member === 1,
+    },
     env.JWT_SECRET_KEY
   );
 
@@ -169,7 +201,12 @@ export async function handlePasswordLogin(
   }
 
   const token = await signJwt(
-    { sub: user.id, email: user.email, role: user.role },
+    {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      is_team: user.role === 'admin' || (user as any).is_team_member === 1,
+    },
     env.JWT_SECRET_KEY
   );
 

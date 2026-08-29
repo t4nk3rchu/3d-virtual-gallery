@@ -89,20 +89,28 @@ export async function getExhibitionBySlug(
     .bind(exhibition.id)
     .all<Artwork>();
 
+  const artworkRowsList = artworkRows.results ?? [];
+  const ids = artworkRowsList.map((a) => a.id);
+  const hotspotsByArtwork = new Map<string, ArtworkHotspot[]>();
+  if (ids.length > 0) {
+    const placeholders = ids.map(() => '?').join(',');
+    const allHotspots = await db
+      .prepare(`SELECT * FROM artwork_hotspots WHERE artwork_id IN (${placeholders})`)
+      .bind(...ids)
+      .all<ArtworkHotspot>();
+    for (const h of allHotspots.results ?? []) {
+      const list = hotspotsByArtwork.get(h.artwork_id) ?? [];
+      list.push(h);
+      hotspotsByArtwork.set(h.artwork_id, list);
+    }
+  }
+
   const artworks: Array<Artwork & { hotspots: ArtworkHotspot[]; artist_profile?: Artist | null }> =
-    await Promise.all(
-      (artworkRows.results ?? []).map(async (a) => {
-        const hotspotRows = await db
-          .prepare('SELECT * FROM artwork_hotspots WHERE artwork_id = ?')
-          .bind(a.id)
-          .all<ArtworkHotspot>();
-        return {
-          ...a,
-          hotspots: hotspotRows.results ?? [],
-          artist_profile: a.artist_id ? artistsMap.get(a.artist_id) ?? null : null,
-        };
-      })
-    );
+    artworkRowsList.map((a) => ({
+      ...a,
+      hotspots: hotspotsByArtwork.get(a.id) ?? [],
+      artist_profile: a.artist_id ? artistsMap.get(a.artist_id) ?? null : null,
+    }));
 
   return { ...exhibition, room, artworks, artists };
 }
@@ -166,26 +174,36 @@ export async function getExhibitionById(
     .bind(exhibition.id)
     .all<Artwork>();
 
+  const artworkRowsListById = artworkRows.results ?? [];
+  const idsById = artworkRowsListById.map((a) => a.id);
+  const hotspotsByArtworkById = new Map<string, ArtworkHotspot[]>();
+  if (idsById.length > 0) {
+    const placeholders = idsById.map(() => '?').join(',');
+    const allHotspots = await db
+      .prepare(`SELECT * FROM artwork_hotspots WHERE artwork_id IN (${placeholders})`)
+      .bind(...idsById)
+      .all<ArtworkHotspot>();
+    for (const h of allHotspots.results ?? []) {
+      const list = hotspotsByArtworkById.get(h.artwork_id) ?? [];
+      list.push(h);
+      hotspotsByArtworkById.set(h.artwork_id, list);
+    }
+  }
+
   const artworks: Array<Artwork & { hotspots: ArtworkHotspot[]; artist_profile?: Artist | null }> =
-    await Promise.all(
-      (artworkRows.results ?? []).map(async (a) => {
-        const hotspotRows = await db
-          .prepare('SELECT * FROM artwork_hotspots WHERE artwork_id = ?')
-          .bind(a.id)
-          .all<ArtworkHotspot>();
-        const artistProfile = a.artist_id ? artistsMap.get(a.artist_id) ?? null : null;
-        const effectiveArtist =
-          (!a.artist || a.artist.trim() === '' || a.artist === 'Untitled Artist') && artistProfile?.name
-            ? artistProfile.name
-            : (a.artist || artistProfile?.name || 'Untitled Artist');
-        return {
-          ...a,
-          artist: effectiveArtist,
-          hotspots: hotspotRows.results ?? [],
-          artist_profile: artistProfile,
-        };
-      })
-    );
+    artworkRowsListById.map((a) => {
+      const artistProfile = a.artist_id ? artistsMap.get(a.artist_id) ?? null : null;
+      const effectiveArtist =
+        (!a.artist || a.artist.trim() === '' || a.artist === 'Untitled Artist') && artistProfile?.name
+          ? artistProfile.name
+          : (a.artist || artistProfile?.name || 'Untitled Artist');
+      return {
+        ...a,
+        artist: effectiveArtist,
+        hotspots: hotspotsByArtworkById.get(a.id) ?? [],
+        artist_profile: artistProfile,
+      };
+    });
 
   return { ...exhibition, room, artworks, artists };
 }
@@ -209,7 +227,7 @@ export async function createExhibition(
       id, input.user_id, input.room_id, input.title, input.slug,
       input.description ?? null, input.curator_name ?? null,
       input.start_date ?? null, input.end_date ?? null,
-      input.is_published, input.cover_image_url ?? null,
+      input.is_published ?? 0, input.cover_image_url ?? null,
       input.settings_json ?? null,
       input.intro_video_file_id ?? null,
       input.curation_type ?? 'solo',
@@ -282,7 +300,7 @@ export async function createRoom(db: D1Database, input: RoomInput): Promise<Room
     .bind(
       id, input.owner_user_id ?? null, input.name, input.description ?? null,
       input.thumbnail_url ?? null, input.glb_file_id, input.glb_source,
-      input.spawn_json ?? null, input.is_public, now
+      input.spawn_json ?? null, input.is_public ?? 0, now
     )
     .run();
 
@@ -434,17 +452,17 @@ export async function createUser(db: D1Database, input: UserInput): Promise<User
   await db
     .prepare(
       `INSERT INTO users
-         (id, email, full_name, auth_provider, google_sub, password_hash, role, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+         (id, email, full_name, auth_provider, google_sub, password_hash, role, is_team_member, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       id, input.email, input.full_name, input.auth_provider,
       input.google_sub ?? null, input.password_hash ?? null,
-      input.role ?? 'curator', now
+      input.role ?? 'curator', input.is_team_member ?? 0, now
     )
     .run();
 
-  return { id, ...input, created_at: now };
+  return { id, ...input, is_team_member: input.is_team_member ?? 0, created_at: now };
 }
 
 export async function upsertGoogleUser(

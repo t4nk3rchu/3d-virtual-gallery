@@ -13,6 +13,7 @@ export interface User {
   google_sub: string | null;       // null for password accounts
   password_hash: string | null;    // PBKDF2 (WebCrypto); null for google accounts
   role: 'admin' | 'curator';
+  is_team_member?: number;         // 1 if internal team member (gets "Shared with me" picker tab)
   created_at: number;              // unix epoch
 }
 

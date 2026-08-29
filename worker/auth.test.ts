@@ -4,6 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import { hashPassword, verifyPassword } from './crypto';
 import { signJwt, verifyJwt, requireAuth } from './jwt';
+import { handleGoogleAuthStart, handleGoogleAuthCallback } from './auth';
 
 const TEST_SECRET = 'test-secret-key-at-least-32-chars!!';
 
@@ -94,3 +95,46 @@ describe('requireAuth', () => {
     expect(await requireAuth(req, TEST_SECRET)).toBeNull();
   });
 });
+
+// ─── Google OAuth state & scope tests ──────────────────────────────────────────
+describe('handleGoogleAuthStart / handleGoogleAuthCallback (state & scope)', () => {
+  const mockEnv = {
+    GOOGLE_OAUTH_CLIENT_ID: 'mock-client-id',
+    GOOGLE_OAUTH_CLIENT_SECRET: 'mock-secret',
+    JWT_SECRET: TEST_SECRET,
+  } as any;
+
+  it('sets an oauth_state cookie and includes state in the Google authorize URL', () => {
+    const req = new Request('https://app.example.com/api/auth/google');
+    const res = handleGoogleAuthStart(req, mockEnv);
+    const location = res.headers.get('Location')!;
+    const setCookie = res.headers.get('Set-Cookie')!;
+    const stateInUrl = new URL(location).searchParams.get('state');
+    expect(stateInUrl).toBeTruthy();
+    expect(setCookie).toContain('oauth_state=');
+    expect(setCookie).toContain(stateInUrl!); // cookie value matches the URL state
+    expect(setCookie).toContain('HttpOnly');
+  });
+
+  it('rejects the callback when state is missing or mismatched', async () => {
+    // No cookie, no state → 403
+    const bad = new Request('https://app.example.com/api/auth/google/callback?code=x');
+    expect((await handleGoogleAuthCallback(bad, mockEnv)).status).toBe(403);
+
+    // Mismatched state → 403
+    const mismatched = new Request(
+      'https://app.example.com/api/auth/google/callback?code=x&state=aaa',
+      { headers: { Cookie: 'oauth_state=bbb' } }
+    );
+    expect((await handleGoogleAuthCallback(mismatched, mockEnv)).status).toBe(403);
+  });
+
+  it('requests only identity scopes, not Drive', () => {
+    const res = handleGoogleAuthStart(new Request('https://app.example.com/api/auth/google'), mockEnv);
+    const scope = new URL(res.headers.get('Location')!).searchParams.get('scope') ?? '';
+    expect(scope).toContain('openid');
+    expect(scope).toContain('email');
+    expect(scope).not.toContain('drive');
+  });
+});
+

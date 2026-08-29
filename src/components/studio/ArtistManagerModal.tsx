@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import type { Artist, ArtistInput } from '../../types/schema';
 import { extractGoogleDriveFileId, getImageUrl } from '../../lib/media/gdrive';
+import { DriveFilePicker } from './DriveFilePicker';
 
 interface ArtistManagerModalProps {
   exhibitionId: string;
   artists: Artist[];
+  isTeam?: boolean;
   onArtistsChanged(): void;
   onClose(): void;
 }
@@ -12,6 +14,7 @@ interface ArtistManagerModalProps {
 export function ArtistManagerModal({
   exhibitionId,
   artists,
+  isTeam = false,
   onArtistsChanged,
   onClose,
 }: ArtistManagerModalProps) {
@@ -182,7 +185,20 @@ export function ArtistManagerModal({
             </div>
 
             <div className="form-group">
-              <label className="form-label">Portrait Image (Google Drive Link or URL)</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <label className="form-label" style={{ marginBottom: 0 }}>
+                  Portrait Image (Google Drive Link or URL)
+                </label>
+                <DriveFilePicker
+                  mimeTypes="image/png,image/jpeg,image/webp,image/gif"
+                  isTeam={isTeam}
+                  buttonLabel="📁 Pick Portrait from Google Drive"
+                  onPicked={(fileId) => setPortraitInput(fileId)}
+                  onRejected={(name) =>
+                    setError(`"${name}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
+                  }
+                />
+              </div>
               <input
                 className="input"
                 value={portraitInput}

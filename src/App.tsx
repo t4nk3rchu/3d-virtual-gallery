@@ -1,5 +1,6 @@
 import { ExhibitionViewer } from './components/viewer/ExhibitionViewer';
 import { StudioApp } from './components/studio/StudioApp';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 /**
  * Simple client-side router:
@@ -18,15 +19,14 @@ function getRoute(): { type: 'viewer'; slug: string } | { type: 'studio' } | { t
 export default function App() {
   const route = getRoute();
 
-  if (route.type === 'viewer') {
-    return <ExhibitionViewer slug={route.slug} />;
-  }
-
-  if (route.type === 'studio') {
-    return <StudioApp />;
-  }
-
-  // Home → redirect to studio
-  window.location.replace('/studio');
-  return null;
+  return (
+    <ErrorBoundary>
+      {route.type === 'viewer' && <ExhibitionViewer slug={route.slug} />}
+      {route.type === 'studio' && <StudioApp />}
+      {route.type === 'home' && (() => {
+        window.location.replace('/studio');
+        return null;
+      })()}
+    </ErrorBoundary>
+  );
 }
