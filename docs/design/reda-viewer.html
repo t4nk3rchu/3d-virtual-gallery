@@ -1,0 +1,647 @@
+<title>REDA Viewer Redesign</title>
+<!--
+  REDA — VIEWER (EXPERIENCE) redesign reference for Gemini.
+  Register: SPOTLIGHT (dark) throughout — foundation spec §5. Deepest charcoal grounds,
+  art leads, chrome recedes to small gold + Libre Bodoni touches. NOT the parchment workbench.
+
+  ONE codex accent is allowed: the parchment WALL-LABEL plaque (spec §6/§7 "wall label").
+  Everything else stays dark glass. Do not put a full vellum/codex page in the viewer — it
+  fights principle #1 (art is hero) and #2 (wall is neutral, chrome recedes).
+
+  HOW TO USE THIS FILE (same contract as docs/design/reda-workbench.html):
+    1. Lift the <style> token block into the shared token layer (most already in src/styles/tokens.css).
+    2. Style the real viewer components by the SAME class names shown here — they match the
+       actual TSX (src/components/viewer/*). Class names are the contract; don't rename.
+    3. NO EMOJI. Every glyph the current viewer renders as an emoji (🕹️ 🖱️ 📍 🎧 ⚙️ ✕ ◀ ▶ …)
+       becomes an inline SVG <Icon>. The icon set used here is defined once in <svg defs> below;
+       mirror these into the shared Icon component.
+    4. Visible gold focus rings on every interactive element (spec §9). Never remove them.
+    5. Touch targets ≥ 44px. Honor prefers-reduced-motion.
+
+  Sections in this file (each maps to a real component):
+    01 Intro video loader        → IntroVideoLoader.tsx
+    02 Loading progress          → ExhibitionViewer .viewer-progress
+    03 Roam HUD                  → ExhibitionViewer hint bar + hover tooltip + mobile joystick/settings
+    04 Focus mode                → FocusPanel.tsx (header bar, info popover, side rail)
+    05 Inspect lightbox          → InspectLightbox.tsx + InspectDesktopSidebar.tsx (+ hotspots drawer)
+    06 Artist detail modal       → ArtistDetailModal.tsx
+    07 Settings modal            → SettingsModal.tsx
+    08 Fallback catalog          → FallbackCatalog.tsx (no-WebGL 2D grid)
+-->
+<style>
+:root{
+  /* grounds (spec §3.1) */
+  --char:#1B1A17; --char-2:#232019; --char-3:#2B271F;
+  --wall:#2C2C31; --wall-deep:#181820; --wall-deepest:#101015;
+  /* paper (accent only in viewer — the wall label) */
+  --parch:#E7DDC6; --parch-2:#F0E8D4; --parch-border:#D3C6A8;
+  /* text */
+  --cream:#ECE3CE; --cream-hi:#F3EBD8; --ink:#2A2018; --ink-2:#5A4A32;
+  --muted:#CDBF9E; --muted-2:#A79A7C; --muted-3:#8B7E62;
+  /* brand accents */
+  --oxblood:#8A322A; --oxblood-hi:#9A392E; --gold:#B98A3C; --gold-hi:#C79A48;
+  --sage:#6E7358; --terra:#C0703F; --link:#D2823E;
+  /* glass + fx */
+  --glass:rgba(20,18,15,.68); --glass-2:rgba(28,25,20,.82);
+  --hairline:linear-gradient(90deg,var(--gold),transparent);
+  --focus:0 0 0 2px rgba(185,138,60,.55);
+  /* type */
+  --display:'Libre Bodoni',Georgia,serif;
+  --text:'EB Garamond',Georgia,serif;
+  --ui:'Montserrat',system-ui,sans-serif;
+  --radius:6px; --radius-sm:3px;
+}
+@import url('https://fonts.googleapis.com/css2?family=Libre+Bodoni:ital,wght@0,400;0,500;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Montserrat:wght@400;500;600;700&display=swap');
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--char);color:var(--cream);font-family:var(--text);line-height:1.55;
+  -webkit-font-smoothing:antialiased}
+.doc{max-width:1240px;margin:0 auto;padding:40px 24px 100px}
+.doc-head{border-bottom:1px solid rgba(185,138,60,.24);padding-bottom:22px;margin-bottom:8px}
+.doc-head .k{font-family:var(--ui);font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--gold)}
+.doc-head h1{font-family:var(--display);font-weight:500;font-size:clamp(30px,4vw,46px);margin:10px 0 6px;color:var(--cream-hi)}
+.doc-head p{color:var(--muted);max-width:70ch;font-size:15px}
+
+/* section framing for this reference sheet */
+.state{margin-top:52px}
+.state__label{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.state__num{font-family:var(--display);font-size:26px;color:var(--gold);font-weight:500}
+.state__name{font-family:var(--ui);font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--cream-hi)}
+.state__map{font-family:var(--ui);font-size:11px;color:var(--muted-3);margin-left:auto}
+.state__note{font-size:13.5px;color:var(--muted);margin:0 0 16px;max-width:78ch}
+.frame{position:relative;border:1px solid rgba(185,138,60,.22);border-radius:10px;overflow:hidden;
+  background:var(--wall-deep);min-height:220px}
+.frame--tall{min-height:520px}
+.rule{height:1px;background:var(--hairline);border:0;margin:6px 0 0}
+
+/* ─── shared component styles (LIFT THESE) ─────────────────────────────── */
+
+/* icons */
+.ico{width:1em;height:1em;display:inline-block;vertical-align:-0.125em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* buttons (spec §7) */
+.btn{font-family:var(--ui);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border-radius:var(--radius);
+  cursor:pointer;border:1px solid transparent;transition:background .15s,border-color .15s,color .15s;white-space:nowrap}
+.btn:focus-visible{outline:none;box-shadow:var(--focus)}
+.btn--primary{background:var(--oxblood-hi);color:var(--cream-hi);border-color:var(--oxblood-hi)}
+.btn--primary:hover{background:#a5433a}
+.btn--ghost{background:transparent;color:var(--cream);border-color:rgba(185,138,60,.5)}
+.btn--ghost:hover{border-color:var(--gold);color:var(--cream-hi)}
+.btn--secondary{background:rgba(255,255,255,.06);color:var(--cream);border-color:rgba(185,138,60,.28)}
+.btn--secondary:hover{background:rgba(255,255,255,.1)}
+.btn--sm{min-height:36px;padding:0 12px;font-size:11px}
+.icon-btn{width:44px;height:44px;min-height:44px;padding:0;justify-content:center;border-radius:50%}
+
+/* mode pill (spec §7) Roam / Focus / Inspect */
+.mode-pill{display:inline-flex;background:var(--glass-2);backdrop-filter:blur(10px);border:1px solid rgba(185,138,60,.3);
+  border-radius:999px;padding:4px;gap:2px}
+.mode-pill button{font-family:var(--ui);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);background:none;border:0;padding:8px 16px;border-radius:999px;cursor:pointer}
+.mode-pill button[aria-current="true"]{background:var(--gold);color:var(--char)}
+.mode-pill button:focus-visible{outline:none;box-shadow:var(--focus)}
+
+/* the wall label — the one codex accent (spec §7) */
+.wall-label{background:var(--parch);color:var(--ink);border-radius:3px;padding:12px 16px;max-width:280px;
+  box-shadow:0 12px 40px rgba(0,0,0,.5);border-left:3px solid var(--oxblood)}
+.wall-label .k{font-family:var(--ui);font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--oxblood)}
+.wall-label h4{font-family:var(--display);font-weight:500;font-size:17px;margin:4px 0 2px}
+.wall-label .meta{font-family:var(--ui);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2)}
+
+/* eyebrow / kicker */
+.eyebrow{font-family:var(--ui);font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+.eyebrow--hotspot{color:var(--terra)}
+
+/* stage backdrop shared by focus + inspect (neutral wall, spec principle #2) */
+.stage-bg{background:radial-gradient(120% 90% at 50% 30%,var(--wall) 0%,var(--wall-deep) 55%,var(--wall-deepest) 100%)}
+
+/* the plate: cream mat + frame + spotlight + shadow (spec §6 "the plate") */
+.plate{position:relative;background:#F3EDDE;padding:26px;border-radius:2px;
+  box-shadow:0 30px 80px rgba(0,0,0,.65), 0 0 0 8px #1a1712, 0 0 0 9px rgba(185,138,60,.35)}
+.plate::after{content:"";position:absolute;inset:-40% -10% auto;height:80%;
+  background:radial-gradient(60% 80% at 50% 0%,rgba(255,247,230,.14),transparent 70%);pointer-events:none}
+.plate img,.plate .canvas-fake{display:block;width:100%;height:auto;border-radius:1px}
+.canvas-fake{aspect-ratio:4/3;background:linear-gradient(135deg,#6E7358,#3c4230 60%,#20241a)}
+
+/* hotspot marker (spec §7) */
+.hotspot-pin{position:absolute;width:26px;height:26px;border-radius:50%;border:2px solid var(--gold);
+  background:rgba(185,138,60,.18);cursor:pointer}
+.hotspot-pin::before{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--gold)}
+.hotspot-pin::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:1px solid var(--gold);
+  animation:ping 1.8s ease-out infinite}
+@keyframes ping{0%{transform:scale(.8);opacity:.7}100%{transform:scale(1.8);opacity:0}}
+@media (prefers-reduced-motion:reduce){.hotspot-pin::after{animation:none}}
+
+/* ─── 01 INTRO VIDEO LOADER ─────────────────────────────────────────────
+   IntroVideoLoader.tsx — dark full-bleed video, small gold branding top-left,
+   unmute chip, skip/enter bottom-right. */
+.intro-demo{position:relative;height:100%;min-height:460px;background:var(--wall-deepest);overflow:hidden}
+.intro-video-player{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  background:linear-gradient(160deg,#2a2620,#141118 70%);opacity:.9}
+.intro-video-header{position:absolute;top:22px;left:24px;z-index:2}
+.intro-video-tag{display:inline-flex;align-items:center;gap:8px;font-family:var(--ui);font-size:11px;
+  font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);
+  background:var(--glass);backdrop-filter:blur(8px);padding:8px 14px;border-radius:999px;border:1px solid rgba(185,138,60,.3)}
+.intro-wordmark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:2}
+.intro-wordmark .k{font-family:var(--ui);letter-spacing:.4em;font-size:11px;color:var(--muted);text-transform:uppercase}
+.intro-wordmark h2{font-family:var(--display);font-weight:500;font-size:clamp(28px,5vw,52px);color:var(--cream-hi);margin:12px 0 0}
+.intro-unmute-btn{position:absolute;top:22px;right:24px;z-index:2}
+.intro-video-footer{position:absolute;bottom:26px;right:26px;z-index:2}
+.intro-loading-status{display:inline-flex;align-items:center;gap:10px;font-family:var(--ui);font-size:12px;
+  letter-spacing:.06em;color:var(--muted);background:var(--glass);padding:10px 16px;border-radius:999px}
+.spinner{width:15px;height:15px;border-radius:50%;border:2px solid rgba(185,138,60,.3);border-top-color:var(--gold);
+  animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spinner{animation:none}}
+
+/* ─── 02 LOADING PROGRESS ───────────────────────────────────────────────
+   ExhibitionViewer .viewer-progress — thin gold bar, bottom of screen. */
+.viewer-progress{position:relative;height:100%;min-height:120px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px}
+.viewer-progress__track{width:min(420px,70%);height:3px;background:rgba(185,138,60,.18);border-radius:2px;overflow:hidden}
+.viewer-progress__bar{height:100%;background:var(--hairline);background:linear-gradient(90deg,var(--gold),var(--gold-hi))}
+.viewer-progress__label{font-family:var(--ui);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+
+/* ─── 03 ROAM HUD ───────────────────────────────────────────────────────
+   ExhibitionViewer — hint bar bottom-left, settings, hover tooltip, mobile joystick. */
+.roam-demo{position:relative;height:100%;min-height:460px}
+.viewer-controls-hint{position:absolute;left:22px;bottom:22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  background:var(--glass);backdrop-filter:blur(10px);border:1px solid rgba(185,138,60,.22);border-radius:999px;
+  padding:10px 18px;max-width:calc(100% - 44px)}
+.viewer-controls-hint span{display:inline-flex;align-items:center;gap:7px;font-family:var(--ui);font-size:11px;
+  letter-spacing:.04em;color:var(--muted)}
+.viewer-controls-hint span .ico{color:var(--gold);font-size:15px}
+.viewer-controls-hint kbd{font-family:var(--ui);font-weight:700;font-size:10px;color:var(--cream);
+  background:rgba(185,138,60,.16);border:1px solid rgba(185,138,60,.3);border-radius:3px;padding:2px 6px}
+.btn-settings-hud{margin-left:6px}
+.btn-mobile-settings{position:absolute;top:18px;right:18px;background:var(--glass-2);color:var(--gold)}
+.artwork-hover-tooltip{position:absolute;top:120px;left:50%;background:var(--glass-2);backdrop-filter:blur(10px);
+  border:1px solid rgba(185,138,60,.3);border-left:3px solid var(--gold);border-radius:6px;padding:11px 15px;max-width:220px}
+.artwork-hover-tooltip__artist{font-family:var(--ui);font-size:9.5px;font-weight:700;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--gold)}
+.artwork-hover-tooltip__title-year{font-family:var(--display);font-size:16px;color:var(--cream-hi);margin-top:3px}
+.artwork-hover-tooltip__year{color:var(--muted);font-style:italic}
+.joystick{position:absolute;left:26px;bottom:96px;width:96px;height:96px;border-radius:50%;
+  background:var(--glass);border:1px solid rgba(185,138,60,.3)}
+.joystick::after{content:"";position:absolute;left:50%;top:50%;width:40px;height:40px;transform:translate(-50%,-50%);
+  border-radius:50%;background:rgba(185,138,60,.35);border:1px solid var(--gold)}
+.tag-mobile{position:absolute;top:14px;left:14px;font-family:var(--ui);font-size:9px;font-weight:700;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--muted-3);background:rgba(0,0,0,.4);padding:4px 8px;border-radius:3px}
+
+/* ─── 04 FOCUS MODE ─────────────────────────────────────────────────────
+   FocusPanel.tsx — camera at 90°, art plated center, dark-glass controls. */
+.focus-demo{position:relative;height:100%;min-height:540px;display:flex;align-items:center;justify-content:center;padding:40px}
+.focus-art{max-width:360px;width:60%}
+.focus-header-bar{position:absolute;top:20px;right:20px;display:flex;gap:10px;align-items:center}
+.focus-header-bar__exit-btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--ui);font-size:11px;
+  font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--cream);background:var(--glass);
+  backdrop-filter:blur(10px);border:1px solid rgba(185,138,60,.3);border-radius:999px;padding:10px 16px;cursor:pointer;min-height:44px}
+.focus-header-bar__info-btn{width:44px;height:44px;border-radius:50%;background:var(--glass);border:1px solid rgba(185,138,60,.3);
+  color:var(--gold);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.focus-header-bar__info-btn.active{background:var(--gold);color:var(--char)}
+.focus-nav-rail{position:absolute;right:20px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px}
+.focus-nav-btn{width:48px;height:48px;border-radius:50%;background:var(--glass);border:1px solid rgba(185,138,60,.3);
+  color:var(--cream);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.focus-nav-btn:hover{border-color:var(--gold);color:var(--gold-hi)}
+/* dark-glass info popover (spec §7 Focus panel) */
+.focus-info-modal{position:absolute;top:76px;right:20px;width:340px;max-width:calc(100% - 40px);
+  background:var(--glass);backdrop-filter:blur(16px);border:1px solid rgba(185,138,60,.28);border-left:3px solid var(--gold);
+  border-radius:10px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;max-height:80%}
+.focus-info-modal__pinned{padding:18px 20px 14px;border-bottom:1px solid rgba(185,138,60,.2)}
+.focus-info-modal__header{display:flex;justify-content:space-between;align-items:flex-start}
+.focus-info-modal__artist{font-family:var(--ui);font-size:10px;font-weight:700;letter-spacing:.18em;color:var(--gold)}
+.focus-info-modal__close{background:none;border:0;color:var(--muted);font-size:18px;cursor:pointer;line-height:1}
+.focus-info-modal__title-year{font-family:var(--display);font-size:24px;color:var(--cream-hi);margin-top:6px}
+.focus-info-modal__title-year .focus-info-modal__year{color:var(--muted);font-style:italic}
+.focus-info-modal__detail-row{font-family:var(--text);font-size:13.5px;color:var(--cream);margin-top:6px}
+.focus-info-modal__detail-row .detail-label{font-family:var(--ui);font-size:9.5px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted-2);margin-right:6px}
+.focus-info-modal__scrollable{padding:14px 20px;overflow-y:auto}
+.focus-info-modal__desc{font-family:var(--text);font-size:14px;color:var(--cream);margin:0}
+.focus-info-modal__actions{padding:14px 20px;border-top:1px solid rgba(185,138,60,.2);display:flex;flex-direction:column;gap:9px}
+
+/* ─── 05 INSPECT LIGHTBOX ───────────────────────────────────────────────
+   InspectLightbox.tsx + InspectDesktopSidebar.tsx. Full-res, zoom/pan/tilt, hotspots.
+   .inspect-lightbox__main-area MUST stay position:absolute;inset:0 so the art never shifts. */
+.inspect-demo{position:relative;height:100%;min-height:560px;background:var(--wall-deepest)}
+.inspect-lightbox__header{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;
+  align-items:flex-start;padding:18px 22px;background:linear-gradient(180deg,rgba(16,16,21,.85),transparent)}
+.inspect-header-title{font-family:var(--display);font-weight:500;font-size:22px;color:var(--cream-hi);margin:3px 0 0}
+.inspect-lightbox__header .artist{font-family:var(--text);font-style:italic;color:var(--muted);font-size:14px}
+.inspect-lightbox__header-actions{display:flex;gap:10px;align-items:center}
+.inspect-lightbox__close{width:44px;height:44px;border-radius:50%;background:var(--glass);border:1px solid rgba(185,138,60,.3);
+  color:var(--cream);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.inspect-lightbox__main-area{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:80px 40px}
+.inspect-plate{position:relative;max-width:440px;width:70%}
+.inspect-lightbox__controls{position:absolute;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;
+  justify-content:center;gap:14px;padding:16px 22px;background:linear-gradient(0deg,rgba(16,16,21,.85),transparent)}
+.inspect-lightbox__carousel{display:flex;align-items:center;gap:10px}
+.carousel-counter-btn{display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:var(--glass-2);
+  border:1px solid rgba(185,138,60,.3);border-radius:8px;padding:7px 16px;cursor:pointer;min-width:150px}
+.carousel-counter-btn.active{border-color:var(--gold)}
+.carousel-counter-tag{font-family:var(--ui);font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--terra)}
+.carousel-counter-title{font-family:var(--display);font-size:14px;color:var(--cream-hi)}
+.inspect-lightbox__hint{position:absolute;bottom:76px;left:50%;transform:translateX(-50%);font-family:var(--ui);
+  font-size:10.5px;letter-spacing:.08em;color:var(--muted-3);white-space:nowrap}
+/* desktop hotspot sidebar (draggable/minimizable) */
+.inspect-lightbox__sidebar{position:absolute;top:78px;right:22px;width:320px;background:var(--glass-2);
+  backdrop-filter:blur(16px);border:1px solid rgba(185,138,60,.28);border-left:3px solid var(--gold);border-radius:10px;
+  box-shadow:0 24px 60px rgba(0,0,0,.6);overflow:hidden}
+.sidebar-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid rgba(185,138,60,.2)}
+.detail-badge{font-family:var(--ui);font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--terra)}
+.sidebar-minimize-btn,.sidebar-close{background:none;border:0;color:var(--muted);cursor:pointer;font-family:var(--ui);
+  font-size:11px;display:inline-flex;align-items:center;gap:5px}
+.hotspot-detail-view{padding:16px}
+.hotspot-detail-title{font-family:var(--display);font-weight:500;font-size:19px;color:var(--cream-hi);margin:0 0 8px}
+.hotspot-detail-description{font-family:var(--text);font-size:14px;color:var(--cream);margin:0 0 14px}
+.sidebar-footer-nav{display:flex;gap:9px;justify-content:space-between;margin-top:6px}
+/* hotspots directory drawer */
+.inspect-lightbox__drawer{position:absolute;top:0;right:0;bottom:0;width:340px;background:var(--glass-2);
+  backdrop-filter:blur(18px);border-left:1px solid rgba(185,138,60,.28);padding:18px;overflow-y:auto}
+.hotspot-list-item{display:flex;gap:12px;width:100%;text-align:left;background:rgba(255,255,255,.04);
+  border:1px solid rgba(185,138,60,.2);border-radius:8px;padding:12px;margin-bottom:10px;cursor:pointer}
+.hotspot-list-item.active,.hotspot-list-item:hover{border-color:var(--gold)}
+.item-badge{font-family:var(--display);font-size:16px;color:var(--gold);flex:none}
+.item-content h4{font-family:var(--display);font-weight:500;font-size:15px;color:var(--cream-hi);margin:0 0 3px}
+.item-content p{font-family:var(--text);font-size:13px;color:var(--muted);margin:0}
+
+/* ─── 06 ARTIST DETAIL MODAL ────────────────────────────────────────────
+   ArtistDetailModal.tsx — two-column: portrait + life dates | bio + quote. */
+.artist-modal-backdrop{position:relative;height:100%;min-height:520px;display:flex;align-items:center;justify-content:center;
+  padding:36px;background:rgba(10,9,7,.6)}
+.artist-modal-container{position:relative;width:min(860px,100%);background:var(--char-2);border:1px solid rgba(185,138,60,.28);
+  border-radius:12px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.6)}
+.artist-modal-close{position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:50%;background:var(--glass);
+  border:1px solid rgba(185,138,60,.3);color:var(--cream);cursor:pointer;z-index:2}
+.artist-modal-content{display:grid;grid-template-columns:280px 1fr}
+.artist-modal-portrait-col{background:var(--char-3);padding:32px 26px;display:flex;flex-direction:column;align-items:center;gap:16px;
+  border-right:1px solid rgba(185,138,60,.18)}
+.artist-portrait-wrapper,.artist-portrait-placeholder{width:180px;height:180px;border-radius:50%;overflow:hidden;
+  border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 35%,#3a352b,#1c1913);color:var(--muted-3)}
+.artist-lifedates-badge{font-family:var(--ui);font-size:11px;letter-spacing:.1em;color:var(--gold);
+  border:1px solid rgba(185,138,60,.4);border-radius:999px;padding:5px 14px}
+.artist-contact-box{display:flex;align-items:center;gap:7px;font-family:var(--ui);font-size:11px;color:var(--muted)}
+.artist-modal-info-col{padding:38px 40px}
+.artist-kicker{font-family:var(--ui);font-size:10px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
+.artist-name{font-family:var(--display);font-weight:500;font-size:clamp(28px,3.4vw,40px);color:var(--cream-hi);margin:8px 0 18px}
+.artist-quote{border-left:3px solid var(--oxblood);padding:4px 0 4px 20px;margin:0 0 20px;position:relative}
+.artist-quote p{font-family:var(--text);font-style:italic;font-size:18px;color:var(--cream);margin:0}
+.quote-mark{font-family:var(--display);font-size:34px;color:var(--gold);line-height:0}
+.artist-bio-body p{font-family:var(--text);font-size:15px;color:var(--cream);margin:0 0 12px}
+
+/* ─── 07 SETTINGS MODAL ─────────────────────────────────────────────────
+   SettingsModal.tsx — sections, toggles (sage when on), sliders (gold). */
+.settings-modal-backdrop{position:relative;height:100%;min-height:560px;display:flex;align-items:center;justify-content:center;
+  padding:30px;background:rgba(10,9,7,.6)}
+.settings-modal{width:min(560px,100%);max-height:100%;overflow:hidden;background:var(--char-2);
+  border:1px solid rgba(185,138,60,.28);border-radius:12px;display:flex;flex-direction:column;box-shadow:0 40px 100px rgba(0,0,0,.6)}
+.settings-modal__header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid rgba(185,138,60,.2)}
+.settings-modal__header h2{font-family:var(--display);font-weight:500;font-size:22px;color:var(--cream-hi);margin:0;display:inline-flex;align-items:center;gap:10px}
+.settings-modal__close{width:40px;height:40px;border-radius:50%;background:none;border:1px solid rgba(185,138,60,.3);color:var(--muted);cursor:pointer}
+.settings-modal__body{padding:8px 24px 20px;overflow-y:auto}
+.settings-section{padding:18px 0;border-bottom:1px solid rgba(185,138,60,.14)}
+.settings-section h3{font-family:var(--ui);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--gold);margin:0 0 14px;display:inline-flex;align-items:center;gap:8px}
+.settings-toggle{display:flex;gap:12px;align-items:flex-start;cursor:pointer;padding:8px 0}
+.settings-toggle input{appearance:none;width:40px;height:22px;border-radius:999px;background:var(--char-3);
+  border:1px solid rgba(185,138,60,.3);position:relative;flex:none;cursor:pointer;transition:background .15s}
+.settings-toggle input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+  background:var(--muted);transition:transform .15s,background .15s}
+.settings-toggle input:checked{background:var(--sage);border-color:var(--sage)}
+.settings-toggle input:checked::after{transform:translateX(18px);background:var(--cream-hi)}
+.settings-toggle input:focus-visible{outline:none;box-shadow:var(--focus)}
+.settings-toggle__text strong{display:block;font-family:var(--ui);font-size:13px;font-weight:600;color:var(--cream)}
+.settings-toggle__text small{display:block;font-family:var(--text);font-size:13px;color:var(--muted-2);margin-top:2px}
+.settings-slider-group{margin-top:14px}
+.settings-slider-header{display:flex;justify-content:space-between;font-family:var(--ui);font-size:12px;color:var(--cream);margin-bottom:8px}
+.settings-slider-header span:last-child{color:var(--gold);font-weight:600;font-variant-numeric:tabular-nums}
+.range-input{width:100%;appearance:none;height:3px;border-radius:2px;background:rgba(185,138,60,.25)}
+.range-input::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:var(--gold);cursor:pointer;border:2px solid var(--char)}
+.slider-labels{display:flex;justify-content:space-between;font-family:var(--ui);font-size:10px;color:var(--muted-3);margin-top:6px}
+.settings-modal__footer{display:flex;justify-content:space-between;gap:12px;padding:16px 24px;border-top:1px solid rgba(185,138,60,.2)}
+
+/* ─── 08 FALLBACK CATALOG ───────────────────────────────────────────────
+   FallbackCatalog.tsx — no WebGL. Still Spotlight: dark ground, plated cards. */
+.fallback-catalog{padding:40px;background:var(--wall-deep)}
+.fallback-catalog__header{text-align:center;max-width:70ch;margin:0 auto 34px}
+.fallback-catalog__title{font-family:var(--display);font-weight:500;font-size:clamp(30px,4vw,44px);color:var(--cream-hi);margin:0}
+.fallback-catalog__curator{font-family:var(--text);font-style:italic;color:var(--gold);font-size:16px;margin:6px 0}
+.fallback-catalog__description{font-family:var(--text);color:var(--muted);font-size:15px}
+.fallback-catalog__notice{font-family:var(--ui);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-3);
+  border:1px solid rgba(185,138,60,.24);border-radius:999px;display:inline-block;padding:6px 16px;margin-top:14px}
+.fallback-catalog__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:26px}
+.fallback-catalog__item{background:var(--char-2);border:1px solid rgba(185,138,60,.18);border-radius:10px;overflow:hidden}
+.fallback-catalog__image{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.fallback-catalog__meta{padding:16px 18px}
+.fallback-catalog__artwork-title{font-family:var(--display);font-weight:500;font-size:18px;color:var(--cream-hi);margin:0}
+.fallback-catalog__artist{font-family:var(--text);font-style:italic;color:var(--gold);font-size:13px;margin:3px 0}
+.fallback-catalog__medium{font-family:var(--ui);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-3);margin:4px 0 0}
+.fallback-catalog__desc{font-family:var(--text);font-size:13.5px;color:var(--muted);margin:8px 0 0}
+
+@media (max-width:720px){
+  .artist-modal-content{grid-template-columns:1fr}
+  .artist-modal-portrait-col{border-right:0;border-bottom:1px solid rgba(185,138,60,.18)}
+}
+</style>
+
+<!-- inline icon defs — mirror these into the shared <Icon> component. NO EMOJI in the viewer. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="i-walk"><path d="M13 4a1 1 0 100-2 1 1 0 000 2zM11 22l1.5-6L10 13l1-5 4 2 2 3M9 22l2-6"/></g>
+    <g id="i-mouse"><rect x="7" y="3" width="10" height="18" rx="5"/><path d="M12 7v3"/></g>
+    <g id="i-frame"><rect x="3" y="4" width="18" height="14" rx="1"/><path d="M3 15l5-4 4 3 3-2 6 5"/></g>
+    <g id="i-target"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></g>
+    <g id="i-settings"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g>
+    <g id="i-close"><path d="M6 6l12 12M18 6L6 18"/></g>
+    <g id="i-info"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></g>
+    <g id="i-prev"><path d="M15 5l-7 7 7 7"/></g>
+    <g id="i-next"><path d="M9 5l7 7-7 7"/></g>
+    <g id="i-pin"><path d="M12 21s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></g>
+    <g id="i-audio"><path d="M4 9v6h4l5 4V5L8 9H4zM17 8a5 5 0 010 8"/></g>
+    <g id="i-user"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></g>
+    <g id="i-search"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></g>
+    <g id="i-reset"><path d="M4 4v6h6M20 20v-6h-6M20 8a8 8 0 00-14-3M4 16a8 8 0 0014 3"/></g>
+    <g id="i-sound"><path d="M4 9v6h4l5 4V5L8 9H4zM17 9l4 6M21 9l-4 6"/></g>
+    <g id="i-minimize"><path d="M5 12h14"/></g>
+    <g id="i-film"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></g>
+    <g id="i-palette"><circle cx="12" cy="12" r="9"/><circle cx="8" cy="10" r="1"/><circle cx="12" cy="8" r="1"/><circle cx="16" cy="10" r="1"/></g>
+  </defs>
+</svg>
+
+<div class="doc">
+  <div class="doc-head">
+    <div class="k">REDA · Experience</div>
+    <h1>Viewer Redesign — Section Reference</h1>
+    <p>Spotlight (dark) register per foundation spec §5. Art leads; chrome recedes to small gold + Libre&nbsp;Bodoni touches. The parchment wall-label is the one codex accent. Class names below match the real <code>src/components/viewer/*</code> — style by these names, replace every emoji with the inline SVG icons defined above.</p>
+  </div>
+
+  <!-- 01 -->
+  <div class="state">
+    <div class="state__label"><span class="state__num">01</span><span class="state__name">Intro Video Loader</span><span class="state__map">IntroVideoLoader.tsx</span></div>
+    <p class="state__note">Plays before the room is ready. Tiny gold branding chip, wordmark centered, unmute chip top-right, and a skip/enter action bottom-right that swaps to a loading status until the scene is ready.</p>
+    <div class="frame frame--tall">
+      <div class="intro-demo">
+        <div class="intro-video-player"></div>
+        <div class="intro-video-header"><span class="intro-video-tag"><svg class="ico"><use href="#i-film"/></svg> Exhibition Intro</span></div>
+        <button class="intro-unmute-btn btn btn--ghost btn--sm"><svg class="ico"><use href="#i-sound"/></svg> Enable sound</button>
+        <div class="intro-wordmark"><div class="k">A Retrospective</div><h2>The Umber Years</h2></div>
+        <div class="intro-video-footer">
+          <button class="intro-skip-btn btn btn--primary">Enter Exhibition <svg class="ico"><use href="#i-next"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 -->
+  <div class="state">
+    <div class="state__label"><span class="state__num">02</span><span class="state__name">Loading Progress</span><span class="state__map">.viewer-progress</span></div>
+    <p class="state__note">Shown when there is no intro video (or it was dismissed while the room is still loading). Thin gold bar; tracked-caps label.</p>
+    <div class="frame stage-bg">
+      <div class="viewer-progress">
+        <div class="viewer-progress__track"><div class="viewer-progress__bar" style="width:62%"></div></div>
+        <div class="viewer-progress__label">Loading room… 62%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 -->
+  <div class="state">
+    <div class="state__label"><span class="state__num">03</span><span class="state__name">Roam HUD</span><span class="state__map">ExhibitionViewer hint bar · hover tooltip · joystick</span></div>
+    <p class="state__note">Walking the 3D room. Chrome nearly invisible: one glass hint pill bottom-left (kbd chips + gold icons), settings. Hover an artwork → dark-glass tooltip with gold artist kicker + Bodoni title. Mobile shows a joystick + a round settings button; desktop hint bar is hidden on small viewports.</p>
+    <div class="frame frame--tall stage-bg">
+      <div class="roam-demo">
+        <div class="artwork-hover-tooltip" style="transform:translateX(-50%)">
+          <div class="artwork-hover-tooltip__artist">Elisabetta Marchetti</div>
+          <div class="artwork-hover-tooltip__title-year">Study in Ochre<span class="artwork-hover-tooltip__year">, 1971</span></div>
+        </div>
+        <div class="viewer-controls-hint">
+          <span><svg class="ico"><use href="#i-walk"/></svg> <kbd>WASD</kbd> to walk</span>
+          <span><svg class="ico"><use href="#i-mouse"/></svg> Drag to look</span>
+          <span><svg class="ico"><use href="#i-frame"/></svg> Click art to focus</span>
+          <span><svg class="ico"><use href="#i-target"/></svg> Click floor to teleport</span>
+          <button class="btn btn--ghost btn--sm btn-settings-hud"><svg class="ico"><use href="#i-settings"/></svg> Settings</button>
+        </div>
+      </div>
+    </div>
+    <div class="frame frame--tall stage-bg" style="max-width:390px;margin-top:16px">
+      <div class="roam-demo" style="min-height:460px">
+        <div class="tag-mobile">Mobile</div>
+        <button class="btn-mobile-settings icon-btn btn"><svg class="ico"><use href="#i-settings"/></svg></button>
+        <div class="joystick"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 -->
+  <div class="state">
+    <div class="state__label"><span class="state__num">04</span><span class="state__name">Focus Mode</span><span class="state__map">FocusPanel.tsx</span></div>
+    <p class="state__note">Camera flies to a straight-on 90° view; the work sits on the plate (cream mat + frame + spotlight + shadow on the neutral wall). Controls are dark glass: exit + info top-right, prev/next side rail, and an info popover with gold left border (kicker · Bodoni title · Montserrat spec rows · description · bio/inspect actions).</p>
+    <div class="frame frame--tall stage-bg">
+      <div class="focus-demo">
+        <div class="focus-header-bar">
+          <button class="focus-header-bar__exit-btn"><span>Exit detail view</span> <svg class="ico"><use href="#i-close"/></svg></button>
+          <button class="focus-header-bar__info-btn active"><svg class="ico"><use href="#i-info"/></svg></button>
+        </div>
+        <div class="focus-art"><div class="plate"><div class="canvas-fake"></div></div></div>
+        <aside class="focus-info-modal">
+          <div class="focus-info-modal__pinned">
+            <div class="focus-info-modal__header">
+              <div class="focus-info-modal__artist">Elisabetta Marchetti</div>
+              <button class="focus-info-modal__close"><svg class="ico"><use href="#i-close"/></svg></button>
+            </div>
+            <div class="focus-info-modal__title-year">Study in Ochre<span class="focus-info-modal__year">, 1971</span></div>
+            <div class="focus-info-modal__detail-row"><span class="detail-label">Medium</span>Oil on linen</div>
+            <div class="focus-info-modal__detail-row"><span class="detail-label">Dimensions</span>92 × 68 cm</div>
+          </div>
+          <div class="focus-info-modal__scrollable">
+            <p class="focus-info-modal__desc">Painted in the artist's final Roman studio, the work distills a decade of tonal experiments into a single warm field.</p>
+          </div>
+          <div class="focus-info-modal__actions">
+            <button class="btn btn--ghost btn--sm"><svg class="ico"><use href="#i-user"/></svg> Read artist bio</button>
+            <button class="btn btn--primary btn--sm"><svg class="ico"><use href="#i-search"/></svg> Inspect full resolution</button>
+          </div>
+        </aside>
+        <div class="focus-nav-rail">
+          <button class="focus-nav-btn"><svg class="ico"><use href="#i-prev"/></svg></button>
+          <button class="focus-nav-btn"><svg class="ico"><use href="#i-next"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 -->
+  <div class="state">
+    <div class="state__label"><span class="state__num">05</span><span class="state__name">Inspect Lightbox</span><span class="state__map">InspectLightbox.tsx · InspectDesktopSidebar.tsx</span></div>
+    <p class="state__note">Full-resolution zoom/pan/tilt. Header fades in from the top (Bodoni title + italic artist + hotspots-list toggle + close); the art never shifts (<code>.inspect-lightbox__main-area</code> stays <code>inset:0</code>). Gold hotspot pins (ring + dot + ping). Bottom control bar: reset · prev / counter / next · hint. Active hotspot opens the draggable desktop sidebar.</p>
+    <div class="frame frame--tall">
+      <div class="inspect-demo">
+        <header class="inspect-lightbox__header">
+          <div class="inspect-lightbox__title-info">
+            <span class="eyebrow">Inspect Mode</span>
+            <h2 class="inspect-header-title">Study in Ochre</h2>
+            <p class="artist">Elisabetta Marchetti</p>
+          </div>
+          <div class="inspect-lightbox__header-actions">
+            <button class="btn btn--secondary btn--sm"><svg class="ico"><use href="#i-pin"/></svg> Hotspots (3)</button>
+            <button class="inspect-lightbox__close"><svg class="ico"><use href="#i-close"/></svg></button>
+          </div>
+        </header>
+        <div class="inspect-lightbox__main-area">
+          <div class="inspect-plate plate">
+            <div class="canvas-fake"></div>
+            <div class="hotspot-pin" style="left:30%;top:38%"></div>
+            <div class="hotspot-pin" style="left:62%;top:60%"></div>
+          </div>
+        </div>
+        <aside class="inspect-lightbox__sidebar">
+          <div class="sidebar-header">
+            <span class="detail-badge">Detail 01 of 03</span>
+            <div style="display:flex;gap:6px">
+              <button class="sidebar-minimize-btn"><svg class="ico"><use href="#i-minimize"/></svg> Minimize</button>
+              <button class="sidebar-close"><svg class="ico"><use href="#i-close"/></svg></button>
+            </div>
+          </div>
+          <div class="hotspot-detail-view">
+            <h3 class="hotspot-detail-title">The impasto ridge</h3>
+            <p class="hotspot-detail-description">A thumb-worked crest of pigment catches the raking light — the artist's signature gesture.</p>
+            <button class="btn btn--secondary btn--sm" style="width:100%"><svg class="ico"><use href="#i-audio"/></svg> Jump to 0:42 in guide</button>
+            <div class="sidebar-footer-nav">
+              <button class="btn btn--ghost btn--sm"><svg class="ico"><use href="#i-prev"/></svg> Prev</button>
+              <button class="btn btn--ghost btn--sm">Next <svg class="ico"><use href="#i-next"/></svg></button>
+            </div>
+          </div>
+        </aside>
+        <div class="inspect-lightbox__hint">Left-drag to pan · Right-drag to tilt · Scroll to zoom</div>
+        <footer class="inspect-lightbox__controls">
+          <button class="btn btn--ghost btn--sm"><svg class="ico"><use href="#i-reset"/></svg> Reset view</button>
+          <div class="inspect-lightbox__carousel">
+            <button class="btn btn--secondary btn--sm"><svg class="ico"><use href="#i-prev"/></svg> Prev</button>
+            <button class="carousel-counter-btn active">
+              <span class="carousel-counter-tag">Detail 01 / 03</span>
+              <span class="carousel-counter-title">The impasto ridge</span>
+            </button>
+            <button class="btn btn--secondary btn--sm">Next <svg class="ico"><use href="#i-next"/></svg></button>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 -->
+  <div class="state">
+    <div class="state__label"><span class="state__num">06</span><span class="state__name">Artist Detail Modal</span><span class="state__map">ArtistDetailModal.tsx</span></div>
+    <p class="state__note">Two columns: portrait + life-dates + contact on a charcoal inset, then the bio column — gold kicker, Bodoni name, oxblood-ruled italic quote, Garamond biography.</p>
+    <div class="frame frame--tall">
+      <div class="artist-modal-backdrop">
+        <div class="artist-modal-container">
+          <button class="artist-modal-close"><svg class="ico"><use href="#i-close"/></svg></button>
+          <div class="artist-modal-content">
+            <div class="artist-modal-portrait-col">
+              <div class="artist-portrait-placeholder"><svg class="ico" style="font-size:52px"><use href="#i-user"/></svg></div>
+              <div class="artist-lifedates-badge">1928 – 1994</div>
+              <div class="artist-contact-box"><svg class="ico"><use href="#i-pin"/></svg> Rome, Italy</div>
+            </div>
+            <div class="artist-modal-info-col">
+              <span class="artist-kicker">Featured Artist</span>
+              <h1 class="artist-name">Elisabetta Marchetti</h1>
+              <blockquote class="artist-quote"><span class="quote-mark">“</span><p>Colour is memory that refused to fade.</p></blockquote>
+              <div class="artist-bio-body">
+                <p>Marchetti trained under the last of the Macchiaioli before turning to the tonal abstraction that defined her mature period.</p>
+                <p>Her estate spans four decades of work, much of it unseen until this retrospective.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 07 -->
+  <div class="state">
+    <div class="state__label"><span class="state__num">07</span><span class="state__name">Settings Modal</span><span class="state__map">SettingsModal.tsx</span></div>
+    <p class="state__note">Visitor preferences. Sectioned with gold tracked-caps headers; toggles turn sage when on; sliders use a gold thumb on a faint track; footer has ghost reset + oxblood done.</p>
+    <div class="frame frame--tall">
+      <div class="settings-modal-backdrop">
+        <div class="settings-modal">
+          <header class="settings-modal__header">
+            <h2><svg class="ico"><use href="#i-settings"/></svg> Gallery &amp; Control Settings</h2>
+            <button class="settings-modal__close"><svg class="ico"><use href="#i-close"/></svg></button>
+          </header>
+          <div class="settings-modal__body">
+            <section class="settings-section">
+              <h3><svg class="ico"><use href="#i-palette"/></svg> Visuals &amp; Transitions</h3>
+              <label class="settings-toggle">
+                <input type="checkbox" checked>
+                <span class="settings-toggle__text"><strong>3D perspective tilt on 2D artworks</strong><small>Right-click or touch-drag tilts the painting with frame depth and shadow.</small></span>
+              </label>
+              <div class="settings-slider-group">
+                <div class="settings-slider-header"><span>Field of View</span><span>65°</span></div>
+                <input class="range-input" type="range" min="50" max="90" value="65">
+                <div class="slider-labels"><span>Narrow</span><span>Default</span><span>Wide</span></div>
+              </div>
+            </section>
+            <section class="settings-section">
+              <h3><svg class="ico"><use href="#i-walk"/></svg> Movement Speed</h3>
+              <div class="settings-slider-group">
+                <div class="settings-slider-header"><span>Walking speed</span><span>20</span></div>
+                <input class="range-input" type="range" min="8" max="40" value="20">
+                <div class="slider-labels"><span>Slow</span><span>Normal</span><span>Fast</span></div>
+              </div>
+            </section>
+          </div>
+          <footer class="settings-modal__footer">
+            <button class="btn btn--ghost btn--sm">Reset to defaults</button>
+            <button class="btn btn--primary">Done</button>
+          </footer>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 08 -->
+  <div class="state">
+    <div class="state__label"><span class="state__num">08</span><span class="state__name">Fallback Catalog</span><span class="state__map">FallbackCatalog.tsx (no WebGL2)</span></div>
+    <p class="state__note">When WebGL2 is unavailable. Stays in the Spotlight register — dark ground, Bodoni title, italic gold curator line, a quiet notice pill, and a responsive grid of plated cards.</p>
+    <div class="frame">
+      <div class="fallback-catalog">
+        <div class="fallback-catalog__header">
+          <h1 class="fallback-catalog__title">The Umber Years</h1>
+          <p class="fallback-catalog__curator">Curated by the Marchetti Estate</p>
+          <p class="fallback-catalog__description">A retrospective of four decades of tonal painting.</p>
+          <p class="fallback-catalog__notice">3D view requires WebGL2 — showing the 2D catalogue</p>
+        </div>
+        <div class="fallback-catalog__grid">
+          <article class="fallback-catalog__item">
+            <div class="fallback-catalog__image canvas-fake" style="aspect-ratio:4/3"></div>
+            <div class="fallback-catalog__meta">
+              <h2 class="fallback-catalog__artwork-title">Study in Ochre</h2>
+              <p class="fallback-catalog__artist">Elisabetta Marchetti</p>
+              <p class="fallback-catalog__medium">Oil on linen · 1971</p>
+              <p class="fallback-catalog__desc">A single warm field distilled from a decade of tonal experiments.</p>
+            </div>
+          </article>
+          <article class="fallback-catalog__item">
+            <div class="fallback-catalog__image canvas-fake" style="aspect-ratio:4/3;background:linear-gradient(135deg,#8A322A,#3a1a16 70%)"></div>
+            <div class="fallback-catalog__meta">
+              <h2 class="fallback-catalog__artwork-title">Red Threshold</h2>
+              <p class="fallback-catalog__artist">Elisabetta Marchetti</p>
+              <p class="fallback-catalog__medium">Oil on board · 1978</p>
+              <p class="fallback-catalog__desc">The oxblood series that closed her Roman period.</p>
+            </div>
+          </article>
+          <article class="fallback-catalog__item">
+            <div class="fallback-catalog__image canvas-fake" style="aspect-ratio:4/3;background:linear-gradient(135deg,#B98A3C,#4a3512 70%)"></div>
+            <div class="fallback-catalog__meta">
+              <h2 class="fallback-catalog__artwork-title">Gilt Interval</h2>
+              <p class="fallback-catalog__artist">Elisabetta Marchetti</p>
+              <p class="fallback-catalog__medium">Gold leaf, oil · 1985</p>
+              <p class="fallback-catalog__desc">Late work where pigment gives way to leaf.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -112,6 +112,7 @@ export interface FrameConfig {
   matWidth: number;
   matColor: string;
   showPlacard: boolean;
+  allowTilt?: boolean;
   hotspotTransition?: HotspotTransition;
 }
 

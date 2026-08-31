@@ -16,12 +16,16 @@
   --reda-parch-card: #FAF7EE;
   --reda-field: #FBF6EA;
   --reda-border: #D3C6A8;
+  /* viewer glass (dark register chrome) */
+  --reda-glass: rgba(20, 18, 15, 0.68);
+  --reda-glass-2: rgba(28, 25, 20, 0.82);
   /* text */
   --reda-cream: #ECE3CE;       /* body on dark */
   --reda-cream-hi: #F3EBD8;    /* headlines on dark */
   --reda-ink: #2A2018;         /* text on parchment */
   --reda-ink-2: #5A4A32;
   --reda-label: #7A5A34;
+  --reda-muted-hi: #CDBF9E;    /* brightest muted on dark (spec §3.1) */
   --reda-muted: #A79A7C;       /* de-emphasized on dark */
   --reda-muted-2: #8B7E62;
   /* brand accents */

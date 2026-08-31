@@ -2,9 +2,9 @@
 
 > An immersive, high-performance WebGL2 3D virtual art gallery and exhibition authoring platform built with **React 19**, **Babylon.js 7**, and **Cloudflare Workers & D1**.
 
-[![Tests](https://img.shields.io/badge/tests-175%20passed-brightgreen.svg)](#-automated-testing--quality)
+[![Tests](https://img.shields.io/badge/tests-200%20passed-brightgreen.svg)](#-automated-testing--quality)
 [![Engine](https://img.shields.io/badge/engine-Babylon.js%207.x-orange.svg)](https://www.babylonjs.com/)
-[![Framework](https://img.shields.io/badge/frontend-React%2019%20%2B%20Vite-61dafb.svg)](https://react.dev/)
+[![Frontend](https://img.shields.io/badge/frontend-React%2019%20%2B%20Vite-61dafb.svg)](https://react.dev/)
 [![Backend](https://img.shields.io/badge/edge-Cloudflare%20Workers%20%2B%20D1-f38020.svg)](https://workers.cloudflare.com/)
 
 ---
@@ -114,7 +114,7 @@ pnpm worker:dev
 
 Run the comprehensive unit and integration test suite:
 ```bash
-# Run all Vitest suites (175 / 175 tests)
+# Run all Vitest suites (200 / 200 tests across 43 test files)
 pnpm test
 
 # Run production bundle build & TypeScript type check

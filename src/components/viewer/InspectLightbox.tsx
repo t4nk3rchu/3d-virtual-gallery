@@ -26,6 +26,7 @@ import { getImageUrl, proxyMediaUrl, resolveAudioUrl } from '../../lib/media/gdr
 import { HotspotOverlay } from './HotspotOverlay';
 import { InspectDesktopSidebar } from './InspectDesktopSidebar';
 import { type ViewerSettings, getStoredViewerSettings } from './SettingsModal';
+import { Icon } from '../ui';
 import {
   getHotspotAnimation,
   type HotspotAnimationState,
@@ -93,6 +94,10 @@ export function InspectLightbox({
     }
   }, [artwork.frame_config_json]);
 
+  const isTiltEnabled =
+    artwork.artwork_type === 'IMAGE_2D' &&
+    frameConfig?.allowTilt !== false &&
+    settings.tiltEnabled !== false;
   const activeTransition = frameConfig?.hotspotTransition ?? 'arc_dip';
 
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -326,7 +331,7 @@ export function InspectLightbox({
         };
         panStart.current = null;
         tiltStart.current = null;
-      } else if (e.button === 2 && settings.tiltEnabled) {
+      } else if (e.button === 2 && isTiltEnabled) {
         // Right-click drag: 3D perspective tilt
         mode.current = 'tilt';
         tiltStart.current = {
@@ -348,7 +353,7 @@ export function InspectLightbox({
         tiltStart.current = null;
       }
     },
-    [settings.tiltEnabled]
+    [isTiltEnabled]
   );
 
   const onPointerMove = useCallback((e: ReactPointerEvent) => {
@@ -507,7 +512,7 @@ export function InspectLightbox({
           {isMobile && activeHotspot ? (
             <div className={`inspect-header-dynamic-hotspot ${isDescExpanded ? 'is-expanded' : ''}`}>
               <span className="eyebrow eyebrow--hotspot">
-                📍 Detail {String(activeHotspotIndex + 1).padStart(2, '0')} of {String(hotspots.length).padStart(2, '0')}
+                <Icon name="pin" size={12} /> Detail {String(activeHotspotIndex + 1).padStart(2, '0')} of {String(hotspots.length).padStart(2, '0')}
               </span>
               <h2 className="inspect-header-title">{activeHotspot.title}</h2>
               {activeHotspot.description && (
@@ -520,7 +525,7 @@ export function InspectLightbox({
                         className="inspect-desc-toggle-btn"
                         onClick={() => setIsDescExpanded(false)}
                       >
-                        ▴ See less
+                        <Icon name="chevronUp" size={12} /> See less
                       </button>
                     </div>
                   ) : (
@@ -556,7 +561,7 @@ export function InspectLightbox({
                     onClick={() => onOpenArtist?.(artwork.artist_profile!)}
                     title={`Read about ${artwork.artist_profile.name}`}
                   >
-                    👤 About {artwork.artist_profile.name}
+                    <Icon name="user" size={13} /> About {artwork.artist_profile.name}
                   </button>
                 )}
               </div>
@@ -572,7 +577,7 @@ export function InspectLightbox({
               onClick={() => setShowHotspotList((prev) => !prev)}
               title="Toggle Hotspots Directory"
             >
-              📍 Hotspots List ({hotspots.length})
+              <Icon name="pin" size={13} /> Hotspots List ({hotspots.length})
             </button>
           )}
 
@@ -583,7 +588,7 @@ export function InspectLightbox({
             aria-label="Close inspect"
             title="Exit Inspect Mode"
           >
-            ✕
+            <Icon name="close" size={16} />
           </button>
         </div>
       </header>
@@ -623,7 +628,7 @@ export function InspectLightbox({
           ) : (
             <div
               ref={tiltRef}
-              className={`inspect-lightbox__tilt ${settings.tiltEnabled ? 'tilt-enabled' : ''}`}
+              className={`inspect-lightbox__tilt ${isTiltEnabled ? 'tilt-enabled' : ''}`}
             >
               <div ref={stageRef} className="inspect-lightbox__stage">
                 {currentSrc && (
@@ -689,14 +694,14 @@ export function InspectLightbox({
               aria-label="Hotspots Directory"
             >
               <div className="sidebar-header">
-                <h3>📍 Hotspots Directory</h3>
+                <h3><Icon name="pin" size={15} /> Hotspots Directory</h3>
                 <button
                   type="button"
                   className="sidebar-close"
                   onClick={() => setShowHotspotList(false)}
                   aria-label="Close directory"
                 >
-                  ✕
+                  <Icon name="close" size={15} />
                 </button>
               </div>
               <p className="sidebar-subtitle">Click any detail point to zoom and inspect.</p>
@@ -707,8 +712,8 @@ export function InspectLightbox({
                     type="button"
                     className={`hotspot-list-item ${activeHotspotIndex === i ? 'active' : ''}`}
                     onClick={() => {
-                      focusHotspot(i, true);
-                      setShowHotspotList(false);
+                       focusHotspot(i, true);
+                       setShowHotspotList(false);
                     }}
                   >
                     <span className="item-badge">{String(i + 1).padStart(2, '0')}</span>
@@ -716,7 +721,7 @@ export function InspectLightbox({
                       <h4>{h.title}</h4>
                       <p>{h.description}</p>
                       {(h.audio_file_id || h.audio_timestamp_seconds != null) && (
-                        <span className="item-audio-indicator">🎵 Audio Attached</span>
+                        <span className="item-audio-indicator"><Icon name="audio" size={12} /> Audio Attached</span>
                       )}
                     </div>
                   </button>
@@ -752,7 +757,7 @@ export function InspectLightbox({
           }}
           title="Reset zoom and framing"
         >
-          ⟲ Reset View
+          <Icon name="reset" size={14} /> Reset View
         </button>
 
         {hotspots.length > 0 && (
@@ -767,7 +772,7 @@ export function InspectLightbox({
               }}
               title="Previous Detail"
             >
-              ◀ Prev
+              <Icon name="chevronLeft" size={13} /> Prev
             </button>
 
             <button
@@ -786,14 +791,14 @@ export function InspectLightbox({
               {activeHotspotIndex >= 0 ? (
                 <>
                   <span className="carousel-counter-tag">
-                    📍 {String(activeHotspotIndex + 1).padStart(2, '0')}/{String(hotspots.length).padStart(2, '0')}
+                    <Icon name="pin" size={12} /> {String(activeHotspotIndex + 1).padStart(2, '0')}/{String(hotspots.length).padStart(2, '0')}
                   </span>
                   <span className="carousel-counter-title">{hotspots[activeHotspotIndex]?.title || ''}</span>
                 </>
               ) : (
                 <>
-                  <span className="carousel-counter-tag">📍 Details ({hotspots.length})</span>
-                  <span className="carousel-counter-info-icon">📋</span>
+                  <span className="carousel-counter-tag"><Icon name="pin" size={12} /> Details ({hotspots.length})</span>
+                  <span className="carousel-counter-info-icon"><Icon name="list" size={13} /></span>
                 </>
               )}
             </button>
@@ -810,7 +815,7 @@ export function InspectLightbox({
               }}
               title="Next Detail"
             >
-              Next ▶
+              Next <Icon name="chevronRight" size={13} />
             </button>
 
             {/* Inline Audio Listening Button on Mobile if Hotspot has Audio */}
@@ -829,7 +834,9 @@ export function InspectLightbox({
                   onClick={toggleAudio}
                   title={isPlayingAudio ? 'Pause Audio' : 'Listen to Audio Commentary'}
                 >
-                  {isPlayingAudio ? '⏸ Pause' : '🎧 Listen'}
+                  {isPlayingAudio
+                    ? (<><Icon name="pause" size={13} /> Pause</>)
+                    : (<><Icon name="audio" size={13} /> Listen</>)}
                 </button>
               </>
             )}
@@ -841,7 +848,7 @@ export function InspectLightbox({
                 onClick={() => onAudioSeek(activeHotspot.audio_timestamp_seconds!)}
                 title={`Jump to ${Math.floor(activeHotspot.audio_timestamp_seconds)}s in Main Audio Guide`}
               >
-                🎧 Guide ({Math.floor(activeHotspot.audio_timestamp_seconds)}s)
+                <Icon name="audio" size={13} /> Guide ({Math.floor(activeHotspot.audio_timestamp_seconds)}s)
               </button>
             )}
           </div>
@@ -849,10 +856,10 @@ export function InspectLightbox({
 
         <span className="inspect-lightbox__hint">
           {artwork.artwork_type === 'VIDEO'
-            ? '🎬 Cinema Mode · Press Esc or click ✕ to return to gallery'
-            : settings.tiltEnabled
-            ? '💡 Left-drag to Pan · Right-drag to Tilt in 3D · Scroll to Zoom'
-            : '💡 Left-drag to Pan · Scroll to Zoom'}
+            ? 'Cinema Mode · Press Esc or click to return to gallery'
+            : isTiltEnabled
+            ? 'Left-drag to Pan · Right-drag to Tilt in 3D · Scroll to Zoom'
+            : 'Left-drag to Pan · Scroll to Zoom'}
         </span>
       </footer>
     </div>

@@ -247,33 +247,37 @@ export class CameraController {
         }
       }
 
-      // 2. Continuous Floor Gravity & Step-Down Handling
-      // Cast a ray downward to detect the floor surface beneath the visitor
-      const rayOrigin = new Vector3(
-        this.camera.position.x,
-        this.camera.position.y + 0.5,
-        this.camera.position.z
-      );
-      const downRay = new Ray(rayOrigin, new Vector3(0, -1, 0), 12);
-      const pick = this.scene.pickWithRay ? this.scene.pickWithRay(downRay, (mesh) => {
-        if (!mesh.isVisible || !mesh.isPickable) return false;
-        if (mesh.metadata?.isArtwork || mesh.metadata?.isHotspot || mesh.metadata?.isPlacard || mesh.metadata?.isGizmo) {
-          return false;
+      // 2. Continuous Floor Gravity & Step-Down Handling (only active while roaming)
+      if (!this._focusedMesh && !this._animating) {
+        // Cast a ray downward from head height to detect the floor surface beneath the visitor
+        const rayOrigin = new Vector3(
+          this.camera.position.x,
+          CAMERA_CONFIG.eyeHeight + 0.5,
+          this.camera.position.z
+        );
+        const downRay = new Ray(rayOrigin, new Vector3(0, -1, 0), 10);
+        const pick = this.scene.pickWithRay ? this.scene.pickWithRay(downRay, (mesh) => {
+          if (!mesh.isVisible || !mesh.isPickable) return false;
+          if (mesh.metadata?.isArtwork || mesh.metadata?.isHotspot || mesh.metadata?.isPlacard || mesh.metadata?.isGizmo) {
+            return false;
+          }
+          if (mesh.metadata?.isFloor) return true;
+          const name = mesh.name.toLowerCase();
+          return name.includes('floor') || name.includes('ground') || name.startsWith('proc_floor');
+        }) : null;
+
+        const floorY = pick?.hit && pick.pickedPoint ? pick.pickedPoint.y : 0;
+        const targetEyeY = floorY + CAMERA_CONFIG.eyeHeight;
+
+        // Smoothly settle camera onto floor eye-height without ever climbing furniture, railings, or beams
+        if (Math.abs(this.camera.position.y - targetEyeY) > 0.005) {
+          const settleSpeed = 3.5 * dt;
+          if (this.camera.position.y > targetEyeY) {
+            this.camera.position.y = Math.max(targetEyeY, this.camera.position.y - settleSpeed);
+          } else {
+            this.camera.position.y = Math.min(targetEyeY, this.camera.position.y + settleSpeed);
+          }
         }
-        return true;
-      }) : null;
-
-      const floorY = pick?.hit && pick.pickedPoint ? pick.pickedPoint.y : 0;
-      const targetEyeY = floorY + CAMERA_CONFIG.eyeHeight;
-
-      if (this.camera.position.y > targetEyeY + 0.005) {
-        // Fall back down smoothly with gravity when stepping off chairs/benches/steps
-        const fallSpeed = 9.8 * dt;
-        this.camera.position.y = Math.max(targetEyeY, this.camera.position.y - fallSpeed);
-      } else if (this.camera.position.y < targetEyeY - 0.005) {
-        // Smoothly step up over low thresholds or stairs
-        const stepSpeed = 4.5 * dt;
-        this.camera.position.y = Math.min(targetEyeY, this.camera.position.y + stepSpeed);
       }
 
       // 3. Hard safety bounds clamp so player can never tunnel or pass through outer perimeter walls
@@ -390,8 +394,8 @@ export class CameraController {
       finalDist = Math.max(0.7, Math.min(idealDist, hit.distance - 0.45));
     }
 
-    // 5. Compute target position and clamp against room bounds
-    const eyeHeight = Math.max(1.3, Math.min(2.1, artCenter.y));
+    // 5. Compute target position at artwork height level for true 90° orthogonal eye-level view
+    const eyeHeight = Math.max(1.0, Math.min(2.5, artCenter.y));
     let targetX = artCenter.x + worldNormal.x * finalDist;
     let targetZ = artCenter.z + worldNormal.z * finalDist;
 
@@ -406,10 +410,11 @@ export class CameraController {
     }
 
     const targetPos = new Vector3(targetX, eyeHeight, targetZ);
+    const lookAtTarget = new Vector3(artCenter.x, eyeHeight, artCenter.z);
 
     // 6. Smoothly glide position and track target so camera ends up facing artwork at 90°
     const startPos = this.camera.position.clone();
-    this._animateCamera(startPos, targetPos, artCenter, 600);
+    this._animateCamera(startPos, targetPos, lookAtTarget, 600);
   }
 
   private _animateCamera(

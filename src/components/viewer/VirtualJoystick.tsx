@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { Icon } from '../ui';
 
 interface VirtualJoystickProps {
   onMove: (x: number, y: number) => void;
@@ -114,10 +115,10 @@ export function VirtualJoystick({ onMove, disabled = false }: VirtualJoystickPro
       aria-label="Virtual navigation joystick"
     >
       <div className="virtual-joystick__ring">
-        <span className="joystick-arrow joystick-arrow--up">▲</span>
-        <span className="joystick-arrow joystick-arrow--down">▼</span>
-        <span className="joystick-arrow joystick-arrow--left">◀</span>
-        <span className="joystick-arrow joystick-arrow--right">▶</span>
+        <span className="joystick-arrow joystick-arrow--up"><Icon name="chevronUp" size={12} /></span>
+        <span className="joystick-arrow joystick-arrow--down"><Icon name="chevronDown" size={12} /></span>
+        <span className="joystick-arrow joystick-arrow--left"><Icon name="chevronLeft" size={12} /></span>
+        <span className="joystick-arrow joystick-arrow--right"><Icon name="chevronRight" size={12} /></span>
       </div>
 
       <div

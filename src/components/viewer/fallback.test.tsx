@@ -102,4 +102,12 @@ describe('FallbackCatalog', () => {
     expect(titles[0]).toBe('Sunlit Meadow');
     expect(titles[1]).toBe('Ocean Sounds');
   });
+
+  it('uses an icon for the audio marker, not emoji', () => {
+    const testArtworks = [{ id: 'a', title: 'Track', artwork_type: 'AUDIO', media_file_id: 'm',
+      order_index: 0, updated_at: 1 }] as any;
+    const { container } = render(<FallbackCatalog title="X" artworks={testArtworks} />);
+    expect(container.querySelectorAll('.reda-icon').length).toBeGreaterThan(0);
+    expect(container.textContent ?? '').not.toMatch(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/u);
+  });
 });

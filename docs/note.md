@@ -85,12 +85,23 @@ This document summarizes the core features, responsive patterns, architecture de
 - Readout in `SetupSheet.tsx` with one-click `Reset to Default` capability.
 - Automatic fallback to room GLB spawn coordinates if custom start point is not defined.
 
-### 5.4 Form & UI Polish
-- **Wall Placards**: Rendered under artwork lower border without surface intersection.
-- **Live Frame Material Preview**: Real-time 3D and 2D synchronization for Wood, Metal Black, Float White, Gold, Canvas Wrap, and Frameless options.
-- **Automatic Slug Generation**: Unique, readable URLs generated automatically from title (`exhibition-title-hash`), removing manual input friction.
-- **Google Drive GLB Picker**: Added support for choosing custom GLB files directly from Google Drive during new exhibition setup.
-- **Navigation & Fixes**: Added top-left return to Dashboard navigation and fixed panel close race conditions when switching between artworks.
+### 5.5 REDA Design System Foundations & Curation Upgrades
+- **Renaissance Codex Foundations**:
+  - Implementation of core tokens (`--reda-gold`, `--reda-oxblood`, `--reda-sage`, `--reda-char-2`, `--reda-cream`, `--reda-wall-deep`).
+  - Strict typography rules: Libre Bodoni (Didone display), Montserrat (labels, badges, kickers), and EB Garamond (reading body and quotes).
+  - Cleaned up parchment sheets and modal drawers across `.reda-parch`, `.wb-sheet`, `.modal-card`, and `.studio-card`, eliminating muddy/creamy button backgrounds.
+- **3D Perspective Tilt on 2D Artworks**:
+  - Added `allowTilt?: boolean` in `FrameConfig` schema.
+  - Added "Enable 3D Perspective Tilt in Inspect Mode" toggle in `ArtworkForm.tsx`.
+  - Dynamically wired into `InspectLightbox.tsx` with hardware-accelerated 3D slab rotations.
+- **Intro Cinema Transition Preview**:
+  - Live 4-phase staged animation loop (`Video Playing` -> `Transitioning` -> `Inside 3D Space` -> loop) in `SetupSheet.tsx` with dedicated Replay button.
+- **Artist Filtering & Navigation in Workbench**:
+  - `ArtworksPane.tsx`: Added an Artist Filter dropdown allowing curators to filter both In Room and Storage works by specific artists or unassigned status.
+  - `ArtistInspector.tsx`: Visual clickable cards displaying thumbnail, medium, and placement status with 1-click navigation into Curate mode with that artwork pre-selected.
+- **Live Desktop (PC) & Mobile Landscape Visitor Previews**:
+  - `ArtistViewerPreview.tsx`: Side-by-side flex layout with true centering and real-time reflection of curator edits.
+  - Features authentic 3D gallery backdrop simulation and toggling between full 2-column Desktop PC view and compact Mobile Landscape view.
 
 ---
 
@@ -101,15 +112,19 @@ This document summarizes the core features, responsive patterns, architecture de
 | `src/styles/tokens.css` | Primitive & semantic design tokens (charcoal, parchment, gold, oxblood, state alerts). |
 | `src/styles/reda-studio.css` | REDA brand stylesheet for Curator Dashboard, bento grids, login cards, and modals. |
 | `src/styles/reda-workbench.css` | REDA Workbench 3-pane layout, resizer, inspector panels, and status bar styling. |
+| `src/styles/reda-viewer.css` | REDA Visitor Viewer stylesheet (modal layouts, HUD, lightbox, responsive typography). |
 | `src/lib/studio/artwork-placement.ts` | Utilities for managing placed vs. stored artworks (`isArtworkPlaced`, `setArtworkPlacement`). |
 | `src/lib/studio/spawn-point.ts` | Serialization, parsing, and formatting for 3D starting vantage points. |
 | `src/lib/babylon/spawn-beacon.ts` | Interactive 3D beacon mesh (floor ring, arrow, eye-level marker) for waypoints mode. |
 | `src/lib/babylon/camera-controller.ts` | 3D locomotion, floor raycast gravity, arc-dip transitions, and spawn vantage point application. |
 | `src/lib/babylon/artwork-factory.ts` | 3D mesh generator for 2D Images, Video screens, Audio emitters, frames, and placards. |
-| `src/components/studio/Workbench/Workbench.tsx` | Main curator shell orchestrating modes, left tool rail, inspector, and 3D canvas. |
-| `src/components/studio/Workbench/WorkbenchTopBar.tsx` | Top bar with mode switcher (`Artworks`, `Waypoints`, `Walkthrough`) and publishing controls. |
-| `src/components/studio/Workbench/ArtworksPane.tsx` | Left pane hosting `In Room` and `Storage` catalog tabs. |
-| `src/components/studio/ArtworkForm.tsx` | Form for artwork metadata, frame settings, placement toggles, and deletion. |
+| `src/components/studio/workbench/Workbench.tsx` | Main curator shell orchestrating modes, left tool rail, inspector, and 3D canvas. |
+| `src/components/studio/workbench/WorkbenchTopBar.tsx` | Top bar with mode switcher (`Artworks`, `Waypoints`, `Walkthrough`) and publishing controls. |
+| `src/components/studio/workbench/ArtworksPane.tsx` | Left pane hosting `In Room` and `Storage` catalog tabs with Artist filtering. |
+| `src/components/studio/workbench/ArtistsPane.tsx` | Left pane hosting artist profiles archive. |
+| `src/components/studio/workbench/ArtistInspector.tsx` | Artist profile editor with interactive assigned works and 1-click Curate navigation. |
+| `src/components/studio/workbench/ArtistViewerPreview.tsx` | Live PC and Mobile Landscape preview of visitor artist dossier over gallery scene. |
+| `src/components/studio/ArtworkForm.tsx` | Form for artwork metadata, frame settings, 3D tilt option, placement toggles, and deletion. |
 | `src/components/studio/GizmoPlacement.tsx` | Interactive 3D Babylon canvas with gizmos, beacon controls, and mode listeners. |
 | `src/components/viewer/ExhibitionViewer.tsx` | Main 3D public viewer page with custom spawn, gravity, and placed artwork filtering. |
 | `src/components/viewer/InspectLightbox.tsx` | Full-resolution inspect stage, 3D tilt, hotspot navigator, and responsive HUDs. |
@@ -119,14 +134,16 @@ This document summarizes the core features, responsive patterns, architecture de
 ## 7. Current Status & Next Steps
 
 ### Completed & Verified
-- [x] Wall placard placement and frame preview synchronization.
-- [x] 3D gizmo position persistence and elimination of duplicate meshes.
+- [x] REDA Design System Foundations (Renaissance Codex aesthetic, typography tokens, zero creamy buttons).
+- [x] 3D perspective tilt slab on 2D artworks with curator-level toggle.
+- [x] Paced 4-stage intro cinema live transition preview in curator workbench.
+- [x] Artist filtering across In Room and Storage catalogs.
+- [x] Interactive artist assigned works with 1-click curate mode editing navigation.
+- [x] Authentic Desktop PC and Mobile Landscape live visitor previews in Artists mode.
+- [x] Full mobile dynamic scaling and responsive audit.
 - [x] Continuous floor raycasting and gravity fall-down for visitor camera.
 - [x] 3D Start Point / Visitor Spawn placement and persistence.
-- [x] Workbench mode isolation (`Artworks`, `Waypoints`, `Walkthrough`).
-- [x] In Room vs. Storage tabs and destructive artwork deletion.
-- [x] Google Drive picker integration across all media inputs.
-- [x] Full test suite (37 test files, 180 tests) passing with 0 build errors.
+- [x] Complete automated test suite (**43 test files, 200 tests passing**) with 0 build errors.
 
 ### Future Enhancements (Backlog)
 - [ ] **Multi-Waypoint Guided Tour**: Extend the single Start Point beacon into an ordered sequence of tour waypoints with camera path interpolation.

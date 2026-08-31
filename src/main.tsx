@@ -8,6 +8,7 @@ import './styles/base.css'
 import './styles/reda-ui.css'
 import './styles/reda-studio.css'
 import './styles/reda-workbench.css'
+import './styles/reda-viewer.css'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(

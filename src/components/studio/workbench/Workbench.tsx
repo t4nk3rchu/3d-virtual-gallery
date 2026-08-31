@@ -8,10 +8,10 @@ import { ArtistsPane } from './ArtistsPane';
 import { GizmoPlacement } from '../GizmoPlacement';
 import { Inspector } from './Inspector';
 import { ArtistInspector } from './ArtistInspector';
+import { ArtistViewerPreview } from './ArtistViewerPreview';
 import { SetupSheet } from './SetupSheet';
 import { HotspotEditor } from '../HotspotEditor';
 import { Icon } from '../../ui';
-import { getImageUrl } from '../../../lib/media/gdrive';
 
 export function Workbench({
   exhibitionId,
@@ -115,6 +115,7 @@ export function Workbench({
         {tool === 'curate' && (
           <ArtworksPane
             artworks={exhibition.artworks ?? []}
+            artists={exhibition.artists ?? []}
             rooms={rooms}
             selectedId={selectedArtworkId}
             onSelect={setSelectedArtworkId}
@@ -201,116 +202,24 @@ export function Workbench({
           />
         ) : tool === 'artists' ? (
           <div
-            className="wb-view"
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
               position: 'relative',
+              width: '100%',
+              height: '100%',
+              minWidth: 0,
+              minHeight: 0,
+              display: 'flex',
               overflow: 'hidden',
             }}
           >
-            <div className="badge-mode">
-              {selectedArtistId === 'new' ? 'Create · new artist profile' : 'Preview · artist bio overlay'}
+            <div style={{ flex: 1, minWidth: 0, height: '100%', position: 'relative', overflow: 'hidden' }}>
+              <ArtistViewerPreview
+                artist={activeArtist}
+                isNew={selectedArtistId === 'new'}
+              />
             </div>
-            {activeArtist ? (
-              <div
-                style={{
-                  position: 'relative',
-                  zIndex: 2,
-                  textAlign: 'center',
-                  color: 'var(--reda-cream)',
-                  maxWidth: '65%',
-                  padding: '24px',
-                }}
-              >
-                <div
-                  className="portrait"
-                style={{
-                  width: '84px',
-                  height: '84px',
-                  borderRadius: '50%',
-                  margin: '0 auto 16px',
-                  border: '2px solid var(--reda-gold)',
-                  background: 'var(--reda-char-3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden',
-                }}
-              >
-                {activeArtist.portrait_file_id ? (
-                  <img
-                    src={getImageUrl(activeArtist.portrait_file_id)}
-                    alt={activeArtist.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  <Icon name="users" size={32} />
-                )}
-              </div>
-              <div
-                style={{
-                  fontFamily: 'var(--reda-display)',
-                  fontSize: '28px',
-                  color: 'var(--reda-cream-hi)',
-                }}
-              >
-                {activeArtist.name}{' '}
-                {activeArtist.life_dates && (
-                  <span
-                    style={{
-                      fontFamily: 'var(--reda-text)',
-                      fontSize: '15px',
-                      color: 'var(--reda-muted)',
-                    }}
-                  >
-                    ({activeArtist.life_dates})
-                  </span>
-                )}
-              </div>
-              {activeArtist.quote && (
-                <div
-                  style={{
-                    fontFamily: 'var(--reda-text)',
-                    fontStyle: 'italic',
-                    color: 'var(--reda-gold)',
-                    margin: '12px 0',
-                    fontSize: '16px',
-                  }}
-                >
-                  “{activeArtist.quote}”
-                </div>
-              )}
-              {activeArtist.biography && (
-                <div
-                  style={{
-                    fontFamily: 'var(--reda-text)',
-                    color: 'var(--reda-muted)',
-                    fontSize: '14px',
-                    lineHeight: 1.6,
-                    whiteSpace: 'pre-wrap',
-                  }}
-                >
-                  {activeArtist.biography}
-                </div>
-              )}
-              {activeArtist.contact_info && (
-                <div
-                  style={{
-                    marginTop: '14px',
-                    fontFamily: 'var(--reda-ui)',
-                    fontSize: '12px',
-                    color: 'var(--reda-sage)',
-                  }}
-                >
-                  {activeArtist.contact_info}
-                </div>
-              )}
-            </div>
-          ) : null}
 
-          {/* Artist Inspector Overlay */}
+            {/* Artist Inspector Side Panel */}
             {selectedArtistId && (
               <ArtistInspector
                 width={inspectorWidth}
@@ -324,6 +233,11 @@ export function Workbench({
                   fetchExhibition();
                 }}
                 onDeselect={() => setSelectedArtistId(null)}
+                onSelectArtwork={(artworkId) => {
+                  setTool('curate');
+                  setSelectedArtworkId(artworkId);
+                  setSelectedArtistId(null);
+                }}
               />
             )}
           </div>

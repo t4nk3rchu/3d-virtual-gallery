@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "docs/design/reda-viewer.html"
+        ],
+        "createdAt": "2026-08-31T12:45:17.247Z",
+        "reason": "spec-mandated: foundation spec 2026-08-30 §7 locks 'gold left border' on the Viewer Focus panel; the left-rule is the REDA hairline/wall-label motif (§6), user-approved design direction"
+      }
+    ]
+  }
+}

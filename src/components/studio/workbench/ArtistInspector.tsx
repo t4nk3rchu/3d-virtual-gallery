@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import type { Artist, Artwork } from '../../../types/schema';
 import { extractGoogleDriveFileId, getImageUrl } from '../../../lib/media/gdrive';
+import { isArtworkPlaced } from '../../../lib/studio/artwork-placement';
 import { DriveFilePicker } from '../DriveFilePicker';
 import { Icon, Button, TextField, TextArea } from '../../ui';
 
@@ -14,6 +15,7 @@ interface ArtistInspectorProps {
   onResizeStart?(e: React.MouseEvent): void;
   onSaved(): void;
   onDeselect(): void;
+  onSelectArtwork?(artworkId: string): void;
 }
 
 export function ArtistInspector({
@@ -26,6 +28,7 @@ export function ArtistInspector({
   onResizeStart,
   onSaved,
   onDeselect,
+  onSelectArtwork,
 }: ArtistInspectorProps) {
   const isNew = selectedId === 'new';
   const existingArtist = isNew ? null : artists.find((a) => a.id === selectedId) ?? null;
@@ -68,7 +71,9 @@ export function ArtistInspector({
   const portraitUrl = parsedPortraitId ? getImageUrl(parsedPortraitId) : null;
 
   const assignedWorks = existingArtist
-    ? artworks.filter((a) => a.artist_id === existingArtist.id)
+    ? artworks.filter(
+        (a) => a.artist_id === existingArtist.id || a.artist === existingArtist.name
+      )
     : [];
 
   const handleSave = async (e: FormEvent) => {
@@ -147,7 +152,18 @@ export function ArtistInspector({
   };
 
   return (
-    <div className="wb-insp" style={{ width: width ? `${width}px` : undefined }}>
+    <div
+      className="wb-insp"
+      style={{
+        width: width ? `${width}px` : undefined,
+        position: 'relative',
+        height: '100%',
+        right: 'auto',
+        top: 'auto',
+        bottom: 'auto',
+        flexShrink: 0,
+      }}
+    >
       {onResizeStart && (
         <div
           className="wb-resizer"
@@ -253,19 +269,95 @@ export function ArtistInspector({
           />
 
           {existingArtist && (
-            <div style={{ margin: '14px 0 6px', paddingTop: '10px', borderTop: '1px solid var(--reda-parch-border)' }}>
-              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--reda-ink-2)', marginBottom: '4px' }}>
-                Assigned Works
-              </div>
-              <div style={{ fontFamily: 'var(--reda-text)', color: 'var(--reda-ink)', fontSize: '13px' }}>
-                {assignedWorks.length} {assignedWorks.length === 1 ? 'artwork' : 'artworks'}
+            <div style={{ margin: '16px 0 8px', paddingTop: '12px', borderTop: '1px solid var(--reda-parch-border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--reda-ink-2)' }}>
+                  Assigned Works ({assignedWorks.length})
+                </span>
                 {assignedWorks.length > 0 && (
-                  <span style={{ color: 'var(--reda-ink-2)' }}>
-                    {' · '}
-                    {assignedWorks.map((w) => w.title).join(', ')}
+                  <span style={{ fontSize: '10px', color: 'var(--reda-muted-2)', fontFamily: 'var(--reda-ui)' }}>
+                    Click to edit in Curate mode
                   </span>
                 )}
               </div>
+
+              {assignedWorks.length === 0 ? (
+                <div style={{ fontSize: '12px', color: 'var(--reda-muted-2)', fontStyle: 'italic' }}>
+                  No artworks linked to this artist yet. Link artworks in Curate mode.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {assignedWorks.map((work) => {
+                    const isPlaced = isArtworkPlaced(work);
+                    return (
+                      <button
+                        key={work.id}
+                        type="button"
+                        onClick={() => onSelectArtwork?.(work.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '7px 10px',
+                          background: 'rgba(0, 0, 0, 0.03)',
+                          border: '1px solid var(--reda-parch-border)',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease',
+                          width: '100%',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.07)';
+                          e.currentTarget.style.borderColor = 'var(--reda-oxblood)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.03)';
+                          e.currentTarget.style.borderColor = 'var(--reda-parch-border)';
+                        }}
+                        title={`Edit "${work.title}" in Curate mode`}
+                      >
+                        <div
+                          style={{
+                            width: '38px',
+                            height: '28px',
+                            borderRadius: '3px',
+                            backgroundColor: 'var(--reda-char-3)',
+                            backgroundImage: work.media_file_id
+                              ? `url(${getImageUrl(work.media_file_id, 'thumbnail')})`
+                              : undefined,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            border: '1px solid rgba(0, 0, 0, 0.15)',
+                            flexShrink: 0,
+                          }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontFamily: 'var(--reda-display)',
+                              fontWeight: 600,
+                              fontSize: '13px',
+                              color: 'var(--reda-ink)',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {work.title}
+                          </div>
+                          <div style={{ fontSize: '10.5px', color: 'var(--reda-ink-2)' }}>
+                            {work.medium || work.artwork_type} · {isPlaced ? 'In Room' : 'Storage'}
+                          </div>
+                        </div>
+                        <span style={{ color: 'var(--reda-oxblood)', display: 'inline-flex', flexShrink: 0 }}>
+                          <Icon name="arrow-right" size={12} />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

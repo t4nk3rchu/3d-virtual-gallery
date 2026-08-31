@@ -59,10 +59,11 @@ export function ArtworkForm({
     matWidth: 0.03,
     matColor: '#FFFFFF',
     showPlacard: true,
+    allowTilt: true,
   };
   if (activeArtwork?.frame_config_json) {
     try {
-      initialFrameConfig = JSON.parse(activeArtwork.frame_config_json);
+      initialFrameConfig = { allowTilt: true, ...JSON.parse(activeArtwork.frame_config_json) };
     } catch {}
   }
   const [frameConfig, setFrameConfig] = useState<FrameConfig>(initialFrameConfig);
@@ -95,10 +96,11 @@ export function ArtworkForm({
         matWidth: 0.03,
         matColor: '#FFFFFF',
         showPlacard: true,
+        allowTilt: true,
       };
       if (activeArtwork.frame_config_json) {
         try {
-          cfg = JSON.parse(activeArtwork.frame_config_json);
+          cfg = { allowTilt: true, ...JSON.parse(activeArtwork.frame_config_json) };
         } catch {}
       }
       setFrameConfig(cfg);
@@ -121,6 +123,7 @@ export function ArtworkForm({
         matWidth: 0.03,
         matColor: '#FFFFFF',
         showPlacard: true,
+        allowTilt: true,
       });
     }
     setError(null);
@@ -657,6 +660,24 @@ export function ArtworkForm({
                 </label>
               </div>
             </div>
+
+            <div className="form-row" style={{ marginTop: '6px' }}>
+              <div className="form-group checkbox-group" style={{ display: 'flex', alignItems: 'center' }}>
+                <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={frameConfig.allowTilt !== false}
+                    onChange={(e) =>
+                      setFrameConfig({
+                        ...frameConfig,
+                        allowTilt: e.target.checked,
+                      })
+                    }
+                  />
+                  Enable 3D Perspective Tilt in Inspect Mode
+                </label>
+              </div>
+            </div>
           </div>
         )}
 
@@ -786,17 +807,10 @@ export function ArtworkForm({
               {isEditing && (
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="danger"
+                  size="sm"
                   disabled={submitting}
                   onClick={handleDelete}
-                  style={{
-                    color: 'var(--reda-error)',
-                    borderColor: 'var(--reda-error-border)',
-                    background: 'var(--reda-error-bg)',
-                    fontSize: '12px',
-                    padding: '6px 10px',
-                    fontWeight: 600,
-                  }}
                   title="Permanently remove artwork from this exhibition"
                 >
                   <Icon name="trash" size={13} /> Delete
@@ -809,12 +823,6 @@ export function ArtworkForm({
                 variant="secondary"
                 onClick={onCancel}
                 disabled={submitting}
-                style={{
-                  background: 'var(--reda-parch-card)',
-                  color: 'var(--reda-ink)',
-                  borderColor: 'var(--reda-parch-border)',
-                  fontWeight: 600,
-                }}
               >
                 Cancel
               </Button>

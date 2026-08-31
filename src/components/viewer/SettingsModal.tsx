@@ -9,7 +9,8 @@
  * Persisted in localStorage.
  */
 import { useState, useCallback } from 'react';
-import { INTRO_TRANSITIONS, type IntroTransition } from '../../lib/viewer/intro-animations';
+import type { IntroTransition } from '../../lib/viewer/intro-animations';
+import { Icon, Toggle } from '../ui';
 
 export interface ViewerSettings {
   tiltEnabled: boolean;
@@ -86,46 +87,16 @@ export function SettingsModal({ settings, onChange, onClose }: SettingsModalProp
     <div className="settings-modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="settings-modal" role="dialog" aria-modal="true" aria-label="Viewer Settings">
         <header className="settings-modal__header">
-          <h2>⚙️ Gallery &amp; Control Settings</h2>
+          <h2><Icon name="gear" size={18} /> Gallery &amp; Control Settings</h2>
           <button type="button" className="settings-modal__close" onClick={onClose} aria-label="Close">
-            ✕
+            <Icon name="close" size={16} />
           </button>
         </header>
 
         <div className="settings-modal__body">
-          {/* Section 1: Visuals & 3D Inspect */}
+          {/* Section 1: Camera & Field of View */}
           <section className="settings-section">
-            <h3>🎨 Visuals &amp; Transitions</h3>
-
-            <div className="settings-select-group" style={{ marginBottom: '14px' }}>
-              <div className="settings-slider-header" style={{ marginBottom: '6px' }}>
-                <span style={{ fontWeight: 600 }}>🎬 Intro-to-Gallery Transition</span>
-              </div>
-              <select
-                value={local.introTransition || 'zoom_in'}
-                onChange={(e) => update({ introTransition: e.target.value as IntroTransition })}
-                className="input select"
-                style={{ width: '100%', padding: '8px 12px', background: 'rgba(255,255,255,0.06)', borderRadius: '8px', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}
-              >
-                {INTRO_TRANSITIONS.map((t) => (
-                  <option key={t.id} value={t.id} style={{ background: '#111827', color: '#fff' }}>
-                    {t.label} — {t.description}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <label className="settings-toggle">
-              <input
-                type="checkbox"
-                checked={local.tiltEnabled}
-                onChange={(e) => update({ tiltEnabled: e.target.checked })}
-              />
-              <span className="settings-toggle__text">
-                <strong>Enable 3D Perspective Tilt on 2D Artworks</strong>
-                <small>Right-click or touch drag tilts the painting in 3D space with frame depth and shadows</small>
-              </span>
-            </label>
+            <h3><Icon name="palette" size={14} /> Camera &amp; Display</h3>
 
             <div className="settings-slider-group">
               <div className="settings-slider-header">
@@ -151,7 +122,7 @@ export function SettingsModal({ settings, onChange, onClose }: SettingsModalProp
 
           {/* Section 2: Walking Movement */}
           <section className="settings-section">
-            <h3>🚶 Movement Speed (WASD / Arrows)</h3>
+            <h3><Icon name="walk" size={14} /> Movement Speed (WASD / Arrows)</h3>
 
             <div className="settings-slider-group">
               <div className="settings-slider-header">
@@ -193,51 +164,51 @@ export function SettingsModal({ settings, onChange, onClose }: SettingsModalProp
 
           {/* Section 3: Desktop Controls */}
           <section className="settings-section">
-            <h3>🖱️ Desktop Mouse Look</h3>
+            <h3><Icon name="mouse" size={14} /> Desktop Mouse Look</h3>
 
-            <div className="settings-toggles-row">
-              <label className="settings-toggle">
-                <input
-                  type="checkbox"
+            <div className="settings-toggles-grid">
+              <div className="settings-toggle-item">
+                <span>Invert Horizontal (X)</span>
+                <Toggle
                   checked={local.invertMouseX}
-                  onChange={(e) => update({ invertMouseX: e.target.checked })}
+                  onChange={(val) => update({ invertMouseX: val })}
+                  label="Invert Horizontal (X)"
                 />
-                <span className="settings-toggle__text">Invert Horizontal (X)</span>
-              </label>
+              </div>
 
-              <label className="settings-toggle">
-                <input
-                  type="checkbox"
+              <div className="settings-toggle-item">
+                <span>Invert Vertical (Y)</span>
+                <Toggle
                   checked={local.invertMouseY}
-                  onChange={(e) => update({ invertMouseY: e.target.checked })}
+                  onChange={(val) => update({ invertMouseY: val })}
+                  label="Invert Vertical (Y)"
                 />
-                <span className="settings-toggle__text">Invert Vertical (Y)</span>
-              </label>
+              </div>
             </div>
           </section>
 
           {/* Section 4: Mobile Touch Controls */}
           <section className="settings-section">
-            <h3>📱 Mobile Touch Drag Look</h3>
+            <h3><Icon name="phone" size={14} /> Mobile Touch Drag Look</h3>
 
-            <div className="settings-toggles-row">
-              <label className="settings-toggle">
-                <input
-                  type="checkbox"
+            <div className="settings-toggles-grid">
+              <div className="settings-toggle-item">
+                <span>Invert Horizontal (X)</span>
+                <Toggle
                   checked={local.invertTouchX}
-                  onChange={(e) => update({ invertTouchX: e.target.checked })}
+                  onChange={(val) => update({ invertTouchX: val })}
+                  label="Invert Horizontal (X)"
                 />
-                <span className="settings-toggle__text">Invert Horizontal (X)</span>
-              </label>
+              </div>
 
-              <label className="settings-toggle">
-                <input
-                  type="checkbox"
+              <div className="settings-toggle-item">
+                <span>Invert Vertical (Y)</span>
+                <Toggle
                   checked={local.invertTouchY}
-                  onChange={(e) => update({ invertTouchY: e.target.checked })}
+                  onChange={(val) => update({ invertTouchY: val })}
+                  label="Invert Vertical (Y)"
                 />
-                <span className="settings-toggle__text">Invert Vertical (Y)</span>
-              </label>
+              </div>
             </div>
           </section>
         </div>

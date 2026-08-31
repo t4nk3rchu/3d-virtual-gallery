@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import type { ExhibitionDetail, Room } from '../../../types/schema';
-import { INTRO_TRANSITIONS, type IntroTransition } from '../../../lib/viewer/intro-animations';
+import { INTRO_TRANSITIONS, getIntroAnimation, type IntroTransition } from '../../../lib/viewer/intro-animations';
 import { extractGoogleDriveFileId } from '../../../lib/media/gdrive';
 import {
   parseSpawnPoint,
@@ -239,7 +239,7 @@ export function SetupSheet({
                   {exhibition.artists?.length ?? 0} artist profile(s) configured.
                 </p>
               </div>
-              <Button type="button" variant="ghost" size="sm" onClick={onManageArtists}>
+              <Button type="button" variant="secondary" size="sm" onClick={onManageArtists}>
                 <Icon name="users" size={14} /> Manage Artists
               </Button>
             </div>
@@ -289,12 +289,228 @@ export function SetupSheet({
             ))}
           </SelectField>
 
+          <IntroTransitionPreview transition={introTransition} />
+
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '16px', borderTop: '1px solid var(--reda-parch-border)' }}>
             <Button type="submit" variant="primary" disabled={saving}>
               {saving ? 'Saving…' : 'Save Exhibition Details'}
             </Button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+function IntroTransitionPreview({ transition }: { transition: IntroTransition }) {
+  const preset = getIntroAnimation(transition);
+  const [phase, setPhase] = useState<'video' | 'transitioning' | 'gallery'>('video');
+  const [cycle, setCycle] = useState(0);
+
+  useEffect(() => {
+    // Stage 1: Show Intro Video clearly for 1.4s
+    setPhase('video');
+    const t1 = setTimeout(() => {
+      // Stage 2: Trigger slow, cinematic transition (2.0s duration)
+      setPhase('transitioning');
+    }, 1400);
+
+    // Stage 3: After transition finishes (1.4s + 2.0s), show 3D Gallery space for 2.2s
+    const t2 = setTimeout(() => {
+      setPhase('gallery');
+    }, 3400);
+
+    // Stage 4: Loop back to video
+    const t3 = setTimeout(() => {
+      setCycle((c) => c + 1);
+    }, 5600);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [transition, cycle]);
+
+  return (
+    <div
+      style={{
+        background: 'rgba(0, 0, 0, 0.04)',
+        border: '1px solid var(--reda-parch-border)',
+        borderRadius: '8px',
+        padding: '14px 16px',
+        marginTop: '-8px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <span
+            style={{
+              fontFamily: 'var(--reda-ui)',
+              fontSize: '10.5px',
+              fontWeight: 700,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color: 'var(--reda-oxblood)',
+            }}
+          >
+            Live Transition Preview · {preset.label}
+          </span>
+          <p style={{ margin: '2px 0 0', fontFamily: 'var(--reda-text)', fontSize: '13px', color: 'var(--reda-ink-2)' }}>
+            {preset.description}
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => setCycle((c) => c + 1)}
+          title="Replay Transition Animation"
+        >
+          <Icon name="play" size={13} /> Replay
+        </Button>
+      </div>
+
+      <div
+        style={{
+          position: 'relative',
+          height: '140px',
+          borderRadius: '6px',
+          overflow: 'hidden',
+          border: '1px solid rgba(0, 0, 0, 0.18)',
+          boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.25)',
+        }}
+      >
+        {/* Background Layer: 3D Gallery Space Simulation */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'radial-gradient(120% 90% at 50% 30%, #4a3e32 0%, #241d16 55%, #120e0a 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          <div
+            style={{
+              width: '100px',
+              height: '65px',
+              background: '#2b231b',
+              border: '2px solid #b98a3c',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '2px',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'var(--reda-display)',
+                fontSize: '10px',
+                color: '#e8dcbe',
+                fontStyle: 'italic',
+              }}
+            >
+              Gallery Wall
+            </span>
+          </div>
+          <span
+            style={{
+              position: 'absolute',
+              bottom: '8px',
+              left: '10px',
+              fontFamily: 'var(--reda-ui)',
+              fontSize: '8.5px',
+              fontWeight: 700,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: 'var(--reda-gold)',
+              background: 'rgba(0,0,0,0.65)',
+              padding: '3px 7px',
+              borderRadius: '3px',
+              backdropFilter: 'blur(4px)',
+            }}
+          >
+            3D Gallery Room
+          </span>
+        </div>
+
+        {/* Foreground Layer: Intro Video Frame Simulation with Slow Cinematic Transition */}
+        <div
+          className={`intro-video-overlay ${
+            phase === 'transitioning' || phase === 'gallery'
+              ? `intro-video-overlay--fading-out ${preset.cssClass}`
+              : ''
+          }`}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 2,
+            background: 'linear-gradient(145deg, #1d1b17, #0b0a08)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            transition:
+              'opacity 2.0s cubic-bezier(0.16, 1, 0.3, 1), transform 2.0s cubic-bezier(0.16, 1, 0.3, 1), filter 2.0s cubic-bezier(0.16, 1, 0.3, 1), clip-path 2.0s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        >
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: 'rgba(185, 138, 60, 0.2)',
+              border: '1px solid #b98a3c',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fffdf8',
+            }}
+          >
+            <Icon name="film" size={15} />
+          </div>
+          <span
+            style={{
+              fontFamily: 'var(--reda-ui)',
+              fontSize: '9.5px',
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: '#fffdf8',
+            }}
+          >
+            Curator Intro Video
+          </span>
+          <span
+            style={{
+              position: 'absolute',
+              bottom: '8px',
+              right: '10px',
+              fontFamily: 'var(--reda-ui)',
+              fontSize: '8.5px',
+              color: 'var(--reda-gold)',
+              background: 'rgba(0,0,0,0.65)',
+              padding: '3px 7px',
+              borderRadius: '3px',
+              backdropFilter: 'blur(4px)',
+            }}
+          >
+            {phase === 'video'
+              ? '1. Video Playing'
+              : phase === 'transitioning'
+              ? '2. Transitioning (2.0s)…'
+              : '3. Entered 3D Space'}
+          </span>
+        </div>
       </div>
     </div>
   );

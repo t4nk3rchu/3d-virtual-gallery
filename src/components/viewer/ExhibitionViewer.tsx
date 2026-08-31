@@ -22,6 +22,7 @@ import { trackEvent } from '../../lib/analytics';
 import { proxyMediaUrl } from '../../lib/media/gdrive';
 import { parseSpawnPoint } from '../../lib/studio/spawn-point';
 import { isArtworkPlaced } from '../../lib/studio/artwork-placement';
+import { Icon } from '../ui';
 
 interface ExhibitionViewerProps {
   slug: string;
@@ -382,20 +383,22 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
       )}
 
       {/* Gallery Controls HUD & Settings (Desktop) */}
-      <div className="viewer-controls-hint">
-        <span>🕹️ <strong>WASD</strong> to walk</span>
-        <span>🖱️ <strong>Click &amp; Drag</strong> to look</span>
-        <span>🖼️ <strong>Click Artwork</strong> to focus (90°)</span>
-        <span>🎯 <strong>Click Floor</strong> to teleport</span>
-        <button
-          type="button"
-          className="btn-settings-hud"
-          onClick={() => setShowSettings(true)}
-          title="Gallery &amp; Control Settings"
-        >
-          ⚙️ Settings
-        </button>
-      </div>
+      {!focusedArtwork && !inspectedArtwork && !activeArtistProfile && (!exhibition.intro_video_file_id || isIntroDismissed) && (
+        <div className="viewer-controls-hint">
+          <span><Icon name="walk" size={15} /> <kbd>WASD</kbd> to walk</span>
+          <span><Icon name="mouse" size={15} /> <strong>Drag</strong> to look</span>
+          <span><Icon name="frame" size={15} /> <strong>Click art</strong> to focus (90°)</span>
+          <span><Icon name="target" size={15} /> <strong>Click floor</strong> to teleport</span>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm btn-settings-hud"
+            onClick={() => setShowSettings(true)}
+            title="Gallery &amp; Control Settings"
+          >
+            <Icon name="gear" size={15} /> Settings
+          </button>
+        </div>
+      )}
 
       {/* Floating Settings Button for Mobile */}
       {!focusedArtwork && !inspectedArtwork && !activeArtistProfile && (!exhibition.intro_video_file_id || isIntroDismissed) && (
@@ -406,7 +409,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
           title="Gallery Settings"
           aria-label="Gallery Settings"
         >
-          ⚙️
+          <Icon name="gear" size={20} />
         </button>
       )}
 
