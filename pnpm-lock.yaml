@@ -20,6 +20,15 @@ importers:
       '@babylonjs/post-processes':
         specifier: ^7.38.0
         version: 7.54.3(@babylonjs/core@7.54.3)
+      '@fontsource-variable/montserrat':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/eb-garamond':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/libre-bodoni':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@googleworkspace/drive-picker-react':
         specifier: ^0.2.0
         version: 0.2.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -584,6 +593,15 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@fontsource-variable/montserrat@5.3.0':
+    resolution: {integrity: sha512-7PaZoxaxrWLAyrhO46v65An9LhUhfkTExWLhfbywYZCnZEgg/W1rEHnlNmZKjNZ3nJTVYyicqxlJt10z/26yTA==}
+
+  '@fontsource/eb-garamond@5.3.0':
+    resolution: {integrity: sha512-VplwHpB8FLuzl+4G5LDci1b3Z4SghiuXH8XEgaxjnOb5aue5mEt1njmDKeO6iyLeGa73LffU7PC7hzncLRx0ZA==}
+
+  '@fontsource/libre-bodoni@5.3.0':
+    resolution: {integrity: sha512-iszOZ4JpLNuE6oayy2RFtwqlqqyCtR33yIf4X16ooKRaaM3ckG8S8m/vjyx4Rye/Qpj5dbNnNPJwqEAGfII4yQ==}
 
   '@googleworkspace/drive-picker-element@0.7.3':
     resolution: {integrity: sha512-z1hZh1HsPAQ19lencw2x3FcUVoymWYexcWgq66iXum4mUfWWaQ37oGtQ6hGvM8dyrC81G79P26gq7HhRtbGb2Q==}
@@ -2256,6 +2274,12 @@ snapshots:
     optional: true
 
   '@exodus/bytes@1.15.1': {}
+
+  '@fontsource-variable/montserrat@5.3.0': {}
+
+  '@fontsource/eb-garamond@5.3.0': {}
+
+  '@fontsource/libre-bodoni@5.3.0': {}
 
   '@googleworkspace/drive-picker-element@0.7.3': {}
 

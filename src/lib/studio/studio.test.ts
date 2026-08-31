@@ -24,10 +24,10 @@ describe('validateGlbFile', () => {
     expect(result.error).toBeUndefined();
   });
 
-  it('rejects a file that exceeds 50 MB', async () => {
-    const result = await validateGlbFile(makeGlbFile(51 * 1024 * 1024));
+  it('rejects a file that exceeds 200 MB', async () => {
+    const result = await validateGlbFile(makeGlbFile(201 * 1024 * 1024));
     expect(result.valid).toBe(false);
-    expect(result.error).toMatch(/50 MB/);
+    expect(result.error).toMatch(/200 MB/);
   });
 
   it('rejects a non-GLB file (wrong magic bytes)', async () => {
@@ -36,10 +36,10 @@ describe('validateGlbFile', () => {
     expect(result.error).toMatch(/glTF/);
   });
 
-  it('warns for files between 25 MB and 50 MB', async () => {
-    const result = await validateGlbFile(makeGlbFile(30 * 1024 * 1024));
+  it('warns for files between 100 MB and 200 MB', async () => {
+    const result = await validateGlbFile(makeGlbFile(120 * 1024 * 1024));
     expect(result.valid).toBe(true);
-    expect(result.warning).toMatch(/25 MB/);
+    expect(result.warning).toMatch(/100 MB/);
   });
 });
 

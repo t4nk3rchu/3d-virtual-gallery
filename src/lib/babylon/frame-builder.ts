@@ -63,12 +63,16 @@ export function createProceduralFrame(
       ? Color3.Black()
       : config.frameType === 'float_white'
       ? Color3.White()
+      : config.frameType === 'gold'
+      ? new Color3(0.85, 0.65, 0.13)
       : new Color3(0.55, 0.35, 0.15); // wood brown
 
   const mat = new StandardMaterial(`${parentName}_frame_mat`, scene);
   mat.diffuseColor = frameColor;
   mat.specularColor = config.frameType === 'metal_black'
     ? new Color3(0.5, 0.5, 0.5)
+    : config.frameType === 'gold'
+    ? new Color3(0.9, 0.8, 0.3)
     : new Color3(0.1, 0.1, 0.1);
 
   const depth = 0.02; // frame extrusion depth in metres

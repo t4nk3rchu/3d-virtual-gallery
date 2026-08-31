@@ -1,0 +1,20 @@
+/* REDA base + register scopes */
+.reda-dark { background: var(--reda-char); color: var(--reda-cream); }
+.reda-parch { background: var(--reda-parch); color: var(--reda-ink); }
+
+.reda-dark h1, .reda-dark h2, .reda-dark h3,
+.reda-parch h1, .reda-parch h2, .reda-parch h3 { font-family: var(--reda-display); font-weight: 500; }
+
+:where(.reda-dark, .reda-parch) :focus-visible {
+  outline: none;
+  box-shadow: var(--reda-focus);
+  border-radius: var(--reda-radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reda-dark *, .reda-parch * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
