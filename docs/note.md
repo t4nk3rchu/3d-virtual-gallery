@@ -141,9 +141,9 @@ This document summarizes the core features, responsive patterns, architecture de
 - [x] Interactive artist assigned works with 1-click curate mode editing navigation.
 - [x] Authentic Desktop PC and Mobile Landscape live visitor previews in Artists mode.
 - [x] Full mobile dynamic scaling and responsive audit.
-- [x] Continuous floor raycasting and gravity fall-down for visitor camera.
-- [x] 3D Start Point / Visitor Spawn placement and persistence.
 - [x] Complete automated test suite (**43 test files, 200 tests passing**) with 0 build errors.
+- [x] Code Simplification: Deduplicated `ArtistViewerPreview.tsx` via `DEVICE_CONFIG` pattern (-177 LOC).
+- [x] Centering fixes: Virtual joystick knob centered via `translate(-50%, -50%)` and Focus header bar info icon centering across mobile and desktop.
 
 ### Future Enhancements (Backlog)
 - [ ] **Multi-Waypoint Guided Tour**: Extend the single Start Point beacon into an ordered sequence of tour waypoints with camera path interpolation.

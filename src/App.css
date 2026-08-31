@@ -1072,31 +1072,15 @@
 }
 
 .focus-header-bar__info-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #ffffff;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  padding: 0;
+  margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
-  font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-}
-
-.focus-header-bar__info-btn:hover,
-.focus-header-bar__info-btn.active {
-  background: rgba(99, 102, 241, 0.45);
-  border-color: #818cf8;
-  color: #ffffff;
-  box-shadow: 0 0 14px rgba(99, 102, 241, 0.6);
-  transform: scale(1.05);
 }
 
 /* ─── Focus Info Popover Modal (Image 3) ─────────────────────────────────── */
@@ -1355,24 +1339,8 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 44px;
-    height: 44px;
-    margin-top: -22px;
-    margin-left: -22px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #818cf8 0%, #4f46e5 100%);
-    box-shadow: 0 0 14px rgba(99, 102, 241, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    margin: 0;
     pointer-events: none;
-  }
-
-  .virtual-joystick__knob-center {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.85);
   }
 }
 

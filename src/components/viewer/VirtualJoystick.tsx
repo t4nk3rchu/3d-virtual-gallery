@@ -124,7 +124,7 @@ export function VirtualJoystick({ onMove, disabled = false }: VirtualJoystickPro
       <div
         className="virtual-joystick__knob"
         style={{
-          transform: `translate3d(${knobPos.x}px, ${knobPos.y}px, 0)`,
+          transform: `translate(-50%, -50%) translate3d(${knobPos.x}px, ${knobPos.y}px, 0)`,
           transition: isActive ? 'none' : 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >

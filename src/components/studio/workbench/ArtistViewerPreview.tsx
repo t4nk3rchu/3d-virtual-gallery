@@ -10,6 +10,117 @@ interface ArtistViewerPreviewProps {
 
 type PreviewDevice = 'pc' | 'mobile_landscape';
 
+// All size/spacing differences between PC and Mobile Landscape in one place.
+// Rendering logic is shared; only these values differ.
+type DeviceConfig = {
+  containerWidth: string;
+  containerMaxHeight: string;
+  backdropPadding: string;
+  colWidth: string;
+  portraitSize: number;
+  portraitBorder: string;
+  iconSize: number;
+  colPadding: string;
+  colGap: string;
+  closeIconSize: number;
+  closeStyle: React.CSSProperties;
+  infoPadding: string;
+  kickerFontSize: string;
+  kickerLetterSpacing: string;
+  titleFontSize: string;
+  titleMargin: string;
+  quoteBorderLeft: string;
+  quotePadding: string;
+  quoteMarginBottom: string;
+  quoteMarkSize: string;
+  quoteMarkSpacing: string;
+  quoteFontSize: string;
+  bioFontSize: string;
+  bioLineHeight: number;
+  bioParaMargin: string;
+  bioEmptyFontSize: string;
+  lifedateFontSize: string;
+  lifedateLetterSpacing: string;
+  lifedatePadding: string;
+  contactGap: string;
+  contactFontSize: string;
+  contactIconSize: number;
+  containerBoxShadow: string;
+};
+
+const DEVICE_CONFIG: Record<PreviewDevice, DeviceConfig> = {
+  pc: {
+    containerWidth: 'min(860px, 92%)',
+    containerMaxHeight: 'min(620px, calc(100% - 48px))',
+    backdropPadding: '64px 24px 24px',
+    colWidth: '280px',
+    portraitSize: 180,
+    portraitBorder: '2px solid var(--reda-gold)',
+    iconSize: 56,
+    colPadding: '32px 26px',
+    colGap: '16px',
+    closeIconSize: 16,
+    closeStyle: { pointerEvents: 'none' },
+    infoPadding: '38px 40px',
+    kickerFontSize: '10px',
+    kickerLetterSpacing: '0.24em',
+    titleFontSize: '36px',
+    titleMargin: '8px 0 18px',
+    quoteBorderLeft: '3px solid var(--reda-oxblood)',
+    quotePadding: '4px 0 4px 20px',
+    quoteMarginBottom: '20px',
+    quoteMarkSize: '34px',
+    quoteMarkSpacing: '4px',
+    quoteFontSize: '17px',
+    bioFontSize: '15px',
+    bioLineHeight: 1.65,
+    bioParaMargin: '0 0 14px',
+    bioEmptyFontSize: '13.5px',
+    lifedateFontSize: '11px',
+    lifedateLetterSpacing: '0.1em',
+    lifedatePadding: '5px 14px',
+    contactGap: '7px',
+    contactFontSize: '11px',
+    contactIconSize: 13,
+    containerBoxShadow: '0 40px 100px rgba(0, 0, 0, 0.85)',
+  },
+  mobile_landscape: {
+    containerWidth: 'min(667px, 94%)',
+    containerMaxHeight: 'min(335px, calc(100% - 24px))',
+    backdropPadding: '54px 16px 16px',
+    colWidth: '130px',
+    portraitSize: 74,
+    portraitBorder: '1.5px solid var(--reda-gold)',
+    iconSize: 34,
+    colPadding: '14px 10px',
+    colGap: '8px',
+    closeIconSize: 13,
+    closeStyle: { pointerEvents: 'none', top: '10px', right: '10px', width: '30px', height: '30px' },
+    infoPadding: '14px 18px',
+    kickerFontSize: '8.5px',
+    kickerLetterSpacing: '0.18em',
+    titleFontSize: '20px',
+    titleMargin: '3px 0 8px',
+    quoteBorderLeft: '2.5px solid var(--reda-oxblood)',
+    quotePadding: '2px 0 2px 10px',
+    quoteMarginBottom: '10px',
+    quoteMarkSize: '20px',
+    quoteMarkSpacing: '2px',
+    quoteFontSize: '12.5px',
+    bioFontSize: '12.5px',
+    bioLineHeight: 1.5,
+    bioParaMargin: '0 0 8px',
+    bioEmptyFontSize: '11.5px',
+    lifedateFontSize: '9px',
+    lifedateLetterSpacing: '0.08em',
+    lifedatePadding: '2px 8px',
+    contactGap: '3px',
+    contactFontSize: '9px',
+    contactIconSize: 11,
+    containerBoxShadow: '0 25px 80px rgba(0, 0, 0, 0.9)',
+  },
+};
+
 export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps) {
   const [device, setDevice] = useState<PreviewDevice>('pc');
 
@@ -22,6 +133,8 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
   const quote = artist?.quote || null;
   const bio = artist?.biography || null;
   const contact = artist?.contact_info || null;
+
+  const cfg = DEVICE_CONFIG[device];
 
   return (
     <div
@@ -107,64 +220,48 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
           role="group"
           aria-label="Preview device viewport"
         >
-          <button
-            type="button"
-            aria-pressed={device === 'pc'}
-            onClick={() => setDevice('pc')}
-            title="Preview Desktop / PC Visitor View"
-            style={{
-              fontFamily: 'var(--reda-ui)',
-              fontSize: '11px',
-              fontWeight: 600,
-              letterSpacing: '0.06em',
-              padding: '6px 14px',
-              borderRadius: '999px',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: device === 'pc' ? 'var(--reda-gold)' : 'transparent',
-              color: device === 'pc' ? 'var(--reda-char)' : 'var(--reda-cream)',
-              boxShadow: device === 'pc' ? '0 2px 8px rgba(185, 138, 60, 0.4)' : 'none',
-            }}
-          >
-            <Icon name="cube" size={12} /> PC View
-          </button>
-          <button
-            type="button"
-            aria-pressed={device === 'mobile_landscape'}
-            onClick={() => setDevice('mobile_landscape')}
-            title="Preview Mobile Landscape Visitor View"
-            style={{
-              fontFamily: 'var(--reda-ui)',
-              fontSize: '11px',
-              fontWeight: 600,
-              letterSpacing: '0.06em',
-              padding: '6px 14px',
-              borderRadius: '999px',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: device === 'mobile_landscape' ? 'var(--reda-gold)' : 'transparent',
-              color: device === 'mobile_landscape' ? 'var(--reda-char)' : 'var(--reda-cream)',
-              boxShadow: device === 'mobile_landscape' ? '0 2px 8px rgba(185, 138, 60, 0.4)' : 'none',
-            }}
-          >
-            <span style={{ transform: 'rotate(90deg)', display: 'inline-flex' }}>
-              <Icon name="phone" size={12} />
-            </span>
-            Mobile Landscape
-          </button>
+          {(['pc', 'mobile_landscape'] as PreviewDevice[]).map((d) => (
+            <button
+              key={d}
+              type="button"
+              aria-pressed={device === d}
+              onClick={() => setDevice(d)}
+              title={d === 'pc' ? 'Preview Desktop / PC Visitor View' : 'Preview Mobile Landscape Visitor View'}
+              style={{
+                fontFamily: 'var(--reda-ui)',
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '0.06em',
+                padding: '6px 14px',
+                borderRadius: '999px',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: device === d ? 'var(--reda-gold)' : 'transparent',
+                color: device === d ? 'var(--reda-char)' : 'var(--reda-cream)',
+                boxShadow: device === d ? '0 2px 8px rgba(185, 138, 60, 0.4)' : 'none',
+              }}
+            >
+              {d === 'pc' ? (
+                <><Icon name="cube" size={12} /> PC View</>
+              ) : (
+                <>
+                  <span style={{ transform: 'rotate(90deg)', display: 'inline-flex' }}>
+                    <Icon name="phone" size={12} />
+                  </span>
+                  Mobile Landscape
+                </>
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
       {!artist && !isNew ? (
-        /* Renaissance Codex Empty State */
+        /* Empty State */
         <div
           style={{
             textAlign: 'center',
@@ -236,7 +333,7 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
             justifyContent: 'center',
           }}
         >
-          {/* Simulated 3D Gallery Backdrop (Wall, Spotlights, Framed Paintings, and Focus Panel) */}
+          {/* Simulated 3D Gallery Backdrop */}
           <div
             style={{
               position: 'absolute',
@@ -246,7 +343,7 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
               pointerEvents: 'none',
             }}
           >
-            {/* Gallery Floor Line */}
+            {/* Gallery Floor */}
             <div
               style={{
                 position: 'absolute',
@@ -258,8 +355,7 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                 borderTop: '1px solid rgba(185, 138, 60, 0.12)',
               }}
             />
-
-            {/* Simulated Framed Artwork on left wall */}
+            {/* Left framed artwork */}
             <div
               style={{
                 position: 'absolute',
@@ -273,8 +369,7 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                 opacity: 0.7,
               }}
             />
-
-            {/* Simulated Central Framed Masterpiece on wall */}
+            {/* Central framed masterpiece */}
             <div
               style={{
                 position: 'absolute',
@@ -289,8 +384,7 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                 opacity: 0.65,
               }}
             />
-
-            {/* Simulated Blurred Focus Panel on right edge */}
+            {/* Right blurred focus panel */}
             <div
               style={{
                 position: 'absolute',
@@ -313,7 +407,7 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
             </div>
           </div>
 
-          {/* Authentic Visitor Modal Backdrop Overlay */}
+          {/* Visitor Modal Backdrop Overlay */}
           <div
             style={{
               position: 'absolute',
@@ -323,500 +417,248 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: device === 'pc' ? '64px 24px 24px' : '54px 16px 16px',
+              padding: cfg.backdropPadding,
             }}
           >
-            {device === 'pc' ? (
-              /* Desktop PC Mode: Full Stately 2-Column Modal */
+            {/* Modal Container — same structure for both devices, only cfg values differ */}
+            <div
+              className="artist-modal-container"
+              style={{
+                position: 'relative',
+                width: cfg.containerWidth,
+                maxHeight: cfg.containerMaxHeight,
+                boxShadow: cfg.containerBoxShadow,
+                cursor: 'default',
+                border: '1px solid rgba(185, 138, 60, 0.28)',
+                borderRadius: '12px',
+                background: 'var(--reda-char-2)',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <button
+                type="button"
+                className="artist-modal-close"
+                aria-label="Close artist profile"
+                style={cfg.closeStyle}
+              >
+                <Icon name="close" size={cfg.closeIconSize} />
+              </button>
+
               <div
-                className="artist-modal-container"
+                className="artist-modal-content"
                 style={{
-                  position: 'relative',
-                  width: 'min(860px, 92%)',
-                  maxHeight: 'min(620px, calc(100% - 48px))',
-                  boxShadow: '0 40px 100px rgba(0, 0, 0, 0.85)',
-                  cursor: 'default',
-                  border: '1px solid rgba(185, 138, 60, 0.28)',
-                  borderRadius: '12px',
-                  background: 'var(--reda-char-2)',
+                  display: 'grid',
+                  gridTemplateColumns: `${cfg.colWidth} 1fr`,
+                  flex: 1,
+                  minHeight: 0,
                   overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
                 }}
               >
-                {/* Close Button */}
-                <button
-                  type="button"
-                  className="artist-modal-close"
-                  aria-label="Close artist profile"
-                  style={{ pointerEvents: 'none' }}
-                >
-                  <Icon name="close" size={16} />
-                </button>
-
+                {/* Left Column: Portrait, Life Dates, Contact */}
                 <div
-                  className="artist-modal-content"
+                  className="artist-modal-portrait-col"
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: '280px 1fr',
-                    flex: 1,
-                    minHeight: 0,
-                    overflow: 'hidden',
+                    background: 'var(--reda-char-3)',
+                    padding: cfg.colPadding,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: cfg.colGap,
+                    borderRight: '1px solid rgba(185, 138, 60, 0.18)',
+                    overflowY: 'auto',
                   }}
                 >
-                  {/* Left Column: Portrait & Life Dates */}
-                  <div
-                    className="artist-modal-portrait-col"
-                    style={{
-                      background: 'var(--reda-char-3)',
-                      padding: '32px 26px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '16px',
-                      borderRight: '1px solid rgba(185, 138, 60, 0.18)',
-                      overflowY: 'auto',
-                    }}
-                  >
-                    {portraitUrl ? (
-                      <div
-                        className="artist-portrait-wrapper"
-                        style={{
-                          width: '180px',
-                          height: '180px',
-                          borderRadius: '50%',
-                          overflow: 'hidden',
-                          border: '2px solid var(--reda-gold)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
+                  {portraitUrl ? (
+                    <div
+                      className="artist-portrait-wrapper"
+                      style={{
+                        width: cfg.portraitSize,
+                        height: cfg.portraitSize,
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        border: cfg.portraitBorder,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <img
+                        src={portraitUrl}
+                        alt={artistName}
+                        className="artist-portrait-img"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
                         }}
-                      >
-                        <img
-                          src={portraitUrl}
-                          alt={artistName}
-                          className="artist-portrait-img"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        className="artist-portrait-placeholder"
-                        style={{
-                          width: '180px',
-                          height: '180px',
-                          borderRadius: '50%',
-                          overflow: 'hidden',
-                          border: '2px solid var(--reda-gold)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: 'radial-gradient(circle at 50% 35%, var(--reda-char-3), var(--reda-char))',
-                          color: 'var(--reda-muted-2)',
-                        }}
-                      >
-                        <Icon name="user" size={56} />
-                      </div>
-                    )}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className="artist-portrait-placeholder"
+                      style={{
+                        width: cfg.portraitSize,
+                        height: cfg.portraitSize,
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        border: cfg.portraitBorder,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'radial-gradient(circle at 50% 35%, var(--reda-char-3), var(--reda-char))',
+                        color: 'var(--reda-muted-2)',
+                      }}
+                    >
+                      <Icon name="user" size={cfg.iconSize} />
+                    </div>
+                  )}
 
-                    {lifeDates && (
-                      <div
-                        className="artist-lifedates-badge"
-                        style={{
-                          fontFamily: 'var(--reda-ui)',
-                          fontSize: '11px',
-                          letterSpacing: '0.1em',
-                          color: 'var(--reda-gold)',
-                          border: '1px solid rgba(185, 138, 60, 0.4)',
-                          borderRadius: '999px',
-                          padding: '5px 14px',
-                        }}
-                      >
-                        {lifeDates}
-                      </div>
-                    )}
+                  {lifeDates && (
+                    <div
+                      className="artist-lifedates-badge"
+                      style={{
+                        fontFamily: 'var(--reda-ui)',
+                        fontSize: cfg.lifedateFontSize,
+                        letterSpacing: cfg.lifedateLetterSpacing,
+                        color: 'var(--reda-gold)',
+                        border: '1px solid rgba(185, 138, 60, 0.4)',
+                        borderRadius: '999px',
+                        padding: cfg.lifedatePadding,
+                      }}
+                    >
+                      {lifeDates}
+                    </div>
+                  )}
 
-                    {contact && (
-                      <div
-                        className="artist-contact-box"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '7px',
-                          fontFamily: 'var(--reda-ui)',
-                          fontSize: '11px',
-                          color: 'var(--reda-muted-hi)',
-                        }}
-                      >
-                        <span className="artist-contact-icon">
-                          <Icon name="pin" size={13} />
-                        </span>
-                        <span className="artist-contact-text">{contact}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right Column: Bio & Quotes */}
-                  <div
-                    className="artist-modal-info-col"
-                    style={{
-                      padding: '38px 40px',
-                      overflowY: 'auto',
-                      maxHeight: '100%',
-                    }}
-                  >
-                    <header className="artist-header">
-                      <span
-                        className="artist-kicker"
-                        style={{
-                          fontFamily: 'var(--reda-ui)',
-                          fontSize: '10px',
-                          fontWeight: 700,
-                          letterSpacing: '0.24em',
-                          textTransform: 'uppercase',
-                          color: 'var(--reda-gold)',
-                        }}
-                      >
-                        Featured Artist
+                  {contact && (
+                    <div
+                      className="artist-contact-box"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: cfg.contactGap,
+                        fontFamily: 'var(--reda-ui)',
+                        fontSize: cfg.contactFontSize,
+                        color: 'var(--reda-muted-hi)',
+                      }}
+                    >
+                      <span className="artist-contact-icon">
+                        <Icon name="pin" size={cfg.contactIconSize} />
                       </span>
-                      <h1
-                        id="artist-modal-name"
-                        className="artist-name"
-                        style={{
-                          fontFamily: 'var(--reda-display)',
-                          fontWeight: 500,
-                          fontSize: '36px',
-                          color: 'var(--reda-cream-hi)',
-                          margin: '8px 0 18px',
-                        }}
-                      >
-                        {artistName}
-                      </h1>
-                    </header>
-
-                    {quote && (
-                      <blockquote
-                        className="artist-quote"
-                        style={{
-                          borderLeft: '3px solid var(--reda-oxblood)',
-                          padding: '4px 0 4px 20px',
-                          margin: '0 0 20px',
-                          position: 'relative',
-                        }}
-                      >
-                        <span
-                          className="quote-mark"
-                          style={{
-                            fontFamily: 'var(--reda-display)',
-                            fontSize: '34px',
-                            color: 'var(--reda-gold)',
-                            lineHeight: 0,
-                            marginRight: '4px',
-                          }}
-                        >
-                          “
-                        </span>
-                        <p
-                          style={{
-                            fontFamily: 'var(--reda-text)',
-                            fontStyle: 'italic',
-                            fontSize: '17px',
-                            color: 'var(--reda-cream)',
-                            margin: 0,
-                            display: 'inline',
-                          }}
-                        >
-                          {quote}
-                        </p>
-                        <span
-                          className="quote-mark closing"
-                          style={{
-                            fontFamily: 'var(--reda-display)',
-                            fontSize: '34px',
-                            color: 'var(--reda-gold)',
-                            lineHeight: 0,
-                            marginLeft: '4px',
-                          }}
-                        >
-                          ”
-                        </span>
-                      </blockquote>
-                    )}
-
-                    {bio ? (
-                      <div className="artist-bio-body">
-                        {bio.split('\n\n').map((paragraph, idx) => (
-                          <p
-                            key={idx}
-                            style={{
-                              fontFamily: 'var(--reda-text)',
-                              fontSize: '15px',
-                              color: 'var(--reda-cream)',
-                              lineHeight: 1.65,
-                              margin: '0 0 14px',
-                            }}
-                          >
-                            {paragraph}
-                          </p>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="artist-bio-empty" style={{ fontSize: '13.5px', color: 'var(--reda-muted)' }}>
-                        Biography not available for this artist.
-                      </p>
-                    )}
-                  </div>
+                      <span className="artist-contact-text">{contact}</span>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ) : (
-              /* Mobile Landscape Mode: Compact Horizontal View matching real mobile landscape (Image 2) */
-              <div
-                className="artist-modal-container"
-                style={{
-                  position: 'relative',
-                  width: 'min(667px, 94%)',
-                  maxHeight: 'min(335px, calc(100% - 24px))',
-                  boxShadow: '0 25px 80px rgba(0, 0, 0, 0.9)',
-                  cursor: 'default',
-                  border: '1px solid rgba(185, 138, 60, 0.28)',
-                  borderRadius: '12px',
-                  background: 'var(--reda-char-2)',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                {/* Close Button */}
-                <button
-                  type="button"
-                  className="artist-modal-close"
-                  aria-label="Close artist profile"
-                  style={{ pointerEvents: 'none', top: '10px', right: '10px', width: '30px', height: '30px' }}
-                >
-                  <Icon name="close" size={13} />
-                </button>
 
+                {/* Right Column: Name, Quote, Bio */}
                 <div
-                  className="artist-modal-content"
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '130px 1fr',
-                    flex: 1,
-                    minHeight: 0,
-                    overflow: 'hidden',
-                  }}
+                  className="artist-modal-info-col"
+                  style={{ padding: cfg.infoPadding, overflowY: 'auto', maxHeight: '100%' }}
                 >
-                  {/* Left Column: Portrait & Life Dates */}
-                  <div
-                    className="artist-modal-portrait-col"
-                    style={{
-                      background: 'var(--reda-char-3)',
-                      padding: '14px 10px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '8px',
-                      borderRight: '1px solid rgba(185, 138, 60, 0.18)',
-                      overflowY: 'auto',
-                    }}
-                  >
-                    {portraitUrl ? (
-                      <div
-                        className="artist-portrait-wrapper"
-                        style={{
-                          width: '74px',
-                          height: '74px',
-                          borderRadius: '50%',
-                          overflow: 'hidden',
-                          border: '1.5px solid var(--reda-gold)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <img
-                          src={portraitUrl}
-                          alt={artistName}
-                          className="artist-portrait-img"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        className="artist-portrait-placeholder"
-                        style={{
-                          width: '74px',
-                          height: '74px',
-                          borderRadius: '50%',
-                          overflow: 'hidden',
-                          border: '1.5px solid var(--reda-gold)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: 'radial-gradient(circle at 50% 35%, var(--reda-char-3), var(--reda-char))',
-                          color: 'var(--reda-muted-2)',
-                        }}
-                      >
-                        <Icon name="user" size={34} />
-                      </div>
-                    )}
+                  <header className="artist-header">
+                    <span
+                      className="artist-kicker"
+                      style={{
+                        fontFamily: 'var(--reda-ui)',
+                        fontSize: cfg.kickerFontSize,
+                        fontWeight: 700,
+                        letterSpacing: cfg.kickerLetterSpacing,
+                        textTransform: 'uppercase',
+                        color: 'var(--reda-gold)',
+                      }}
+                    >
+                      Featured Artist
+                    </span>
+                    <h1
+                      id="artist-modal-name"
+                      className="artist-name"
+                      style={{
+                        fontFamily: 'var(--reda-display)',
+                        fontWeight: 500,
+                        fontSize: cfg.titleFontSize,
+                        color: 'var(--reda-cream-hi)',
+                        margin: cfg.titleMargin,
+                      }}
+                    >
+                      {artistName}
+                    </h1>
+                  </header>
 
-                    {lifeDates && (
-                      <div
-                        className="artist-lifedates-badge"
-                        style={{
-                          fontFamily: 'var(--reda-ui)',
-                          fontSize: '9px',
-                          letterSpacing: '0.08em',
-                          color: 'var(--reda-gold)',
-                          border: '1px solid rgba(185, 138, 60, 0.4)',
-                          borderRadius: '999px',
-                          padding: '2px 8px',
-                        }}
-                      >
-                        {lifeDates}
-                      </div>
-                    )}
-
-                    {contact && (
-                      <div
-                        className="artist-contact-box"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          fontFamily: 'var(--reda-ui)',
-                          fontSize: '9px',
-                          color: 'var(--reda-muted-hi)',
-                        }}
-                      >
-                        <span className="artist-contact-icon">
-                          <Icon name="pin" size={11} />
-                        </span>
-                        <span className="artist-contact-text">{contact}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right Column: Bio & Quotes */}
-                  <div
-                    className="artist-modal-info-col"
-                    style={{
-                      padding: '14px 18px',
-                      overflowY: 'auto',
-                      maxHeight: '100%',
-                    }}
-                  >
-                    <header className="artist-header">
+                  {quote && (
+                    <blockquote
+                      className="artist-quote"
+                      style={{
+                        borderLeft: cfg.quoteBorderLeft,
+                        padding: cfg.quotePadding,
+                        margin: `0 0 ${cfg.quoteMarginBottom}`,
+                        position: 'relative',
+                      }}
+                    >
                       <span
-                        className="artist-kicker"
-                        style={{
-                          fontFamily: 'var(--reda-ui)',
-                          fontSize: '8.5px',
-                          fontWeight: 700,
-                          letterSpacing: '0.18em',
-                          textTransform: 'uppercase',
-                          color: 'var(--reda-gold)',
-                        }}
-                      >
-                        Featured Artist
-                      </span>
-                      <h1
-                        id="artist-modal-name"
-                        className="artist-name"
+                        className="quote-mark"
                         style={{
                           fontFamily: 'var(--reda-display)',
-                          fontWeight: 500,
-                          fontSize: '20px',
-                          color: 'var(--reda-cream-hi)',
-                          margin: '3px 0 8px',
+                          fontSize: cfg.quoteMarkSize,
+                          color: 'var(--reda-gold)',
+                          lineHeight: 0,
+                          marginRight: cfg.quoteMarkSpacing,
                         }}
                       >
-                        {artistName}
-                      </h1>
-                    </header>
-
-                    {quote && (
-                      <blockquote
-                        className="artist-quote"
+                        "
+                      </span>
+                      <p
                         style={{
-                          borderLeft: '2.5px solid var(--reda-oxblood)',
-                          padding: '2px 0 2px 10px',
-                          margin: '0 0 10px',
-                          position: 'relative',
+                          fontFamily: 'var(--reda-text)',
+                          fontStyle: 'italic',
+                          fontSize: cfg.quoteFontSize,
+                          color: 'var(--reda-cream)',
+                          margin: 0,
+                          display: 'inline',
                         }}
                       >
-                        <span
-                          className="quote-mark"
-                          style={{
-                            fontFamily: 'var(--reda-display)',
-                            fontSize: '20px',
-                            color: 'var(--reda-gold)',
-                            lineHeight: 0,
-                            marginRight: '2px',
-                          }}
-                        >
-                          “
-                        </span>
+                        {quote}
+                      </p>
+                      <span
+                        className="quote-mark closing"
+                        style={{
+                          fontFamily: 'var(--reda-display)',
+                          fontSize: cfg.quoteMarkSize,
+                          color: 'var(--reda-gold)',
+                          lineHeight: 0,
+                          marginLeft: cfg.quoteMarkSpacing,
+                        }}
+                      >
+                        "
+                      </span>
+                    </blockquote>
+                  )}
+
+                  {bio ? (
+                    <div className="artist-bio-body">
+                      {bio.split('\n\n').map((paragraph, idx) => (
                         <p
+                          key={idx}
                           style={{
                             fontFamily: 'var(--reda-text)',
-                            fontStyle: 'italic',
-                            fontSize: '12.5px',
+                            fontSize: cfg.bioFontSize,
                             color: 'var(--reda-cream)',
-                            margin: 0,
-                            display: 'inline',
+                            lineHeight: cfg.bioLineHeight,
+                            margin: cfg.bioParaMargin,
                           }}
                         >
-                          {quote}
+                          {paragraph}
                         </p>
-                        <span
-                          className="quote-mark closing"
-                          style={{
-                            fontFamily: 'var(--reda-display)',
-                            fontSize: '20px',
-                            color: 'var(--reda-gold)',
-                            lineHeight: 0,
-                            marginLeft: '2px',
-                          }}
-                        >
-                          ”
-                        </span>
-                      </blockquote>
-                    )}
-
-                    {bio ? (
-                      <div className="artist-bio-body">
-                        {bio.split('\n\n').map((paragraph, idx) => (
-                          <p
-                            key={idx}
-                            style={{
-                              fontFamily: 'var(--reda-text)',
-                              fontSize: '12.5px',
-                              color: 'var(--reda-cream)',
-                              lineHeight: 1.5,
-                              margin: '0 0 8px',
-                            }}
-                          >
-                            {paragraph}
-                          </p>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="artist-bio-empty" style={{ fontSize: '11.5px', color: 'var(--reda-muted)' }}>
-                        Biography not available for this artist.
-                      </p>
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="artist-bio-empty" style={{ fontSize: cfg.bioEmptyFontSize, color: 'var(--reda-muted)' }}>
+                      Biography not available for this artist.
+                    </p>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}

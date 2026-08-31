@@ -415,11 +415,21 @@
   top: 50%;
   width: 40px;
   height: 40px;
-  transform: translate(-50%, -50%);
+  margin: 0;
   border-radius: 50%;
   background: rgba(185, 138, 60, 0.35);
   border: 1px solid var(--reda-gold);
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.virtual-joystick__knob-center {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--reda-gold);
+  box-shadow: 0 0 8px var(--reda-gold);
 }
 .joystick-arrow {
   position: absolute;
@@ -453,6 +463,10 @@
   .virtual-joystick__knob {
     width: 30px;
     height: 30px;
+  }
+  .virtual-joystick__knob-center {
+    width: 8px;
+    height: 8px;
   }
   .joystick-arrow--up { top: 3px; }
   .joystick-arrow--down { bottom: 3px; }
@@ -517,6 +531,8 @@
 .focus-header-bar__info-btn {
   width: 38px;
   height: 38px;
+  min-width: 38px;
+  min-height: 38px;
   border-radius: 50%;
   background: var(--reda-glass);
   border: 1px solid rgba(185, 138, 60, 0.3);
@@ -525,11 +541,34 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  margin: 0;
+  line-height: 0;
+  box-shadow: none;
   transition: all 0.15s ease;
+}
+.focus-header-bar__info-btn:hover {
+  border-color: var(--reda-gold);
+  color: var(--reda-cream-hi);
+  background: rgba(35, 30, 24, 0.9);
+  box-shadow: none;
+  transform: none;
 }
 .focus-header-bar__info-btn.active {
   background: var(--reda-gold);
   color: var(--reda-char);
+  border-color: var(--reda-gold);
+  box-shadow: none;
+  transform: none;
+}
+.focus-info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.focus-header-bar__info-btn .reda-icon {
+  display: block;
 }
 .focus-nav-rail {
   position: absolute;
@@ -707,6 +746,13 @@
   .focus-header-bar__info-btn {
     width: 28px;
     height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0;
+  }
+  .focus-header-bar__info-btn .reda-icon {
+    width: 14px;
+    height: 14px;
   }
   .focus-nav-rail {
     right: 8px;
