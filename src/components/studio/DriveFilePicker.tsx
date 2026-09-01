@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { openGoogleDrivePicker, shareFileWithServiceAccount } from '../../lib/studio/google-picker';
+import { fetchAndRegisterToken } from '../../lib/media/media-tokens';
 
 interface DriveFilePickerProps {
   mimeTypes: string;
@@ -48,6 +49,8 @@ export function DriveFilePicker({
                 'The media may not load until you share it with the service account manually.'
             );
           }
+          // Mint a token so the just-picked file previews before the next save/refetch.
+          await fetchAndRegisterToken(fileId).catch(() => {});
           setIsLoading(false);
           onPicked(fileId);
         },

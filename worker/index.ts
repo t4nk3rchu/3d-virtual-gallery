@@ -5,6 +5,7 @@
 import type { Env } from './types';
 import { requireAuth } from './jwt';
 import { handleMediaProxy } from './media-proxy';
+import { signMediaToken } from './media-sign';
 import {
   handleGoogleAuthStart,
   handleGoogleAuthCallback,
@@ -116,6 +117,17 @@ export default {
     if (!auth) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Mint a media token for one file (studio preview of just-picked media,
+    // before the exhibition fetch supplies tokens). Any authed curator may.
+    const mediaTokenMatch = path.match(/^\/api\/media-token\/([a-zA-Z0-9_-]+)$/);
+    if (mediaTokenMatch && req.method === 'GET') {
+      const exp = Math.floor(Date.now() / 1000) + 21600; // 6h, matches buildMediaTokens
+      const token = await signMediaToken(mediaTokenMatch[1], exp, env.MEDIA_SIGNING_KEY);
+      return new Response(JSON.stringify({ token }), {
         headers: { 'Content-Type': 'application/json' },
       });
     }

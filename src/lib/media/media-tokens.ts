@@ -18,3 +18,15 @@ export function getMediaToken(fileId: string): string | undefined {
 export function clearMediaTokens(): void {
   tokens.clear();
 }
+
+/**
+ * Mint + register a token for a single file so it previews immediately —
+ * before the exhibition (which normally supplies tokens) is re-fetched.
+ * Used right after picking a file in the studio. Best-effort.
+ */
+export async function fetchAndRegisterToken(fileId: string): Promise<void> {
+  const res = await fetch(`/api/media-token/${encodeURIComponent(fileId)}`, { credentials: 'include' });
+  if (!res.ok) return;
+  const data = (await res.json()) as { token?: string };
+  if (data.token) tokens.set(fileId, data.token);
+}
