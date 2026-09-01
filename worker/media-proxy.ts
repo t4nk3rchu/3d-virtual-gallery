@@ -186,7 +186,9 @@ export async function handleMediaProxy(
     const upstream = await fetchDriveAuthenticated(fileId, env);
 
     if (!upstream.ok || upstream.status !== 200) {
-      return new Response('Upstream error', { status: 502 });
+      const detail = await upstream.text().catch(() => '');
+      console.error(`Drive fetch failed for ${fileId}: ${upstream.status} ${detail.slice(0, 500)}`);
+      return new Response(`Upstream error ${upstream.status}: ${detail.slice(0, 300)}`, { status: 502 });
     }
 
     const toCache = new Response(upstream.clone().body, upstream);
