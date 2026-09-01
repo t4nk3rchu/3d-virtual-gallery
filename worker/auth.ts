@@ -18,7 +18,12 @@ const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
 
 function getRedirectUri(req: Request): string {
+  // When fronted by the Pages Function proxy, the public host arrives via
+  // X-Forwarded-Host. The whole OAuth flow must stay on that one origin so the
+  // oauth_state cookie set at start is readable at callback.
   const url = new URL(req.url);
+  const fwdHost = req.headers.get('X-Forwarded-Host');
+  if (fwdHost) return `https://${fwdHost}/api/auth/google/callback`;
   return `${url.protocol}//${url.host}/api/auth/google/callback`;
 }
 
