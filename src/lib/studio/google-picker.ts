@@ -188,24 +188,34 @@ async function getServiceAccountEmail(): Promise<string> {
 }
 
 /**
- * Grant the Reda service account read access to a picked file, so the Worker
- * (which fetches media as the SA) can serve it. Uses the picker's drive.file
- * token, which permits managing permissions on files the app opened.
- * sendNotificationEmail=false because service accounts can't receive email.
+ * Make a picked file servable by the Worker's service account:
+ *  1. Grant the SA reader access (the app fetches media as the SA).
+ *  2. Clear copyRequiresWriterPermission — Drive's "viewers can't download"
+ *     lock returns 403 cannotDownloadFile to reader-role identities like the SA.
+ * Both calls use the picker's drive.file token, which permits managing the
+ * permissions and settings of files the app opened. sendNotificationEmail=false
+ * because service accounts can't receive email.
  */
 export async function shareFileWithServiceAccount(fileId: string): Promise<void> {
   const token = getCachedDriveToken();
   if (!token) throw new Error('Drive authorization expired — re-open the picker and try again.');
   const saEmail = await getServiceAccountEmail();
-  const url =
-    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/permissions` +
-    `?supportsAllDrives=true&sendNotificationEmail=false`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ role: 'reader', type: 'user', emailAddress: saEmail }),
-  });
-  if (!res.ok) {
-    throw new Error(`Sharing with the service account failed (${res.status}): ${await res.text()}`);
+  const id = encodeURIComponent(fileId);
+  const authHeaders = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+  const shareRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${id}/permissions?supportsAllDrives=true&sendNotificationEmail=false`,
+    { method: 'POST', headers: authHeaders, body: JSON.stringify({ role: 'reader', type: 'user', emailAddress: saEmail }) }
+  );
+  if (!shareRes.ok) {
+    throw new Error(`Sharing with the service account failed (${shareRes.status}): ${await shareRes.text()}`);
   }
+
+  // Lift the download restriction so the reader SA can fetch the bytes.
+  // Best-effort: only the owner/writer can change it; ignore if not permitted.
+  await fetch(`https://www.googleapis.com/drive/v3/files/${id}?supportsAllDrives=true`, {
+    method: 'PATCH',
+    headers: authHeaders,
+    body: JSON.stringify({ copyRequiresWriterPermission: false }),
+  }).catch(() => {});
 }
