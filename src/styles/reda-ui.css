@@ -14,14 +14,16 @@
 /* Scoped rules for Parchment / Sheet / Inspector contexts (.wb-sheet, .wb-insp, .reda-parch, etc.) */
 .wb-sheet .btn--secondary,
 .wb-insp .btn--secondary,
-.reda-parch .btn--secondary {
+.reda-parch .btn--secondary,
+.login-card .btn--secondary {
   background: var(--reda-char-2) !important;
   color: #F7E8D0 !important;
   border: 1px solid var(--reda-char-1) !important;
 }
 .wb-sheet .btn--secondary:hover,
 .wb-insp .btn--secondary:hover,
-.reda-parch .btn--secondary:hover {
+.reda-parch .btn--secondary:hover,
+.login-card .btn--secondary:hover {
   background: #110E0B !important;
   color: #FFFFFF !important;
   border-color: var(--reda-gold) !important;
@@ -29,14 +31,16 @@
 
 .wb-sheet .btn--ghost,
 .wb-insp .btn--ghost,
-.reda-parch .btn--ghost {
+.reda-parch .btn--ghost,
+.login-card .btn--ghost {
   color: var(--reda-ink) !important;
   background: transparent !important;
   border: 1px solid rgba(60, 45, 30, 0.35) !important;
 }
 .wb-sheet .btn--ghost:hover,
 .wb-insp .btn--ghost:hover,
-.reda-parch .btn--ghost:hover {
+.reda-parch .btn--ghost:hover,
+.login-card .btn--ghost:hover {
   background: rgba(44, 34, 20, 0.08) !important;
   color: var(--reda-oxblood) !important;
   border-color: var(--reda-oxblood) !important;

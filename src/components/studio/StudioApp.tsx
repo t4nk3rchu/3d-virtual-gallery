@@ -128,9 +128,13 @@ function Login({ onLoggedIn }: LoginProps) {
         return;
       }
       const me = await fetch('/api/auth/me', { credentials: 'include' });
-      if (me.ok) onLoggedIn((await me.json()) as CuratorUser);
+      if (me.ok) {
+        onLoggedIn((await me.json()) as CuratorUser);
+      } else {
+        setError('Authentication succeeded, but failed to verify session. Please try signing in.');
+      }
     } catch {
-      setError('Network error during authentication');
+      setError('Network error during authentication. Check your internet connection.');
     } finally {
       setLoading(false);
     }
@@ -138,121 +142,166 @@ function Login({ onLoggedIn }: LoginProps) {
 
   return (
     <main className="login-page reda-dark" aria-labelledby="login-heading">
-      <div className="login-card">
-        <header className="login-card__header">
-          <img
-            src="/reda_logo.png"
-            alt="Reda Gallery"
-            style={{
-              width: '48px',
-              height: '48px',
-              objectFit: 'contain',
-              margin: '0 auto 12px',
-              display: 'block',
-            }}
-          />
-          <span className="app-badge">Reda Gallery · Curator Studio</span>
-          <h1 id="login-heading" className="login-card__title">
-            {mode === 'login' ? 'Sign in to curate' : 'Create curator account'}
-          </h1>
-          <p className="login-card__subtitle">
-            Curate virtual 3D exhibitions with high-resolution imagery and spatial audio.
-          </p>
-        </header>
+      <div className="login-ambient-grid" aria-hidden="true" />
+      <div className="login-ambient-glow" aria-hidden="true" />
 
-        {error && (
-          <div className="alert alert--error" role="alert">
-            {error}
+      <div className="login-card-container">
+        <div className="login-card">
+          <header className="login-card__header">
+            <div className="login-emblem-wrap">
+              <img
+                src="/reda_logo.png"
+                alt="Reda Gallery"
+                className="login-emblem"
+              />
+            </div>
+            <span className="login-kicker">Reda Gallery · Archival Studio</span>
+            <h1 id="login-heading" className="login-card__title">
+              {mode === 'login' ? 'Curator Atelier' : 'Create Access'}
+            </h1>
+            <p className="login-card__subtitle">
+              {mode === 'login'
+                ? 'Sign in to curate virtual 3D exhibitions, spatial lighting, and spatial audio salons.'
+                : 'Register as an exhibition curator to compose and publish architectural art galleries.'}
+            </p>
+          </header>
+
+          <div className="login-mode-switch" role="tablist" aria-label="Authentication selection">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'login'}
+              className={`login-mode-tab ${mode === 'login' ? 'active' : ''}`}
+              onClick={() => {
+                setMode('login');
+                setError(null);
+              }}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'register'}
+              className={`login-mode-tab ${mode === 'register' ? 'active' : ''}`}
+              onClick={() => {
+                setMode('register');
+                setError(null);
+              }}
+            >
+              Register
+            </button>
           </div>
-        )}
 
-        <div className="oauth-providers">
-          <a
-            className="btn btn--secondary btn--full btn--google"
-            href="/api/auth/google"
-          >
-            <Icon name="google" /> Continue with Google
-          </a>
-        </div>
-
-        <div className="divider">
-          <span>or with email</span>
-        </div>
-
-        <form onSubmit={handlePasswordSubmit} className="login-form">
-          {mode === 'register' && (
-            <TextField
-              id="full_name"
-              label="Full Name"
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Elena Rostova"
-              required
-            />
+          {error && (
+            <div className="alert alert--error login-alert" role="alert">
+              <span className="login-alert__dot" />
+              <span className="login-alert__text">{error}</span>
+            </div>
           )}
 
-          <TextField
-            id="email"
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="curator@gallery.org"
-            required
-          />
-
-          <TextField
-            id="password"
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            required
-          />
-
-          <Button
-            type="submit"
-            variant="primary"
-            className="btn--full"
-            disabled={loading}
-          >
-            {loading
-              ? 'Please wait…'
-              : mode === 'login'
-              ? 'Sign in with Password'
-              : 'Create Account'}
-          </Button>
-
-          <div className="login-toggle">
-            {mode === 'login' ? (
-              <Button
-                type="button"
-                variant="ghost"
-                className="btn--sm"
-                onClick={() => {
-                  setMode('register');
-                  setError(null);
-                }}
-              >
-                Need an account? Register
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                className="btn--sm"
-                onClick={() => {
-                  setMode('login');
-                  setError(null);
-                }}
-              >
-                Already have an account? Sign in
-              </Button>
-            )}
+          <div className="oauth-providers">
+            <a
+              className="btn btn--google-auth"
+              href="/api/auth/google"
+              title="Authenticate via Google Workspace"
+            >
+              <Icon name="google" size={17} />
+              <span>Continue with Google</span>
+            </a>
           </div>
-        </form>
+
+          <div className="login-divider">
+            <span className="login-divider__line" />
+            <span className="login-divider__label">or with credentials</span>
+            <span className="login-divider__line" />
+          </div>
+
+          <form onSubmit={handlePasswordSubmit} className="login-form">
+            {mode === 'register' && (
+              <div className="login-field-group">
+                <label htmlFor="full_name" className="login-label">
+                  Curator Full Name
+                </label>
+                <div className="login-input-wrap">
+                  <input
+                    id="full_name"
+                    type="text"
+                    className="login-input"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Elena Rostova"
+                    required
+                    autoComplete="name"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="login-field-group">
+              <label htmlFor="email" className="login-label">
+                Curator Email
+              </label>
+              <div className="login-input-wrap">
+                <input
+                  id="email"
+                  type="email"
+                  className="login-input"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="curator@gallery.org"
+                  required
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+
+            <div className="login-field-group">
+              <label htmlFor="password" className="login-label">
+                Password Key
+              </label>
+              <div className="login-input-wrap">
+                <input
+                  id="password"
+                  type="password"
+                  className="login-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  required
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn--primary btn--login-action"
+              disabled={loading}
+            >
+              {loading ? (
+                <span>Authenticating…</span>
+              ) : mode === 'login' ? (
+                <>
+                  <span>Sign In with Password</span>
+                  <Icon name="chevronRight" size={15} />
+                </>
+              ) : (
+                <>
+                  <span>Create Curator Account</span>
+                  <Icon name="plus" size={15} />
+                </>
+              )}
+            </button>
+          </form>
+
+          <footer className="login-card__footer">
+            <div className="login-security-seal">
+              <Icon name="shield" size={13} />
+              <span>Encrypted Session · Cloudflare D1 Architecture</span>
+            </div>
+          </footer>
+        </div>
       </div>
     </main>
   );

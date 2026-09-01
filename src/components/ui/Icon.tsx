@@ -34,6 +34,8 @@ const PATHS: Record<string, string | readonly string[]> = {
   list: ['M6 4.5h8', 'M6 8h8', 'M6 11.5h8', 'M3 4.5h.01', 'M3 8h.01', 'M3 11.5h.01'],
   pause: ['M6 3.5v9', 'M10 3.5v9'],
   phone: ['M5 2.6h6v10.8H5z', 'M7.4 11.6h1.2'],
+  lock: ['M4.5 7V5a3.5 3.5 0 0 1 7 0v2', 'M3 7h10v7H3z', 'M8 9.5v2'],
+  shield: 'M8 2l5.5 2.2v4.3c0 3.6-2.5 6.2-5.5 7.5-3-1.3-5.5-3.9-5.5-7.5V4.2z',
 } as const;
 
 export type IconName = keyof typeof PATHS;

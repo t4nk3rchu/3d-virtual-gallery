@@ -68,9 +68,11 @@ export default {
       return handleLogout();
     }
 
+    const jwtSecret = env.JWT_SECRET_KEY || 'reda-gallery-default-jwt-secret-key-32b';
+
     // ── Auth me route ───────────────────────────────────────────────────────
     if (path === '/api/auth/me' && req.method === 'GET') {
-      const auth = await requireAuth(req, env.JWT_SECRET_KEY);
+      const auth = await requireAuth(req, jwtSecret);
       if (!auth) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401,
@@ -97,12 +99,12 @@ export default {
     // ── Exhibitions by slug (public read) ────────────────────────────────────
     const slugMatch = path.match(/^\/api\/exhibitions\/by-slug\/(.+)$/);
     if (slugMatch && req.method === 'GET') {
-      const auth = await requireAuth(req, env.JWT_SECRET_KEY);
+      const auth = await requireAuth(req, jwtSecret);
       return handleExhibitionBySlug(req, env, auth, decodeURIComponent(slugMatch[1]));
     }
 
     // ── From here: auth required ─────────────────────────────────────────────
-    const auth = await requireAuth(req, env.JWT_SECRET_KEY);
+    const auth = await requireAuth(req, jwtSecret);
     if (!auth) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
