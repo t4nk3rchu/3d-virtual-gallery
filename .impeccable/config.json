@@ -11,6 +11,15 @@
         ],
         "createdAt": "2026-08-31T12:45:17.247Z",
         "reason": "spec-mandated: foundation spec 2026-08-30 §7 locks 'gold left border' on the Viewer Focus panel; the left-rule is the REDA hairline/wall-label motif (§6), user-approved design direction"
+      },
+      {
+        "rule": "codex-grid-background",
+        "value": "*",
+        "files": [
+          "src/styles/reda-studio.css"
+        ],
+        "createdAt": "2026-09-01T17:57:12.641Z",
+        "reason": "Intentional REDA brand design: 4% opacity gold grid on dark auth screen; da Vinci/Renaissance Codex aesthetic direction confirmed in project design spec"
       }
     ]
   }
