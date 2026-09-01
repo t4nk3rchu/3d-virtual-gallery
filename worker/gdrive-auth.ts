@@ -15,6 +15,8 @@ let cachedExpiry = 0; // epoch ms; 0 = none
 /** Strip PEM armor + newlines and base64-decode to DER bytes. */
 export function pemToPkcs8(pem: string): ArrayBuffer {
   const body = pem
+    .replace(/\\r/g, '')
+    .replace(/\\n/g, '') // literal backslash-n from a secret pasted with escaped newlines
     .replace(/-----BEGIN [^-]+-----/g, '')
     .replace(/-----END [^-]+-----/g, '')
     .replace(/\s+/g, '');
