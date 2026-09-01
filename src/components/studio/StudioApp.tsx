@@ -140,7 +140,18 @@ function Login({ onLoggedIn }: LoginProps) {
     <main className="login-page reda-dark" aria-labelledby="login-heading">
       <div className="login-card">
         <header className="login-card__header">
-          <span className="app-badge">REDA Curator Studio</span>
+          <img
+            src="/reda_logo.png"
+            alt="Reda Gallery"
+            style={{
+              width: '48px',
+              height: '48px',
+              objectFit: 'contain',
+              margin: '0 auto 12px',
+              display: 'block',
+            }}
+          />
+          <span className="app-badge">Reda Gallery · Curator Studio</span>
           <h1 id="login-heading" className="login-card__title">
             {mode === 'login' ? 'Sign in to curate' : 'Create curator account'}
           </h1>
@@ -290,10 +301,17 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
   return (
     <div className="dash reda-dark">
       <div className="dhead">
-        <div>
-          <div className="k">REDA · Legacy &amp; Archive</div>
-          <h1>Your exhibitions</h1>
-          <div className="who">Signed in as {user.email}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <img
+            src="/reda_logo.png"
+            alt="Reda Gallery"
+            style={{ width: '38px', height: '38px', objectFit: 'contain' }}
+          />
+          <div>
+            <div className="k">REDA GALLERY · ARCHIVE &amp; STUDIO</div>
+            <h1>Your exhibitions</h1>
+            <div className="who">Signed in as {user.email}</div>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <Button type="button" variant="primary" iconLeft="plus" onClick={onNew}>

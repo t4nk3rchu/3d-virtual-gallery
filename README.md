@@ -1,4 +1,4 @@
-# 🏛️ 3D Virtual Gallery & Exhibition Platform
+# 🏛️ Reda Gallery — 3D Virtual Gallery & Exhibition Platform
 
 > An immersive, high-performance WebGL2 3D virtual art gallery and exhibition authoring platform built with **React 19**, **Babylon.js 7**, and **Cloudflare Workers & D1**.
 

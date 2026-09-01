@@ -1,8 +1,8 @@
-# 3D Virtual Gallery - Release Notes & Architecture Summary
+# Reda Gallery - Release Notes & Architecture Summary
 
 ## 1. Overview & Key Enhancements
 
-This document summarizes the core features, responsive patterns, architecture decisions, and recent enhancements implemented for the 3D Virtual Gallery exhibition viewer and REDA Curator Studio Workbench across both Mobile and Desktop (PC) devices.
+This document summarizes the core features, responsive patterns, architecture decisions, and recent enhancements implemented for the Reda Gallery exhibition viewer and REDA Curator Studio Workbench across both Mobile and Desktop (PC) devices.
 
 ---
 

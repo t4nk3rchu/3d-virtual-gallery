@@ -43,9 +43,15 @@ export function WorkbenchTopBar({
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
+            gap: '8px',
           }}
           title="Return to Exhibitions Dashboard"
         >
+          <img
+            src="/reda_logo.png"
+            alt="Reda Gallery"
+            style={{ width: '22px', height: '22px', objectFit: 'contain' }}
+          />
           <span className="wb-brand">REDA</span>
         </button>
         <div className="wb-crumb">
