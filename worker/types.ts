@@ -10,6 +10,10 @@ export interface Env {
   GOOGLE_OAUTH_CLIENT_ID: string;
   GOOGLE_OAUTH_CLIENT_SECRET: string;
   JWT_SECRET_KEY: string;
+  GDRIVE_SA_CLIENT_EMAIL: string;
+  GDRIVE_SA_PRIVATE_KEY: string;
+  MEDIA_SIGNING_KEY: string;
+  APP_ORIGIN?: string;
 }
 
 // AnalyticsEngineDataset is declared in @cloudflare/workers-types but add here for clarity

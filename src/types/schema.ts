@@ -142,6 +142,8 @@ export interface ExhibitionDetail extends Exhibition {
       artist_profile?: Artist | null;
     }
   >;
+  /** fileId → signed access token ("exp.sig") for /api/media requests. */
+  media_tokens?: Record<string, string>;
 }
 
 /** Analytics event types sent to /api/events */

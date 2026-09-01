@@ -12,6 +12,7 @@ import { ArtistViewerPreview } from './ArtistViewerPreview';
 import { SetupSheet } from './SetupSheet';
 import { HotspotEditor } from '../HotspotEditor';
 import { Icon } from '../../ui';
+import { registerMediaTokens } from '../../../lib/media/media-tokens';
 
 export function Workbench({
   exhibitionId,
@@ -55,7 +56,7 @@ export function Workbench({
   const fetchExhibition = () =>
     fetch(`/api/exhibitions/${exhibitionId}`, { credentials: 'include' })
       .then((r) => r.json() as Promise<ExhibitionDetail>)
-      .then(setExhibition)
+      .then((data) => { registerMediaTokens(data.media_tokens); setExhibition(data); })
       .catch(() => {});
 
   useEffect(() => {

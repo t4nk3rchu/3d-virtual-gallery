@@ -26,6 +26,7 @@ import {
   deleteArtistRecord,
 } from '../db';
 import { warmCache } from '../media-proxy';
+import { tokensForExhibition } from '../media-sign';
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -86,7 +87,8 @@ export async function handleExhibitionById(
     if (!detail.is_published && detail.user_id !== auth?.sub) {
       return json({ error: 'Not found' }, 404); // draft hidden from non-owners
     }
-    return json(detail);
+    const media_tokens = await tokensForExhibition(detail, env.MEDIA_SIGNING_KEY);
+    return json({ ...detail, media_tokens });
   }
 
   if (!auth) return json({ error: 'Unauthorized' }, 401);
@@ -111,14 +113,14 @@ export async function handleExhibitionById(
       const detail = await getExhibitionById(env.DB, id, auth.sub);
       if (detail && ctx) {
         if (detail.room?.glb_file_id) {
-          ctx.waitUntil(warmCache(detail.room.glb_file_id, ctx, String(detail.room.created_at)));
+          ctx.waitUntil(warmCache(detail.room.glb_file_id, env, ctx, String(detail.room.created_at)));
         }
         for (const art of detail.artworks || []) {
           if (art.media_file_id) {
-            ctx.waitUntil(warmCache(art.media_file_id, ctx, String(art.updated_at)));
+            ctx.waitUntil(warmCache(art.media_file_id, env, ctx, String(art.updated_at)));
           }
           if (art.audio_guide_file_id) {
-            ctx.waitUntil(warmCache(art.audio_guide_file_id, ctx, String(art.updated_at)));
+            ctx.waitUntil(warmCache(art.audio_guide_file_id, env, ctx, String(art.updated_at)));
           }
         }
       }
@@ -144,7 +146,8 @@ export async function handleExhibitionBySlug(
 ): Promise<Response> {
   const detail = await getExhibitionBySlug(env.DB, slug, auth?.sub);
   if (!detail) return json({ error: 'Not found' }, 404);
-  return json(detail);
+  const media_tokens = await tokensForExhibition(detail, env.MEDIA_SIGNING_KEY);
+  return json({ ...detail, media_tokens });
 }
 
 // ─── Rooms ────────────────────────────────────────────────────────────────────

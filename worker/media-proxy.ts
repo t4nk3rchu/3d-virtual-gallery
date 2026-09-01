@@ -1,87 +1,60 @@
 /**
- * Task 1: Worker media proxy
+ * Worker media proxy — serves private Drive files via service account auth.
  *
- * Fixes:
- *   Bug #1 — cache never populated (explicit caches.default.put via ctx.waitUntil)
- *   Bug #2 — Drive HTML interstitial cached as model (detect + re-fetch with confirm token)
- *   Bug #3 — Range requests mishandled (cache only 200; slice full body for 206)
+ * Security: every request must carry a short-lived signed token (?t=) issued
+ * by the API alongside each exhibition payload. The token is HMAC-SHA256 over
+ * fileId+exp with a server-only key. A referer/origin check provides best-effort
+ * hotlink protection; the signed token is the real gate.
  *
- * Spec §4.1 required behavior:
- *   1. Explicit Cache API usage
- *   2. Drive interstitial handling
- *   3. Range support (206 from cached full body, never cache 206)
- *   4. Cache-Control: immutable + CORS
- *   5. fileId validation
- *   6. warmCache for publish-time pre-warming
+ * Cache: explicit Cache API (ctx.waitUntil put); keyed on fileId+?v=. The ?t=
+ * token is intentionally excluded from the cache key so the same underlying
+ * bytes are shared across sessions. Range requests are sliced from the full
+ * cached body (audio/video only; GLBs come as a single full GET).
  */
 
-const FILE_ID_RE = /^[a-zA-Z0-9_-]+$/;
-const DRIVE_DOWNLOAD_BASE = 'https://drive.google.com/uc?export=download&id=';
+import { getDriveAccessToken } from './gdrive-auth';
+import { verifyMediaToken } from './media-sign';
+import type { Env } from './types';
 
-// Range-agnostic cache key. Version (?v=) segments the key so a recreated room
-// (new created_at) or edited artwork (new updated_at) never serves stale bytes,
-// even when the Google Drive fileId is reused (overwrite-in-place). Spec §4.1.1.
+const FILE_ID_RE = /^[a-zA-Z0-9_-]+$/;
+const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3/files/';
+
 function cacheKey(fileId: string, version?: string): Request {
   const suffix = version ? `?v=${encodeURIComponent(version)}` : '';
   return new Request(`https://media/${fileId}${suffix}`);
 }
 
+async function fetchDriveAuthenticated(fileId: string, env: Env): Promise<Response> {
+  const token = await getDriveAccessToken(env);
+  const url = `${DRIVE_API_BASE}${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`;
+  return fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+}
+
 /**
- * Fetches the file from Google Drive, following the HTML virus-scan
- * interstitial if present (Bug #2).
+ * Hotlink guard: only enforced when APP_ORIGIN is configured.
+ * Without it, the signed token is the sole gate — don't block legitimate
+ * cross-origin requests from the frontend on a different port/domain.
  */
-async function fetchDriveFollowingInterstitial(fileId: string): Promise<Response> {
-  const url = `${DRIVE_DOWNLOAD_BASE}${fileId}`;
-  const res = await fetch(url, { redirect: 'follow' });
+function isAllowedOrigin(req: Request, env: Env): boolean {
+  if (!env.APP_ORIGIN) return true; // rely on token gate only
 
-  // Detect interstitial: Drive returns a text/html page with a confirm token
-  // for files that exceed its automatic scan threshold.
-  const ct = res.headers.get('Content-Type') ?? '';
-  if (ct.includes('text/html')) {
-    const html = await res.text();
-    // The confirm token appears in a hidden input, form action, link or a query param like ?confirm=XXXX
-    const tokenMatch =
-      html.match(/[?&]confirm=([^&"']+)/) ??
-      html.match(/name="confirm"\s+value="([^"]+)"/) ??
-      html.match(/value="([^"]+)"\s+name="confirm"/) ??
-      html.match(/confirm=([A-Za-z0-9_-]+)/);
+  const allowed = new Set<string>([
+    env.APP_ORIGIN,
+    `https://${new URL(req.url).host}`,
+    `http://${new URL(req.url).host}`,
+  ]);
 
-    // Extract cookies to forward
-    const setCookie = res.headers.get('set-cookie');
-    const headers: Record<string, string> = {};
-    if (setCookie) {
-      headers['Cookie'] = setCookie.split(';')[0];
+  const origin = req.headers.get('Origin');
+  if (origin) return allowed.has(origin);
+  const referer = req.headers.get('Referer');
+  if (referer) {
+    try {
+      return allowed.has(new URL(referer).origin);
+    } catch {
+      return false;
     }
-
-    // Check for form action (e.g. drive.usercontent.google.com/download)
-    const actionMatch = html.match(/<form[^>]+action="([^"]+)"/);
-    let targetUrl = `${url}&confirm=${tokenMatch ? tokenMatch[1] : 't'}`;
-    if (actionMatch && actionMatch[1]) {
-      const action = actionMatch[1].replace(/&amp;/g, '&');
-      if (action.startsWith('http')) {
-        targetUrl = action;
-        if (tokenMatch && !targetUrl.includes('confirm=')) {
-          targetUrl += (targetUrl.includes('?') ? '&' : '?') + `confirm=${tokenMatch[1]}`;
-        }
-      }
-    }
-
-    if (tokenMatch || actionMatch) {
-      const secondRes = await fetch(targetUrl, {
-        headers,
-        redirect: 'follow',
-      });
-      const secondCt = secondRes.headers.get('Content-Type') ?? '';
-      if (secondCt.includes('text/html')) {
-        return new Response('Drive interstitial resolved to HTML page instead of file', { status: 502 });
-      }
-      return secondRes;
-    }
-    // No token found — return a synthetic error so callers know not to cache
-    return new Response('Drive interstitial with no confirm token', { status: 502 });
   }
-
-  return res;
+  return true;
 }
 
 function inferContentType(headers: Headers, bodyBuffer?: ArrayBuffer): string {
@@ -112,63 +85,28 @@ function inferContentType(headers: Headers, bodyBuffer?: ArrayBuffer): string {
 
   if (bodyBuffer && bodyBuffer.byteLength >= 8) {
     const bytes = new Uint8Array(bodyBuffer);
-    // PNG (0x89 0x50 0x4E 0x47)
-    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
-      return 'image/png';
-    }
-    // JPEG (0xFF 0xD8 0xFF)
-    if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
-      return 'image/jpeg';
-    }
-    // GIF (0x47 0x49 0x46)
-    if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
-      return 'image/gif';
-    }
-    // WebP ('RIFF'...'WEBP')
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return 'image/png';
+    if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return 'image/jpeg';
+    if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return 'image/gif';
     if (
-      bytes[0] === 0x52 &&
-      bytes[1] === 0x49 &&
-      bytes[2] === 0x46 &&
-      bytes[3] === 0x46 &&
+      bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
       bodyBuffer.byteLength >= 12 &&
-      bytes[8] === 0x57 &&
-      bytes[9] === 0x45 &&
-      bytes[10] === 0x42 &&
-      bytes[11] === 0x50
-    ) {
-      return 'image/webp';
-    }
-    // MP4 'ftyp'
-    if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
-      return 'video/mp4';
-    }
-    // WebM
-    if (bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3) {
-      return 'video/webm';
-    }
-    // GLB
-    if (bytes[0] === 0x67 && bytes[1] === 0x6C && bytes[2] === 0x54 && bytes[3] === 0x46) {
-      return 'model/gltf-binary';
-    }
-    // MP3 ID3
-    if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) {
-      return 'audio/mpeg';
-    }
+      bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
+    ) return 'image/webp';
+    if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) return 'video/mp4';
+    if (bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3) return 'video/webm';
+    if (bytes[0] === 0x67 && bytes[1] === 0x6C && bytes[2] === 0x54 && bytes[3] === 0x46) return 'model/gltf-binary';
+    if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) return 'audio/mpeg';
   }
 
   return existing || 'application/octet-stream';
 }
 
-/**
- * Slices a byte range from a cached full Response.
- * Bug #3 fix: we always store the 200 full body; range slices come from it.
- */
 async function sliceRange(full: Response, rangeHeader: string): Promise<Response> {
   const totalBytes = parseInt(full.headers.get('Content-Length') ?? '0', 10);
   const body = await full.arrayBuffer();
   const total = body.byteLength || totalBytes;
 
-  // Parse "bytes=start-end"
   const m = rangeHeader.match(/bytes=(\d+)-(\d*)/);
   if (!m) return new Response('invalid Range', { status: 416 });
 
@@ -206,14 +144,11 @@ function withCors(res: Response): Response {
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }
 
-/**
- * Main proxy handler — called from the Worker router for GET /api/media/:fileId
- */
 export async function handleMediaProxy(
   req: Request,
+  env: Env,
   ctx: ExecutionContext
 ): Promise<Response> {
-  // OPTIONS pre-flight
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       headers: {
@@ -224,29 +159,36 @@ export async function handleMediaProxy(
     });
   }
 
-  // Validate fileId (Bug #1 prerequisite, spec §4.1 #5)
-  const fileId = new URL(req.url).pathname.split('/').pop() ?? '';
+  const url = new URL(req.url);
+  const fileId = url.pathname.split('/').pop() ?? '';
   if (!fileId || !FILE_ID_RE.test(fileId)) {
     return new Response('Invalid file ID', { status: 400 });
   }
 
-  const url = new URL(req.url);
+  // Hotlink guard (best-effort; the signed token below is the real gate)
+  if (!isAllowedOrigin(req, env)) {
+    return new Response('Forbidden origin', { status: 403 });
+  }
+
+  // Signed-token gate
+  const token = url.searchParams.get('t') ?? '';
+  if (!(await verifyMediaToken(fileId, token, env.MEDIA_SIGNING_KEY))) {
+    return new Response('Invalid or expired media token', { status: 403 });
+  }
+
   const version = url.searchParams.get('v') ?? undefined;
   const cache = caches.default;
   const key = cacheKey(fileId, version);
 
-  // Bug #1 fix: explicit cache.match — setting Cache-Control alone does NOT cache
   let full = await cache.match(key);
 
   if (!full) {
-    const upstream = await fetchDriveFollowingInterstitial(fileId);
+    const upstream = await fetchDriveAuthenticated(fileId, env);
 
     if (!upstream.ok || upstream.status !== 200) {
-      // Bug #3 companion: never cache non-200 responses
       return new Response('Upstream error', { status: 502 });
     }
 
-    // Clone before reading — body can only be consumed once
     const toCache = new Response(upstream.clone().body, upstream);
     const contentType = inferContentType(upstream.headers);
     toCache.headers.set('Content-Type', contentType);
@@ -254,18 +196,15 @@ export async function handleMediaProxy(
     toCache.headers.set('Access-Control-Allow-Origin', '*');
     toCache.headers.set('Accept-Ranges', 'bytes');
 
-    // Bug #1 fix: actually write to the Cache API via ctx.waitUntil
     ctx.waitUntil(cache.put(key, toCache.clone()));
 
     full = toCache;
   }
 
-  // HEAD request support
   if (req.method === 'HEAD') {
     return withCors(new Response(null, { status: 200, headers: full.headers }));
   }
 
-  // Bug #3 fix: serve range slices from the full cached body
   const rangeHeader = req.headers.get('Range');
   if (rangeHeader) {
     return sliceRange(full, rangeHeader);
@@ -274,21 +213,21 @@ export async function handleMediaProxy(
   return withCors(full.clone());
 }
 
-/**
- * Pre-warm the edge cache for a file at publish time (spec §4.1 #6).
- * Called with ctx.waitUntil from the publish route so it doesn't block the response.
- */
-export async function warmCache(fileId: string, ctx: ExecutionContext, version?: string): Promise<void> {
+export async function warmCache(
+  fileId: string,
+  env: Env,
+  ctx: ExecutionContext,
+  version?: string
+): Promise<void> {
   if (!fileId || !FILE_ID_RE.test(fileId)) return;
 
   const cache = caches.default;
   const key = cacheKey(fileId, version);
 
-  // Only fetch if not already cached
   const existing = await cache.match(key);
   if (existing) return;
 
-  const upstream = await fetchDriveFollowingInterstitial(fileId);
+  const upstream = await fetchDriveAuthenticated(fileId, env);
   if (!upstream.ok || upstream.status !== 200) return;
 
   const toCache = new Response(upstream.body, upstream);

@@ -77,8 +77,8 @@ describe('FallbackCatalog', () => {
     render(<FallbackCatalog title="Test" artworks={artworks} />);
     const img = screen.getByAltText('Sunlit Meadow') as HTMLImageElement;
     expect(img.tagName).toBe('IMG');
-    expect(img.src).toContain('lh3.googleusercontent.com');
-    expect(img.src).toContain('=w1600'); // gallery tier
+    expect(img.src).toContain('/api/media/');
+    expect(img.src).toContain('tier=gallery');
   });
 
   it('renders AUDIO artwork with audio element', () => {

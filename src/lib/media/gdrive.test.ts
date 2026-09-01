@@ -37,34 +37,27 @@ describe('extractGoogleDriveFileId', () => {
   });
 });
 
-describe('getImageUrl', () => {
+describe('getImageUrl (proxied — private Drive)', () => {
   const FILE_ID = 'abc123xyz';
 
-  it('thumbnail returns =w400', () => {
-    expect(getImageUrl(FILE_ID, 'thumbnail')).toBe(
-      `https://lh3.googleusercontent.com/d/${FILE_ID}=w400`
-    );
+  it('routes Drive images through /api/media, not lh3', () => {
+    expect(getImageUrl(FILE_ID, 'thumbnail')).toContain('/api/media/abc123xyz');
+    expect(getImageUrl(FILE_ID, 'thumbnail')).not.toContain('googleusercontent');
   });
 
-  it('gallery returns =w1600', () => {
-    expect(getImageUrl(FILE_ID, 'gallery')).toBe(
-      `https://lh3.googleusercontent.com/d/${FILE_ID}=w1600`
-    );
-  });
-
-  it('original returns =s0', () => {
-    expect(getImageUrl(FILE_ID, 'original')).toBe(
-      `https://lh3.googleusercontent.com/d/${FILE_ID}=s0`
-    );
+  it('includes tier hint in the proxy URL', () => {
+    expect(getImageUrl(FILE_ID, 'thumbnail')).toContain('tier=thumbnail');
+    expect(getImageUrl(FILE_ID, 'gallery')).toContain('tier=gallery');
+    expect(getImageUrl(FILE_ID, 'original')).toContain('tier=original');
   });
 
   it('extracts Drive file ID from sharing links', () => {
     expect(
       getImageUrl(`https://drive.google.com/file/d/${FILE_ID}/view?usp=sharing`, 'gallery')
-    ).toBe(`https://lh3.googleusercontent.com/d/${FILE_ID}=w1600`);
+    ).toContain(`/api/media/${FILE_ID}`);
     expect(
       getImageUrl(`https://drive.google.com/open?id=${FILE_ID}`, 'thumbnail')
-    ).toBe(`https://lh3.googleusercontent.com/d/${FILE_ID}=w400`);
+    ).toContain(`/api/media/${FILE_ID}`);
   });
 
   it('passes through external URLs and data URIs unchanged', () => {

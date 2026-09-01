@@ -48,7 +48,7 @@ export default {
 
     // ── Media proxy (public, auth not needed at serve time) ──────────────────
     if (path.startsWith('/api/media/')) {
-      return handleMediaProxy(req, ctx);
+      return handleMediaProxy(req, env, ctx);
     }
 
     // ── Auth routes ──────────────────────────────────────────────────────────

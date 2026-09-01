@@ -5,14 +5,14 @@
  * No external JWT library needed — WebCrypto provides all primitives.
  */
 
-function base64url(buffer: ArrayBuffer): string {
+export function base64url(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let str = '';
   for (const b of bytes) str += String.fromCharCode(b);
   return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function base64urlDecode(b64: string): Uint8Array {
+export function base64urlDecode(b64: string): Uint8Array {
   const padded = b64.replace(/-/g, '+').replace(/_/g, '/');
   const binary = atob(padded);
   const bytes = new Uint8Array(binary.length);

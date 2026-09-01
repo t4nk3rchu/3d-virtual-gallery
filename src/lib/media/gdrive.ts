@@ -1,9 +1,12 @@
 /**
- * Task 3: Google Drive file ID extractor + image URL helper
+ * Task 3: Google Drive file ID extractor + image/media URL helpers
  *
- * Bug #4 fix: getImageUrl is the single chokepoint for image URLs.
- * If lh3.googleusercontent.com breaks, swap the implementation here — no caller changes.
+ * All Drive media now routes through /api/media (private Drive means lh3 is
+ * unavailable). Signed tokens from the API are appended automatically via
+ * the media-token registry — call sites need no changes.
  */
+
+import { getMediaToken } from './media-tokens';
 
 // Matches all common Google Drive sharing URL formats
 const DRIVE_URL_PATTERNS = [
@@ -24,7 +27,6 @@ export function extractGoogleDriveFileId(urlOrId: string): string | null {
   const trimmed = urlOrId.trim();
   if (!trimmed) return null;
 
-  // Bare fileId (no slash, no dot, matches charset)
   if (FILE_ID_RE.test(trimmed) && !trimmed.includes('.')) {
     return trimmed;
   }
@@ -37,16 +39,18 @@ export function extractGoogleDriveFileId(urlOrId: string): string | null {
   return null;
 }
 
+/** Append the registered signed token (if any) to a proxy URL. */
+function withToken(path: string, fileId: string): string {
+  const t = getMediaToken(fileId);
+  if (!t) return path;
+  return path + (path.includes('?') ? '&' : '?') + `t=${encodeURIComponent(t)}`;
+}
+
 /**
- * Build the Google image CDN URL for a given Drive file ID or sharing link and size tier.
- *
- * Bug #4 fix: this is the ONE place that constructs image URLs.
- * Extracts the fileId if a full Google Drive sharing link is passed.
- *
- * Tiers:
- *   thumbnail  → =w400   (curator picker, artwork list)
- *   gallery    → =w1600  (in-scene artwork plane texture)
- *   original   → =s0     (Inspect lightbox deep-zoom)
+ * Build a proxy URL for a Drive image. Private Drive means lh3.googleusercontent.com
+ * only serves public files — all images must route through /api/media.
+ * The `tier` param is a hint for a future resizing layer (Cloudflare Image Resizing);
+ * it has no effect yet but lets a later layer add resizing without client changes.
  */
 export function getImageUrl(
   fileIdOrUrl: string,
@@ -54,37 +58,29 @@ export function getImageUrl(
 ): string {
   if (!fileIdOrUrl) return '';
   const trimmed = fileIdOrUrl.trim();
-
-  // If it's a Google Drive link or bare file ID, extract the fileId and use Google's Image CDN
   const driveId = extractGoogleDriveFileId(trimmed);
   if (driveId) {
-    const size = tier === 'thumbnail' ? '=w400' : tier === 'gallery' ? '=w1600' : '=s0';
-    return `https://lh3.googleusercontent.com/d/${driveId}${size}`;
+    return withToken(`/api/media/${driveId}?tier=${tier}`, driveId);
   }
-
-  // Direct external image URL (e.g. https://domain.com/photo.jpg) or local / data: URI
   return trimmed;
 }
 
 /**
  * Single chokepoint for proxy-served media URLs (GLB, audio, video).
- * `version` (room.created_at for GLBs, artwork.updated_at for audio/video) segments
- * the edge cache so recreated rooms / edited artworks never serve stale bytes.
- * If a Google Drive sharing link or bare ID is passed, it extracts the fileId and proxies it.
- * Direct external URLs (e.g. https://domain.com/video.mp4) or local asset paths pass through.
+ * `version` segments the edge cache so recreated rooms / edited artworks
+ * never serve stale bytes. Appends a signed token if one is registered.
  */
 export function proxyMediaUrl(fileIdOrUrl: string, version?: string | number): string {
   if (!fileIdOrUrl) return '';
   const trimmed = fileIdOrUrl.trim();
 
-  // If it's a Google Drive URL or bare Drive ID, extract the fileId and proxy it
   const driveId = extractGoogleDriveFileId(trimmed);
   if (driveId) {
     const base = `/api/media/${driveId}`;
-    return version == null || version === '' ? base : `${base}?v=${version}`;
+    const versioned = version == null || version === '' ? base : `${base}?v=${version}`;
+    return withToken(versioned, driveId);
   }
 
-  // Curator-provided direct web link (e.g. https://domain.com/video.mp4 or /local.mp4)
   return trimmed;
 }
 
@@ -96,4 +92,3 @@ export function resolveAudioUrl(fileIdOrUrl?: string | null, version?: string | 
   const resolved = proxyMediaUrl(fileIdOrUrl, version);
   return resolved || null;
 }
-

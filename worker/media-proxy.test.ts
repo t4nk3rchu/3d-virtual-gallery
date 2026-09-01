@@ -1,12 +1,28 @@
 /**
- * Task 1: Media proxy tests
- * Fixes bugs #1 (cache never populated), #2 (Drive interstitial), #3 (Range mishandled)
- *
- * These tests mock `fetch` and `caches.default` — they must be able to fail
- * for a real reason (not just asserting a function exists).
+ * Media proxy tests — cache behavior, SA Drive fetch, token gate, range slicing.
+ * gdrive-auth is statically mocked so tests never hit the real token exchange.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
+import { signMediaToken } from './media-sign';
 import { handleMediaProxy, warmCache } from './media-proxy';
+
+vi.mock('./gdrive-auth', () => ({ getDriveAccessToken: async () => 'ya29.MOCK' }));
+
+const TEST_KEY = 'test-media-proxy-signing-key';
+const env: any = {
+  GDRIVE_SA_CLIENT_EMAIL: 'svc@example.iam',
+  GDRIVE_SA_PRIVATE_KEY: 'unused-mocked',
+  MEDIA_SIGNING_KEY: TEST_KEY,
+};
+
+// Pre-sign tokens for every fileId used in tests (exp 2h from now — outlives any test run)
+const toks = new Map<string, string>();
+beforeAll(async () => {
+  const exp = Math.floor(Date.now() / 1000) + 7200;
+  for (const id of ['abc123', 'audioFile', 'glbFile1', 'badUpstream', 'warmFile', 'FILE123']) {
+    toks.set(id, await signMediaToken(id, exp, TEST_KEY));
+  }
+});
 
 // ─── Fake cache store ─────────────────────────────────────────────────────────
 function createFakeCache() {
@@ -26,14 +42,19 @@ function createFakeCache() {
   };
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function makeRequest(
   fileId: string,
-  opts: { range?: string } = {}
+  opts: { range?: string; token?: string | false; version?: string; referer?: string } = {}
 ): Request {
-  const url = `https://gallery.example.com/api/media/${fileId}`;
+  const qs = new URLSearchParams();
+  const tok = opts.token === false ? undefined : (opts.token ?? toks.get(fileId));
+  if (tok) qs.set('t', tok);
+  if (opts.version) qs.set('v', opts.version);
+  const qs_str = qs.toString();
+  const url = `https://gallery.example.com/api/media/${fileId}${qs_str ? '?' + qs_str : ''}`;
   const headers: Record<string, string> = {};
   if (opts.range) headers['Range'] = opts.range;
+  if (opts.referer) headers['Referer'] = opts.referer;
   return new Request(url, { headers });
 }
 
@@ -50,7 +71,6 @@ describe('handleMediaProxy', () => {
 
   beforeEach(() => {
     fakeCache = createFakeCache();
-    // Replace global caches.default
     vi.stubGlobal('caches', { default: fakeCache });
   });
 
@@ -59,36 +79,38 @@ describe('handleMediaProxy', () => {
     vi.restoreAllMocks();
   });
 
-  // ── Test 1: cache miss → fetches upstream, stores in cache, returns 200 ────
-  it('cache miss: fetches upstream, calls cache.put, returns 200', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValueOnce(
-        new Response(fileBody, {
-          status: 200,
-          headers: { 'Content-Type': 'audio/mpeg', 'Content-Length': '256' },
-        })
-      )
-    );
+  // ── Cache miss → fetches via SA, stores in cache, returns 200 ──────────────
+  it('cache miss: fetches from Drive API with Bearer token, calls cache.put, returns 200', async () => {
+    const seen: { url: string; auth: string | null } = { url: '', auth: null };
+    vi.stubGlobal('fetch', vi.fn(async (input: unknown, init: unknown) => {
+      seen.url = String(input);
+      seen.auth = (init as RequestInit)?.headers instanceof Headers
+        ? ((init as RequestInit).headers as Headers).get('Authorization')
+        : ((init as RequestInit)?.headers as Record<string, string>)?.Authorization ?? null;
+      return new Response(fileBody, {
+        status: 200,
+        headers: { 'Content-Type': 'audio/mpeg', 'Content-Length': '256' },
+      });
+    }));
 
     const req = makeRequest('abc123');
     const ctx = makeFakeCtx();
-    const res = await handleMediaProxy(req, ctx);
+    const res = await handleMediaProxy(req, env, ctx);
 
     expect(res.status).toBe(200);
+    expect(seen.url).toContain('/drive/v3/files/abc123');
+    expect(seen.url).toContain('alt=media');
+    expect(seen.auth).toBe('Bearer ya29.MOCK');
     expect(fakeCache.put).toHaveBeenCalledOnce();
-
-    // Cache key should be range-agnostic (no query string / range)
     const cacheKey: Request = fakeCache.put.mock.calls[0][0];
     expect(cacheKey.url).toBe('https://media/abc123');
   });
 
-  // ── Test 2: cache hit → returns cached body without upstream fetch ──────────
+  // ── Cache hit → returns cached body without upstream fetch ──────────────────
   it('cache hit: returns cached body, does NOT fetch upstream', async () => {
     const fetchFn = vi.fn();
     vi.stubGlobal('fetch', fetchFn);
 
-    // Pre-warm the cache
     fakeCache.store.set(
       'https://media/abc123',
       new Response(fileBody, {
@@ -99,60 +121,15 @@ describe('handleMediaProxy', () => {
 
     const req = makeRequest('abc123');
     const ctx = makeFakeCtx();
-    const res = await handleMediaProxy(req, ctx);
+    const res = await handleMediaProxy(req, env, ctx);
 
     expect(res.status).toBe(200);
     expect(fetchFn).not.toHaveBeenCalled();
   });
 
-  // ── Test 3: Drive returns HTML interstitial → re-fetches with confirm token ─
-  it('interstitial: detects HTML, re-fetches with confirm token, caches real bytes', async () => {
-    const htmlBody = `
-      <html><body>
-        <form action="/uc"><input name="confirm" value="t0k3n"/></form>
-      </body></html>
-    `;
-
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        // First call: interstitial page
-        .mockResolvedValueOnce(
-          new Response(htmlBody, {
-            status: 200,
-            headers: { 'Content-Type': 'text/html; charset=utf-8' },
-          })
-        )
-        // Second call: actual file after confirm
-        .mockResolvedValueOnce(
-          new Response(fileBody, {
-            status: 200,
-            headers: { 'Content-Type': 'model/gltf-binary', 'Content-Length': '256' },
-          })
-        )
-    );
-
-    const req = makeRequest('glbFile1');
-    const ctx = makeFakeCtx();
-    const res = await handleMediaProxy(req, ctx);
-
-    expect(res.status).toBe(200);
-    const ct = res.headers.get('Content-Type');
-    expect(ct).not.toContain('text/html'); // must NOT return the HTML
-    expect(ct).toContain('gltf-binary');
-    expect(fakeCache.put).toHaveBeenCalledOnce();
-
-    // Make sure second fetch included confirm token
-    const fetchCalls = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls;
-    expect(fetchCalls.length).toBe(2);
-    const secondUrl: string = fetchCalls[1][0];
-    expect(secondUrl).toContain('confirm=t0k3n');
-  });
-
-  // ── Test 4: Range request → 206 with correct slice + Content-Range ──────────
+  // ── Range request → 206 with correct slice + Content-Range ─────────────────
   it('range request: returns 206 with correct byte slice', async () => {
-    vi.stubGlobal('fetch', vi.fn()); // should not be called — we pre-warm below
+    vi.stubGlobal('fetch', vi.fn());
     fakeCache.store.set(
       'https://media/audioFile',
       new Response(fileBody, {
@@ -163,7 +140,7 @@ describe('handleMediaProxy', () => {
 
     const req = makeRequest('audioFile', { range: 'bytes=0-99' });
     const ctx = makeFakeCtx();
-    const res = await handleMediaProxy(req, ctx);
+    const res = await handleMediaProxy(req, env, ctx);
 
     expect(res.status).toBe(206);
     const body = await res.arrayBuffer();
@@ -172,87 +149,88 @@ describe('handleMediaProxy', () => {
     expect(res.headers.get('Accept-Ranges')).toBe('bytes');
   });
 
-  // ── Test 5: invalid fileId → 400 ────────────────────────────────────────────
+  // ── Invalid fileId → 400 ────────────────────────────────────────────────────
   it('rejects fileId with path traversal or spaces with 400', async () => {
     vi.stubGlobal('fetch', vi.fn());
-    // Use URL-safe encoding for the URL but expect the proxy to reject after decode
     const badIds = ['..secret', 'a%20b', 'foo%2Fbar'];
     for (const bad of badIds) {
-      // The URL will decode the percent-encoding so the handler sees the raw bad char
       const url = `https://gallery.example.com/api/media/${bad}`;
       const req = new Request(url);
-      const ctx = makeFakeCtx();
-      const res = await handleMediaProxy(req, ctx);
+      const res = await handleMediaProxy(req, env, makeFakeCtx());
       expect(res.status, `bad id: "${bad}"`).toBe(400);
     }
-    // Empty fileId — craft URL with trailing slash
     const emptyReq = new Request('https://gallery.example.com/api/media/');
-    const ctx = makeFakeCtx();
-    const res = await handleMediaProxy(emptyReq, ctx);
-    expect(res.status).toBe(400);
+    expect((await handleMediaProxy(emptyReq, env, makeFakeCtx())).status).toBe(400);
   });
 
-  // ── Test 6: warmCache pre-populates so next request is a cache hit ──────────
-  it('warmCache: populates cache so subsequent request is a hit', async () => {
-    const fetchFn = vi.fn().mockResolvedValueOnce(
-      new Response(fileBody, {
-        status: 200,
-        headers: { 'Content-Type': 'audio/mpeg', 'Content-Length': '256' },
-      })
-    );
-    vi.stubGlobal('fetch', fetchFn);
+  // ── No token → 403 ──────────────────────────────────────────────────────────
+  it('rejects a request with no ?t= token (403)', async () => {
+    vi.stubGlobal('fetch', vi.fn());
+    const req = makeRequest('abc123', { token: false });
+    const res = await handleMediaProxy(req, env, makeFakeCtx());
+    expect(res.status).toBe(403);
+  });
 
-    const ctx = makeFakeCtx();
-    await warmCache('warmFile', ctx);
-
-    // Cache should now be populated
-    expect(fakeCache.put).toHaveBeenCalledOnce();
-
-    // Subsequent request should NOT call fetch again
-    fetchFn.mockClear();
-    const req = makeRequest('warmFile');
-    const res = await handleMediaProxy(req, ctx);
+  // ── Foreign Referer → 403 only when APP_ORIGIN is set ──────────────────────
+  it('allows a foreign Referer when APP_ORIGIN is not configured (token is the gate)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(
+      new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { 'Content-Type': 'model/gltf-binary' } })
+    ));
+    const req = makeRequest('abc123', { referer: 'https://evil.example/steal.html' });
+    const res = await handleMediaProxy(req, env, makeFakeCtx()); // env has no APP_ORIGIN
     expect(res.status).toBe(200);
-    expect(fetchFn).not.toHaveBeenCalled();
   });
 
-  // ── Test 7: upstream failure is surfaced, not cached ─────────────────────────
-  it('upstream 500: returns error response and does NOT cache it', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValueOnce(
-        new Response('server error', { status: 500 })
-      )
-    );
+  it('rejects a foreign Referer when APP_ORIGIN is configured (hotlink block)', async () => {
+    vi.stubGlobal('fetch', vi.fn());
+    const envWithOrigin: any = { ...env, APP_ORIGIN: 'https://gallery.example.com' };
+    const req = makeRequest('abc123', { referer: 'https://evil.example/steal.html' });
+    const res = await handleMediaProxy(req, envWithOrigin, makeFakeCtx());
+    expect(res.status).toBe(403);
+  });
 
+  // ── Upstream failure → 502, not cached ──────────────────────────────────────
+  it('upstream 500: returns 502 and does NOT cache it', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response('error', { status: 500 })));
     const req = makeRequest('badUpstream');
-    const ctx = makeFakeCtx();
-    const res = await handleMediaProxy(req, ctx);
-
+    const res = await handleMediaProxy(req, env, makeFakeCtx());
     expect(res.status).toBe(502);
     expect(fakeCache.put).not.toHaveBeenCalled();
   });
 
-  // ── Test 8: version-aware cache key (?v=) ───────────────────────────────────
-  it('uses a version-specific cache key so different versions do not collide', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation(async () =>
-        new Response(fileBody, {
-          status: 200,
-          headers: { 'Content-Type': 'audio/mpeg', 'Content-Length': '256' },
-        })
-      )
-    );
+  // ── Version-aware cache key (?v=) ───────────────────────────────────────────
+  it('uses version-specific cache keys so different versions do not collide', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () =>
+      new Response(fileBody, { status: 200, headers: { 'Content-Type': 'audio/mpeg', 'Content-Length': '256' } })
+    ));
     const ctx = makeFakeCtx();
-    const reqV1 = new Request('https://gallery.example.com/api/media/abc123?v=100');
-    const reqV2 = new Request('https://gallery.example.com/api/media/abc123?v=200');
+    // Need separate signed tokens for the versioned keys — reuse abc123 token (only fileId is bound)
+    const reqV1 = makeRequest('abc123', { version: '100' });
+    const reqV2 = makeRequest('abc123', { version: '200' });
 
-    await handleMediaProxy(reqV1, ctx);
-    await handleMediaProxy(reqV2, ctx);
+    await handleMediaProxy(reqV1, env, ctx);
+    await handleMediaProxy(reqV2, env, ctx);
 
     const putKeys = fakeCache.put.mock.calls.map((c) => (c[0] as Request).url);
     expect(putKeys).toContain('https://media/abc123?v=100');
     expect(putKeys).toContain('https://media/abc123?v=200');
+  });
+
+  // ── warmCache pre-populates so next request is a cache hit ──────────────────
+  it('warmCache: populates cache so subsequent request is a hit', async () => {
+    const fetchFn = vi.fn().mockResolvedValueOnce(
+      new Response(fileBody, { status: 200, headers: { 'Content-Type': 'audio/mpeg', 'Content-Length': '256' } })
+    );
+    vi.stubGlobal('fetch', fetchFn);
+
+    const ctx = makeFakeCtx();
+    await warmCache('warmFile', env, ctx);
+    expect(fakeCache.put).toHaveBeenCalledOnce();
+
+    fetchFn.mockClear();
+    const req = makeRequest('warmFile');
+    const res = await handleMediaProxy(req, env, ctx);
+    expect(res.status).toBe(200);
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 });

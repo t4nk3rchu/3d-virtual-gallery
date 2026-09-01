@@ -20,6 +20,7 @@ import { VirtualJoystick } from './VirtualJoystick';
 import { SettingsModal, getStoredViewerSettings, type ViewerSettings } from './SettingsModal';
 import { trackEvent } from '../../lib/analytics';
 import { proxyMediaUrl } from '../../lib/media/gdrive';
+import { registerMediaTokens } from '../../lib/media/media-tokens';
 import { parseSpawnPoint } from '../../lib/studio/spawn-point';
 import { isArtworkPlaced } from '../../lib/studio/artwork-placement';
 import { Icon } from '../ui';
@@ -64,6 +65,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
         return (await r.json()) as ExhibitionDetail;
       })
       .then((data) => {
+        registerMediaTokens(data.media_tokens);
         setExhibition(data);
         setLoadState('loaded');
       })
