@@ -107,11 +107,12 @@ export type HotspotTransition =
   | 'spring_overshoot';
 
 export interface FrameConfig {
-  frameType: 'wood' | 'metal_black' | 'float_white' | 'canvas_wrap' | 'none';
+  frameType: 'wood' | 'metal_black' | 'float_white' | 'gold' | 'canvas_wrap' | 'none';
   frameWidth: number;
   matWidth: number;
   matColor: string;
   showPlacard: boolean;
+  allowTilt?: boolean;
   hotspotTransition?: HotspotTransition;
 }
 

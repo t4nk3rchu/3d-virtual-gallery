@@ -20,6 +20,9 @@ import { VirtualJoystick } from './VirtualJoystick';
 import { SettingsModal, getStoredViewerSettings, type ViewerSettings } from './SettingsModal';
 import { trackEvent } from '../../lib/analytics';
 import { proxyMediaUrl } from '../../lib/media/gdrive';
+import { parseSpawnPoint } from '../../lib/studio/spawn-point';
+import { isArtworkPlaced } from '../../lib/studio/artwork-placement';
+import { Icon } from '../ui';
 
 interface ExhibitionViewerProps {
   slug: string;
@@ -117,8 +120,9 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
       // Auto focus canvas so WASD works immediately without extra click
       canvasRef.current.focus();
 
-      // Apply spawn position from room
-      cameraController.applySpawn(exhibition.room.spawn_json);
+      // Apply custom exhibition spawn position (or fallback to room default)
+      const customSpawn = parseSpawnPoint(exhibition.settings_json, exhibition.room.spawn_json);
+      cameraController.applySpawn(customSpawn);
 
       // Load GLB
       try {
@@ -136,7 +140,9 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
 
       // Place artworks
       for (const artwork of exhibition.artworks) {
-        createArtworkMesh(scene, artwork);
+        if (isArtworkPlaced(artwork)) {
+          createArtworkMesh(scene, artwork);
+        }
       }
 
       sceneRef.current = scene;
@@ -377,20 +383,22 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
       )}
 
       {/* Gallery Controls HUD & Settings (Desktop) */}
-      <div className="viewer-controls-hint">
-        <span>🕹️ <strong>WASD</strong> to walk</span>
-        <span>🖱️ <strong>Click &amp; Drag</strong> to look</span>
-        <span>🖼️ <strong>Click Artwork</strong> to focus (90°)</span>
-        <span>🎯 <strong>Click Floor</strong> to teleport</span>
-        <button
-          type="button"
-          className="btn-settings-hud"
-          onClick={() => setShowSettings(true)}
-          title="Gallery &amp; Control Settings"
-        >
-          ⚙️ Settings
-        </button>
-      </div>
+      {!focusedArtwork && !inspectedArtwork && !activeArtistProfile && (!exhibition.intro_video_file_id || isIntroDismissed) && (
+        <div className="viewer-controls-hint">
+          <span><Icon name="walk" size={15} /> <kbd>WASD</kbd> to walk</span>
+          <span><Icon name="mouse" size={15} /> <strong>Drag</strong> to look</span>
+          <span><Icon name="frame" size={15} /> <strong>Click art</strong> to focus (90°)</span>
+          <span><Icon name="target" size={15} /> <strong>Click floor</strong> to teleport</span>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm btn-settings-hud"
+            onClick={() => setShowSettings(true)}
+            title="Gallery &amp; Control Settings"
+          >
+            <Icon name="gear" size={15} /> Settings
+          </button>
+        </div>
+      )}
 
       {/* Floating Settings Button for Mobile */}
       {!focusedArtwork && !inspectedArtwork && !activeArtistProfile && (!exhibition.intro_video_file_id || isIntroDismissed) && (
@@ -401,7 +409,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
           title="Gallery Settings"
           aria-label="Gallery Settings"
         >
-          ⚙️
+          <Icon name="gear" size={20} />
         </button>
       )}
 

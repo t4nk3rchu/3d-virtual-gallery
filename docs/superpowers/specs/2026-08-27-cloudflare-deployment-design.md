@@ -142,6 +142,98 @@ Two hardening items to do as part of / just after deploy:
 1. **Rate-limit `/api/events`** — it's unauthenticated (batch size is already capped at 50). Add a Cloudflare rate-limiting rule for that path, or a light per-IP guard in the Worker, so it can't be spammed to pollute analytics.
 2. **Confirm `JWT_SECRET_KEY` is high-entropy** and set only via `wrangler secret` (never in `wrangler.toml`).
 
+## Media Security & Privacy
+
+*Added 2026-08-31. Expands the deploy-hardening "Security" section above with the asset-storage threat model and its remediation path.*
+
+### Current state
+
+Media takes two different paths today:
+
+- **Images** ([`getImageUrl`](../../../src/lib/media/gdrive.ts)) — the browser fetches `https://lh3.googleusercontent.com/d/{fileId}={size}` **directly**. The Worker never sees image traffic.
+- **GLB / audio / video** ([`proxyMediaUrl`](../../../src/lib/media/gdrive.ts) → [`worker/media-proxy.ts`](../../../worker/media-proxy.ts)) — proxied through `/api/media/:fileId`, fetched server-side from Drive, edge-cached, served with `Access-Control-Allow-Origin: *`.
+
+All Drive files are shared **"anyone with the link."**
+
+### Threat model
+
+1. **The `fileId` is a permanent public master key.** It appears in page source (image `src`, `/api/media/{id}`). Because files are "anyone with link," anyone who copies a `fileId` can fetch the full-resolution original directly from Google — indefinitely, outside the app, revocable only by un-sharing each file one by one. **This is the primary risk.**
+2. **Hotlinking / bandwidth theft.** The proxy sends `ACAO: *` with no origin check, so any third-party site can embed the assets. (Bandwidth is free on Cloudflare, so this is reputational/leech, not a cost issue — see Pricing.)
+
+### Explicit non-goal
+
+**"Public but no download" is not achievable for web media.** Any asset a browser renders is present on the client (DevTools, save-image, screenshot). We do not pursue download prevention; it is theater. The goals are (a) close the permanent-public-original leak and (b) stop hotlinking.
+
+### Options considered
+
+| Option | Closes fileId leak | Stops hotlinking | New infra | Effort |
+|---|---|---|---|---|
+| **A. Service account + private Drive** | ✅ the real fix | only with C | ❌ Drive + Worker already in use | Medium |
+| **B. Cloudflare R2 private bucket** | ✅ | ✅ | ⚠️ new bucket + upload pipeline | High |
+| **C. Origin lock + signed URLs in Worker** | ❌ alone | ✅ (browsers) | ❌ | Low |
+
+Each option's catch:
+- **C alone makes nothing private** — `Referer`/`Origin` are trivially spoofed outside a browser, and it only guards the Worker path while **images bypass the Worker entirely** (lh3). Useful only combined with A and with images routed through the proxy.
+- **A alone** makes Drive private (a leaked `fileId` becomes useless to outsiders — they lack the service-account token), but the Worker would still serve `/api/media/{id}` to anyone with `ACAO:*`, so signed URLs (C) belong on top.
+- **B** is the clean long-term home (no Drive API quotas, free egress, native ACLs) but is a genuine new subsystem: asset migration plus a real upload pipeline (curators currently paste Drive links). Deferred.
+
+### Decision — staged, zero-new-infra first
+
+**Phase 1 (now, uses only Drive + Workers already provisioned): A + C, with images routed through the proxy.**
+
+1. **Route images through the Worker.** Change `getImageUrl` to return a proxied path (image size tiers served by the Worker/`media-proxy`) instead of a direct `lh3` URL, so the app becomes the single gateway for *all* media.
+2. **Service account + un-share Drive files (Option A).** Files move to private (owned by a real Drive user or a **Shared Drive**, shared to the service account — a service account has no Drive storage of its own). The Worker mints a short-lived OAuth access token by signing a JWT (RS256 via WebCrypto `crypto.subtle`), caches the token with expiry (mirror the pattern already used in [`google-picker.ts`](../../../src/lib/studio/google-picker.ts)), and fetches files with an `Authorization: Bearer` header. Edge caching means the authenticated Drive fetch happens once per file per cache-miss, so Drive API quota (~12k queries/min/project) is a non-issue.
+3. **Signed URLs + origin lock (Option C, the strong half).** The API issues time-limited HMAC tokens (`fileId` + `exp` + signature) when it serves exhibition data; the proxy verifies the token and expiry before serving, and locks `Access-Control-Allow-Origin` to the app origin. A copied media link then dies within minutes and cannot be shared or hotlinked.
+
+**Phase 2 (when Drive quotas or the Google dependency become the constraint): migrate to R2 (Option B).** R2's per-object cache behaves better than Drive-through-Worker and removes the Drive dependency entirely. Not needed at current scale.
+
+### Streaming / memory note (prerequisite hygiene)
+
+[`sliceRange`](../../../worker/media-proxy.ts) calls `arrayBuffer()`, buffering the whole file into the ~128MB isolate. This path is reached **only by `Range` requests**, which come from `<audio>`/`<video>` playback — **never from GLB loads** (Babylon's `SceneLoader.AppendAsync` issues a single full GET with no `Range`). Because proxied media that receives Range is small (intro video ≤ 30MB, audio a few MB; VIDEO artworks are YouTube embeds, not proxied), buffering stays well under the limit today. **Constraint:** never serve a video larger than ~100MB through the proxy. If large proxied video is ever needed, fix `sliceRange` to forward the `Range` header to the origin and stream the `206` back instead of buffering. Full-GET paths (images, GLB) already stream (`new Response(res.body, …)`) and have no size-related memory risk.
+
+## Pricing & Capacity Model
+
+*Added 2026-08-31. Quantifies the "Scalability" section above into a cost model.*
+
+### What actually meters
+
+On Cloudflare, **the cost meter is Worker request count — not file size and not bandwidth.**
+
+- **Bandwidth / egress:** free at every tier. Streamed responses have no size cap.
+- **Isolate memory (128MB):** never hit on streamed full-GET paths regardless of file size.
+- **Cache per-object ceiling (~512MB, plan-dependent — verify):** the 200MB GLB cap is comfortably under it, so assets cache. If a single object ever exceeds the ceiling, `cache.put` silently fails and every load re-fetches the origin.
+- **Worker requests:** the binding constraint — **free ~100k/day**, then Workers Paid **$5/mo (~10M/mo)**, overage **$0.30/million**.
+
+### Per-visit request model
+
+A first-time visitor pulls roughly: **(number of placed artworks) + 1 room GLB + 1 optional intro video**. All placed-artwork textures load on room entry (Babylon builds every placed mesh up front), so gallery size drives request count linearly.
+
+### Worked scenario (100-piece gallery: 100 images @ ~3MB + 1 GLB @ 100MB + intro @ 25MB ≈ 102 requests / ~425MB per first visit)
+
+| Visitors/day | Worker requests/day | Bandwidth/mo | Tier / cost |
+|---|---|---|---|
+| 100 | ~10,200 | ~1.3 TB | Free |
+| 500 | ~51,000 | ~6.4 TB | Free |
+| 1,000 | ~102,000 | ~13 TB | **Just over free → $5/mo Paid** |
+| 10,000 | ~1.02M | ~128 TB | Paid + ~$6 overage ≈ **$11/mo** |
+| 100,000 | ~10.2M | ~1.3 PB | ≈ **$89/mo** |
+
+The bottom row's ~1.3 PB/mo would cost **~$110k/mo in AWS egress**; on Cloudflare it is **$0**. Free egress is the reason the architecture holds under spikes.
+
+### Binding limit & mitigation ladder
+
+The **Worker request count** is the only ceiling that bites, first at roughly **~1,000 visitors/day** for a 100-piece gallery on the free tier. Mitigations, cheapest first:
+
+1. **Workers Paid — $5/mo** → 10M requests/mo (~2,000 heavy visits/day of headroom), then $0.30/M.
+2. **Serve media via Cache Rules so edge hits bypass the Worker** — only cache *misses* then cost a Worker request, cutting the billed count by the cache-hit ratio (typically 80–95%). This is the big lever before paying for raw scale, but Worker-in-the-path currently means every request (hit or miss) executes the Worker; achieving true bypass favors a cleanly cacheable origin.
+3. **R2 with a cached custom domain** — a clean cacheable origin (unlike Drive) so bypass works effortlessly, still free egress. This is the same Phase 2 migration named in Media Security.
+
+### Headroom (not constraints at this scale)
+
+Bandwidth (free), isolate memory (streamed), cache per-object size (< ceiling at 200MB cap), Drive API quota (shielded by edge cache), D1 (~5M reads/day), Analytics Engine free tier.
+
+> As with the deploy note above: verify current Cloudflare request/day, cache-object-size, and pricing figures in the dashboard — these change over time.
+
 ## Out of scope
 
-Google-hosted deployment, CI/CD automation (GitHub push-to-deploy can be added later via `wrangler` in a workflow), custom analytics dashboards, and any code changes beyond the two deploy-wiring edits above.
+Google-hosted deployment, CI/CD automation (GitHub push-to-deploy can be added later via `wrangler` in a workflow), custom analytics dashboards, and any code changes beyond the two deploy-wiring edits above. The Media Security Phase 1 (service account + signed URLs) and Phase 2 (R2 migration) are specified here but scoped to their own implementation plans — not part of the initial deploy.

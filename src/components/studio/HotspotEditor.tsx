@@ -4,6 +4,7 @@ import { getImageUrl, proxyMediaUrl } from '../../lib/media/gdrive';
 import { HOTSPOT_TRANSITIONS, getHotspotAnimation } from '../../lib/viewer/hotspot-animations';
 import { HotspotTransitionPreview } from './HotspotTransitionPreview';
 import { DriveFilePicker } from './DriveFilePicker';
+import { Icon, Button } from '../ui';
 
 interface HotspotEditorProps {
   artwork: Artwork;
@@ -62,7 +63,7 @@ export function HotspotEditor({
       });
       if (res.ok) {
         artwork.frame_config_json = JSON.stringify(updatedConfig);
-        setTransitionSavedMsg('✓ Transition saved');
+        setTransitionSavedMsg('Transition saved');
         setTimeout(() => setTransitionSavedMsg(null), 3000);
       }
     } catch {
@@ -203,9 +204,9 @@ export function HotspotEditor({
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
               <label
                 htmlFor="hotspot-anim-select"
-                style={{ fontWeight: 600, fontSize: '0.9rem', color: '#e0e0e0', whiteSpace: 'nowrap' }}
+                style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--reda-ink)', whiteSpace: 'nowrap' }}
               >
-                🎥 Transition Animation:
+                Transition Animation:
               </label>
               <select
                 id="hotspot-anim-select"
@@ -222,15 +223,15 @@ export function HotspotEditor({
                 ))}
               </select>
 
-              {savingTransition && <span style={{ fontSize: '0.85rem', color: '#aaa' }}>Saving…</span>}
+              {savingTransition && <span style={{ fontSize: '0.85rem', color: 'var(--reda-ink-2)' }}>Saving…</span>}
               {transitionSavedMsg && (
-                <span style={{ fontSize: '0.85rem', color: '#4ade80', fontWeight: 600 }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--reda-sage)', fontWeight: 600 }}>
                   {transitionSavedMsg}
                 </span>
               )}
             </div>
 
-            <p style={{ margin: 0, fontSize: '0.82rem', color: '#a0a0a0' }}>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--reda-ink-2)' }}>
               {getHotspotAnimation(transitionStyle).description}
             </p>
           </div>
@@ -242,7 +243,7 @@ export function HotspotEditor({
           {/* Visual Image View with Pins */}
           <div className="hotspot-canvas-container">
             <p className="canvas-instruction">
-              💡 Click anywhere on the artwork image to drop a new interpretive hotspot pin.
+              Click anywhere on the artwork image to drop a new interpretive hotspot pin.
             </p>
             {imgSrc ? (
               <div className="hotspot-image-wrapper" onClick={handleImageClick}>
@@ -360,7 +361,7 @@ export function HotspotEditor({
                     <DriveFilePicker
                       mimeTypes="audio/mp3,audio/mpeg,audio/wav,audio/ogg"
                       isTeam={isTeam}
-                      buttonLabel="📁 Pick Audio from Google Drive"
+                      buttonLabel="Pick Audio from Google Drive"
                       onPicked={(fileId) => setAudioFileId(fileId)}
                       onRejected={(name) =>
                         setError(`"${name}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
@@ -376,23 +377,23 @@ export function HotspotEditor({
                     className="input"
                   />
                   <p className="hint">
-                    💡 You can provide a dedicated audio clip narration specific to this hotspot.
+                    You can provide a dedicated audio clip narration specific to this hotspot.
                   </p>
                 </div>
 
                 {error && <p className="error">{error}</p>}
 
                 <div className="form-actions">
-                  <button type="submit" className="btn btn--primary" disabled={saving}>
+                  <Button type="submit" variant="primary" disabled={saving}>
                     {saving ? 'Saving…' : 'Add Hotspot Pin'}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    className="btn btn--ghost"
+                    variant="ghost"
                     onClick={() => setNewPin(null)}
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}
@@ -406,31 +407,31 @@ export function HotspotEditor({
                 <p className="hotspot-desc">{selectedHotspot.description}</p>
                 {selectedHotspot.audio_timestamp_seconds != null && (
                   <p className="audio-tag">
-                    ⏱️ Audio Guide Seek: {selectedHotspot.audio_timestamp_seconds}s
+                    Audio Guide Seek: {selectedHotspot.audio_timestamp_seconds}s
                   </p>
                 )}
                 {selectedHotspot.audio_file_id && (
-                  <p className="audio-tag">
-                    🎵 Dedicated Audio File: {selectedHotspot.audio_file_id}
+                  <p className="audio-tag" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Icon name="audio" /> Dedicated Audio File: {selectedHotspot.audio_file_id}
                   </p>
                 )}
 
                 <div className="form-actions">
-                  <button
+                  <Button
                     type="button"
-                    className="btn btn--danger"
+                    variant="danger"
                     onClick={() => handleDeleteHotspot(selectedHotspot.id)}
                     disabled={saving}
                   >
                     {saving ? 'Deleting…' : 'Delete Hotspot Pin'}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    className="btn btn--ghost"
+                    variant="ghost"
                     onClick={() => setSelectedHotspot(null)}
                   >
                     Deselect
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -445,9 +446,9 @@ export function HotspotEditor({
         </div>
 
         <div className="modal-footer">
-          <button type="button" className="btn btn--secondary" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={onClose}>
             Done Editing Hotspots
-          </button>
+          </Button>
         </div>
       </div>
     </div>

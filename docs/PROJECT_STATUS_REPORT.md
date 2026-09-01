@@ -1,9 +1,9 @@
 # 🏛️ 3D Virtual Gallery — Project Status & Progress Report
 
-**Document Date:** August 28, 2026  
+**Document Date:** August 31, 2026  
 **Project:** 3D Virtual Art Gallery Platform  
 **Location:** `docs/PROJECT_STATUS_REPORT.md`  
-**Test Suite Status:** 104 / 104 Tests Passing (`vitest run` across 15 test files)  
+**Test Suite Status:** 175 / 175 Tests Passing (`vitest run` across 33 test files)  
 **Build Status:** Production Bundle Build Passing (`tsc -b && vite build`)  
 
 ---
@@ -14,122 +14,89 @@
 | :--- | :--- | :--- | :--- |
 | **Vite Dev Server** | 🟢 Running | `http://localhost:5173` | React 19 Frontend with client-side routing (`/studio`, `/e/:slug`). Proxy configured to route `/api/*` to Worker. |
 | **Cloudflare Worker** | 🟢 Running | `http://127.0.0.1:8787` | Local Worker API (`pnpm worker:dev`) serving CRUD, Auth, Media Proxy, and Analytics endpoints. |
-| **Cloudflare D1 Database** | 🟢 Operational | Local & Remote | Database `virtual-gallery-db`. Migrations `0001` through `0005` applied to local SQLite and prepared for remote D1. |
+| **Cloudflare D1 Database** | 🟢 Operational | Local & Remote | Database `virtual-gallery-db`. Migrations `0001` through `0006` applied to local SQLite and prepared for remote D1. |
 | **Media & Proxy Engine** | 🟢 Operational | `/api/media/:fileId` | Dynamic caching proxy with Range request seeking, cache versioning (`?v=`), and pre-warming. |
 
 ---
 
 ## 2. 🛠️ What's Built & Added Recently
 
-### 2.1. Artist Profiles & Solo/Group Curation Modes
-- **D1 Database Migration (`migrations/0005_artists_and_intro_video.sql`):**
-  - Created `artists` table with biography, life dates, quote block, portrait image ID, contact info, and sort ordering.
-  - Added `curation_type` (`'solo' | 'group'`) and `intro_video_file_id` columns to `exhibitions`.
-  - Added `artist_id` foreign key column to `artworks`.
-- **Worker CRUD & Ownership Verification:**
-  - Added `/api/exhibitions/:id/artists`, `POST /api/artists`, `PUT /api/artists/:id`, and `DELETE /api/artists/:id`.
-  - Enforced strict tenant isolation (`getExhibitionOwner === auth.sub`) to prevent cross-curator leaks of draft artist profiles.
-  - Automatically hydrated `artists` and artwork `artist_profile` objects in `getExhibitionById` and `getExhibitionBySlug`.
-- **Studio Artist Management (`ArtistManagerModal.tsx`):**
-  - Modal in Studio for adding, editing, and deleting artist profiles with live portrait image previews and Google Drive ID parsing.
-  - Artwork form (`ArtworkForm.tsx`) dropdown to link artworks to artist profiles.
-  - Solo vs. Group curation toggle: in Group mode, the curator artwork list automatically groups artworks by artist with count badges.
+### 2.1. REDA Curator Studio Workbench (`Workbench.tsx`)
+- **3-Mode Studio Isolation (`Artworks` | `Waypoints` | `Walkthrough`)**:
+  - **`Artworks` Mode**: Dedicated to wall placement, gizmo translation, rotation, and proportional aspect-ratio locked scaling. Waypoint beacons are non-interactive.
+  - **`Waypoints` Mode**: Dedicated to setting the visitor entry spawn point and tour guide waypoints. Wall artworks are non-pickable to prevent accidental shifts.
+  - **`Walkthrough` Mode**: Distraction-free, first-person walk mode inside the editor with active floor collisions and gravity.
+- **Left Tool Rail (`ToolRail.tsx`) & Resizable Inspector (`Inspector.tsx`)**:
+  - Quick-switch tools: `Curate` (Artworks), `Artists` (Bios & assignments), `Setup` (Exhibition settings & identity).
+  - Resizable panel width with persistent drag memory.
 
-### 2.2. Fullscreen Artist Detail Profile Modal (`ArtistDetailModal.tsx`)
-- Fullscreen modal for gallery visitors featuring artist portrait, lifespan years badge, highlighted quote block, structured biography paragraphs, and contact information.
-- Triggered seamlessly via:
-  - `👤 Read Artist Bio →` button in the Roam `FocusPanel.tsx`.
-  - `👤 About {Artist}` pill button in the Inspect Lightbox header (`InspectLightbox.tsx`).
+### 2.2. Artworks Catalogue & Storage System (`ArtworksPane.tsx`)
+- **`In Room (N)` vs. `Storage (M)` Tabs**:
+  - Unplaced / stored artworks are separated into a dedicated Storage tab.
+  - Stored artworks are automatically filtered out and never rendered in the 3D scene.
+  - 1-click **`📦 Move to Storage`** / **`📍 Place in Room`** action toggle in the artwork inspector.
+  - Added **`🗑️ Delete Artwork`** destructive button with confirmation dialog.
 
-### 2.3. Intro Video Loader (`IntroVideoLoader.tsx`)
-- Plays a 5–10s intro video clip over the initial gallery loading sequence.
-- **Autoplay Security Policy Handling:** Attempts unmuted playback first; if blocked by the browser, it seamlessly falls back to muted autoplay and displays a `🔊 Bật âm thanh / Enable sound` button.
-- **Scene Readiness & Skip Button:** Preloads 3D meshes in the background. Displays an `Enter Exhibition ➔` skip button as soon as the 3D room is ready.
-- **Dual-Condition Sync:** Automatically transitions into the 3D gallery as soon as both the video has ended and the 3D scene is ready.
+### 2.3. 3D Starting Vantage Point (Visitor Spawn)
+- **Interactive 3D Beacon Mesh (`spawn-beacon.ts`)**:
+  - Gold floor concentric rings, directional facing arrow, and 1.7m eye-level marker.
+  - 1-click **`📍 Set at Camera`** placement button.
+  - Persisted in exhibition `settings_json` as `{ start_point: { position, rotation, target } }` with automatic room entrance fallback.
 
-### 2.4. Viewer Inspect Mode Polish & Museum Aesthetics
-- **Hotspot Panel Minimize Button & Glassmorphic Floating Card:**
-  - Added `🗕 Minimize` / `🗖 Expand` toggle on the active hotspot details panel.
-  - Minimized state auto-fits text height into a compact frosted glass floating card (`backdrop-filter: blur(24px); background: rgba(13, 17, 28, 0.78)`).
-- **Museum Radial Spotlight Background & 3D Shadow:**
-  - Upgraded inspect background from flat black to a museum spotlight gradient (`radial-gradient(circle at 50% 45%, #182234 0%, #0a0e18 45%, #030509 100%)`).
-  - Added soft multi-layer ambient drop shadow behind the tilted 3D artwork slab.
+### 2.4. Visitor Locomotion & Floor Gravity (`camera-controller.ts`)
+- **Continuous Floor Raycasting**:
+  - The camera controller casts a downward ray on every frame to detect floor meshes beneath the visitor.
+  - When stepping off elevated objects (chairs, pedestals, benches, or steps), the camera smoothly falls back down to visitor eye level (`floorY + eyeHeight`) with gravity acceleration, preventing height lock.
 
-### 2.5. Hotspot Flight Animations & 2D Canvas Simulation
-- **Modular Animation Engine (`src/lib/viewer/hotspot-animations.ts`):**
-  - 5 transition presets: `smooth_glide`, `cinematic_arc`, `zoom_fade`, `dramatic_whip`, `step_cut`.
-  - Softened `cinematic_arc` flight dip to a gentle ~22% arc (`midS * 0.78`).
-- **Interactive 2D Preview Widget (`HotspotTransitionPreview.tsx`):**
-  - Real-time 2D canvas simulation embedded in the Studio Hotspot Editor displaying flight path, camera orientation, and scale dynamics.
-
-### 2.6. Exhibition Metadata Editing & Cache Versioning
-- **Migration `0004_artwork_updated_at.sql`:**
-  - Added `updated_at` column to `artworks` with automatic timestamp bumping on DB updates.
-  - Implemented DB column whitelist in `worker/db.ts` and `exhibition-patch.ts`.
-- **Cache Busting Strategy:**
-  - Versioned media URLs (`?v=<updated_at>`) ensuring instant asset refresh on edits while maintaining high edge cache hit rates.
-
-### 2.7. Visitor Settings & Keybindings Modal (`SettingsModal.tsx`)
-- In-viewer settings dialog allowing visitors to customize walk speed, mouse look sensitivity, FOV, and interactive keybinding recording with localStorage persistence.
+### 2.5. Design System Clean-Up & Tokens Architecture
+- **Zero Raw Hex & Strict Token Discipline**:
+  - Added semantic parchment and state tokens in `tokens.css` (`--reda-parch-border`, `--reda-parch-card`, `--reda-success*`, `--reda-warning*`, `--reda-error*`).
+  - Replaced all raw hex codes in `reda-workbench.css` and `.tsx` files with token variables.
+  - Replaced all emojis with SVG `<Icon>` components.
+  - Deleted legacy orphaned tab files (`StudioArtworksTab`, `StudioSpaceTab`, `StudioDrawer`, `ArtistManagerModal`).
 
 ---
 
-## 3. 🛠️ Recent Fixes & Security Hardening
+## 3. 🧪 Test & Verification Summary
 
-1. **Cross-Curator Artist Data Isolation (`worker/routes/crud.ts`):**
-   - Secured `GET /api/exhibitions/:id/artists` behind `getExhibitionOwner(env, exhibitionId) === auth.sub` check so curators cannot access private or draft artist details belonging to other curators.
-2. **Dual-Condition Sync in Intro Video (`IntroVideoLoader.tsx`):**
-   - Added `useEffect([videoEnded, isSceneReady])` ensuring the viewer seamlessly transitions into the gallery even if a short video finishes before the 3D meshes finish loading.
-3. **Autoplay Policy Handling:**
-   - Handled browser `NotAllowedError` during unmuted autoplay attempts with instant muted fallback and interactive sound toggle prompt.
-4. **Cinematic Arc Flight Curve Refinement:**
-   - Softened flight altitude dip in `hotspot-animations.ts` for natural camera movement.
-5. **Procedural Frame Normalization:**
-   - Prevented degenerate 1.0m box slabs when `frameWidth` is 0.
-
----
-
-## 4. 🧪 Test & Verification Summary
-
-- **Vitest Suite:** `104 / 104 tests passing` (`vitest run` across 15 test files):
+- **Vitest Suite:** `175 / 175 tests passing` (`vitest run` across 33 test files):
   - `worker/routes/crud.test.ts` (4 tests)
-  - `worker/db.test.ts` (3 tests)
+  - `worker/db.test.ts` (4 tests)
+  - `src/lib/studio/spawn-point.test.ts` (5 tests)
+  - `src/lib/studio/artwork-placement.test.ts` (3 tests)
+  - `src/lib/babylon/camera-controller.test.ts` (3 tests)
   - `src/lib/viewer/hotspot-animations.test.ts` (16 tests)
-  - `src/lib/studio/studio.test.ts` (13 tests)
-  - `src/lib/media/gdrive.test.ts` (12 tests)
+  - `src/lib/studio/studio.test.ts` (15 tests)
+  - `src/lib/media/gdrive.test.ts` (15 tests)
   - `src/lib/media/youtube.test.ts` (11 tests)
+  - `src/components/studio/workbench/panes.test.tsx` (3 tests)
+  - `src/components/studio/ArtworkForm.test.tsx` (2 tests)
+  - `src/components/ui/Button.test.tsx` (4 tests)
+  - `src/components/ui/Icon.test.tsx` (3 tests)
+  - Total: 33 passed test files, 175 passed tests.
+- **Production Build:** `tsc -b && vite build` passed with 0 errors.
   - `worker/auth.test.ts` (11 tests)
   - `worker/media-proxy.test.ts` (8 tests)
-  - `src/components/viewer/fallback.test.tsx` (7 tests)
-  - `src/lib/babylon/resolution-scaler.test.ts` (6 tests)
-  - `src/components/viewer/viewer.test.tsx` (4 tests)
-  - `src/lib/babylon/frame-builder.test.ts` (3 tests)
-  - `src/lib/babylon/camera-controller.test.ts` (3 tests)
-  - `worker/events.test.ts` (2 tests)
-  - `src/lib/babylon/interaction.test.ts` (1 test)
-- **Production Build:** `pnpm build` (`tsc -b && vite build`) passing cleanly with 0 type errors.
-
 ---
 
-## 5. ⏳ Upcoming Roadmap & Next Steps
+## 4. ⏳ Upcoming Roadmap & Next Priorities
 
-- [ ] **Studio Analytics Dashboard UI:** Visual charts in Studio displaying visitor counts, dwell time, and hotspot interaction metrics.
+- [ ] **Exhibition Viewer Redesign with REDA Design System (High Priority):** Modernize public 3D viewer UI (Focus HUD, Metadata Placard, Inspect Lightbox, Audio Guide, 2D Fallback) with REDA design tokens.
+- [ ] **Multi-Waypoint Guided Tour Sequence:** Ordered waypoint list with automated camera flight paths and narration.
 - [ ] **3D Sculpture & Pedestal Support (`SCULPTURE_3D`):** Loading standalone 3D `.glb` assets onto gallery pedestals with turntable inspect.
+- [ ] **Studio Analytics Dashboard UI:** Visual charts in Studio displaying visitor counts, dwell time, and hotspot interaction metrics.
 - [ ] **Multiplayer Visitor Presence:** Cloudflare Durable Objects + WebSockets for visitor avatars and live presence indicators.
-- [ ] **Live Curator Guided Tours:** Presenter-led tours with synchronized camera viewing via WebRTC.
-- [ ] **Custom Domain & Cloudflare Pages Production Deployment:** Cloudflare Pages + D1 production binding and custom DNS routing.
 
 ---
 
-## 6. 📁 Key Source Files Reference
+## 5. 📁 Key Source Files Reference
 
-- **Artist Profile Modal:** [`src/components/viewer/ArtistDetailModal.tsx`](file:///d:/Claude/3D%20Virtual%20Gallery/src/components/viewer/ArtistDetailModal.tsx)
-- **Intro Video Loader:** [`src/components/viewer/IntroVideoLoader.tsx`](file:///d:/Claude/3D%20Virtual%20Gallery/src/components/viewer/IntroVideoLoader.tsx)
-- **Studio Artist Manager:** [`src/components/studio/ArtistManagerModal.tsx`](file:///d:/Claude/3D%20Virtual%20Gallery/src/components/studio/ArtistManagerModal.tsx)
-- **Inspect Lightbox & Hotspots:** [`src/components/viewer/InspectLightbox.tsx`](file:///d:/Claude/3D%20Virtual%20Gallery/src/components/viewer/InspectLightbox.tsx)
-- **Hotspot Animations Engine:** [`src/lib/viewer/hotspot-animations.ts`](file:///d:/Claude/3D%20Virtual%20Gallery/src/lib/viewer/hotspot-animations.ts)
-- **Hotspot 2D Preview Widget:** [`src/components/studio/HotspotTransitionPreview.tsx`](file:///d:/Claude/3D%20Virtual%20Gallery/src/components/studio/HotspotTransitionPreview.tsx)
-- **3D Viewer Component:** [`src/components/viewer/ExhibitionViewer.tsx`](file:///d:/Claude/3D%20Virtual%20Gallery/src/components/viewer/ExhibitionViewer.tsx)
-- **Studio CMS & Dashboard:** [`src/components/studio/StudioApp.tsx`](file:///d:/Claude/3D%20Virtual%20Gallery/src/components/studio/StudioApp.tsx)
-- **Worker CRUD & Endpoints:** [`worker/routes/crud.ts`](file:///d:/Claude/3D%20Virtual%20Gallery/worker/routes/crud.ts)
-- **Database Migrations:** [`migrations/0004_artwork_updated_at.sql`](file:///d:/Claude/3D%20Virtual%20Gallery/migrations/0004_artwork_updated_at.sql), [`migrations/0005_artists_and_intro_video.sql`](file:///d:/Claude/3D%20Virtual%20Gallery/migrations/0005_artists_and_intro_video.sql)
+- **REDA Workbench Shell:** [`src/components/studio/workbench/Workbench.tsx`](file:///d:/Claude/3D%20Virtual%20Gallery/src/components/studio/workbench/Workbench.tsx)
+- **Workbench Mode Top Bar:** [`src/components/studio/workbench/WorkbenchTopBar.tsx`](file:///d:/Claude/3D%20Virtual%20Gallery/src/components/studio/workbench/WorkbenchTopBar.tsx)
+- **Artworks & Storage Pane:** [`src/components/studio/workbench/ArtworksPane.tsx`](file:///d:/Claude/3D%20Virtual%20Gallery/src/components/studio/workbench/ArtworksPane.tsx)
+- **Artwork Inspector Form:** [`src/components/studio/ArtworkForm.tsx`](file:///d:/Claude/3D%20Virtual%20Gallery/src/components/studio/ArtworkForm.tsx)
+- **3D Gizmo & Beacon Scene:** [`src/components/studio/GizmoPlacement.tsx`](file:///d:/Claude/3D%20Virtual%20Gallery/src/components/studio/GizmoPlacement.tsx)
+- **3D Camera Controller (Gravity & Collisions):** [`src/lib/babylon/camera-controller.ts`](file:///d:/Claude/3D%20Virtual%20Gallery/src/lib/babylon/camera-controller.ts)
+- **Artwork Factory & Procedural Frames:** [`src/lib/babylon/artwork-factory.ts`](file:///d:/Claude/3D%20Virtual%20Gallery/src/lib/babylon/artwork-factory.ts)
+- **3D Public Viewer:** [`src/components/viewer/ExhibitionViewer.tsx`](file:///d:/Claude/3D%20Virtual%20Gallery/src/components/viewer/ExhibitionViewer.tsx)
+- **Design Tokens & Theme:** [`src/styles/tokens.css`](file:///d:/Claude/3D%20Virtual%20Gallery/src/styles/tokens.css), [`src/styles/reda-workbench.css`](file:///d:/Claude/3D%20Virtual%20Gallery/src/styles/reda-workbench.css)

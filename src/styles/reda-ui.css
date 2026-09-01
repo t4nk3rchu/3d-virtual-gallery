@@ -1,0 +1,113 @@
+/* ===== Buttons ===== */
+.btn { font-family: var(--reda-ui); font-weight: 600; font-size: 13px; letter-spacing: .04em;
+  text-transform: uppercase; padding: 11px 18px; min-height: 44px; border: 1px solid transparent;
+  border-radius: var(--reda-radius); cursor: pointer; display: inline-flex; align-items: center;
+  justify-content: center; gap: 8px; text-decoration: none; transition: transform .15s, background .15s; }
+.btn:hover { transform: translateY(-1px); }
+.btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.btn--primary { background: var(--reda-oxblood); color: #F3E7D5; border-color: var(--reda-oxblood); }
+.btn--secondary { background: var(--reda-char-2); color: #F7E8D0; border-color: var(--reda-line); }
+.btn--ghost { background: transparent; color: #FAF6EE; border-color: var(--reda-line); }
+.btn--danger { background: rgba(178, 58, 46, 0.1); color: #B23A2E; border-color: rgba(178, 58, 46, 0.5); }
+.btn--sm { min-height: 34px; padding: 7px 12px; font-size: 11px; }
+
+/* Scoped rules for Parchment / Sheet / Inspector contexts (.wb-sheet, .wb-insp, .reda-parch, etc.) */
+.wb-sheet .btn--secondary,
+.wb-insp .btn--secondary,
+.reda-parch .btn--secondary {
+  background: var(--reda-char-2) !important;
+  color: #F7E8D0 !important;
+  border: 1px solid var(--reda-char-1) !important;
+}
+.wb-sheet .btn--secondary:hover,
+.wb-insp .btn--secondary:hover,
+.reda-parch .btn--secondary:hover {
+  background: #110E0B !important;
+  color: #FFFFFF !important;
+  border-color: var(--reda-gold) !important;
+}
+
+.wb-sheet .btn--ghost,
+.wb-insp .btn--ghost,
+.reda-parch .btn--ghost {
+  color: var(--reda-ink) !important;
+  background: transparent !important;
+  border: 1px solid rgba(60, 45, 30, 0.35) !important;
+}
+.wb-sheet .btn--ghost:hover,
+.wb-insp .btn--ghost:hover,
+.reda-parch .btn--ghost:hover {
+  background: rgba(44, 34, 20, 0.08) !important;
+  color: var(--reda-oxblood) !important;
+  border-color: var(--reda-oxblood) !important;
+}
+
+.wb-sheet .btn--danger,
+.wb-insp .btn--danger,
+.reda-parch .btn--danger {
+  color: #9A2418 !important;
+  background: rgba(154, 36, 24, 0.08) !important;
+  border: 1px solid rgba(154, 36, 24, 0.5) !important;
+  font-weight: 700 !important;
+}
+.wb-sheet .btn--danger:hover,
+.wb-insp .btn--danger:hover,
+.reda-parch .btn--danger:hover {
+  background: #9A2418 !important;
+  color: #FFFFFF !important;
+  border-color: #9A2418 !important;
+}
+
+/* ===== Fields ===== */
+.reda-field { margin-bottom: 14px; }
+.reda-field__label { display: block; font-family: var(--reda-ui); font-size: 10px; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--reda-label); margin-bottom: 5px; }
+.reda-field__control { width: 100%; font-family: var(--reda-text); font-size: 15px; color: var(--reda-ink);
+  background: var(--reda-field); border: 1px solid #cbbd9d; border-radius: var(--reda-radius); padding: 9px 11px; }
+.reda-field__control:focus { outline: none; border-color: var(--reda-gold); box-shadow: var(--reda-focus); }
+textarea.reda-field__control { resize: vertical; min-height: 60px; line-height: 1.45; }
+.reda-field__hint { font-family: var(--reda-text); font-size: 12.5px; color: var(--reda-ink-2); margin-top: 5px; }
+.reda-field__error { font-family: var(--reda-ui); font-size: 11px; color: #B23A2E; margin-top: 5px; }
+
+/* ===== Toggle ===== */
+.reda-toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; background: transparent; border: none; padding: 0; }
+.reda-toggle__track { width: 40px; height: 22px; border-radius: 11px; background: rgba(0, 0, 0, 0.45); border: 1.5px solid rgba(185, 138, 60, 0.35); position: relative;
+  transition: background .2s ease, border-color .2s ease, box-shadow .2s ease; flex: none; box-sizing: border-box; }
+.reda-toggle__track[data-on="true"] { background: var(--reda-gold); border-color: var(--reda-gold-hi); box-shadow: 0 0 10px rgba(185, 138, 60, 0.45); }
+.reda-toggle__knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--reda-muted-hi); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); transition: left .2s cubic-bezier(0.16, 1, 0.3, 1), background .2s ease; }
+.reda-toggle__track[data-on="true"] .reda-toggle__knob { left: 20px; background: var(--reda-char-1); }
+
+/* ===== Segmented control (mode pill) ===== */
+.reda-seg { display: inline-flex; background: var(--reda-char-3); border: 1px solid var(--reda-line);
+  border-radius: var(--reda-radius); overflow: hidden; }
+.reda-seg__opt { background: none; border: none; font-family: var(--reda-ui); font-weight: 600; font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--reda-muted); padding: 8px 15px; min-height: 44px;
+  cursor: pointer; }
+.reda-seg__opt[aria-pressed="true"] { background: var(--reda-gold); color: #241a08; }
+
+/* ===== Tabs ===== */
+.reda-tabs { display: flex; gap: 20px; border-bottom: 1px solid var(--reda-line); }
+.reda-tabs__tab { background: none; border: none; font-family: var(--reda-ui); font-size: 11px; font-weight: 600;
+  letter-spacing: .05em; text-transform: uppercase; color: var(--reda-muted); padding: 11px 0; cursor: pointer;
+  border-bottom: 2px solid transparent; }
+.reda-tabs__tab[aria-selected="true"] { color: var(--reda-cream); border-bottom-color: var(--reda-oxblood); }
+.reda-parch .reda-tabs__tab[aria-selected="true"] { color: var(--reda-ink); }
+
+/* ===== Plate (mat + frame) & wall label ===== */
+.reda-plate { background: var(--reda-parch); padding: 8px; border: 8px solid #3A2A18;
+  box-shadow: 0 22px 46px rgba(0,0,0,.5); display: block; }
+.reda-plate img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.reda-walllabel { background: var(--reda-parch); color: var(--reda-ink); padding: 10px 12px; }
+.reda-walllabel__title { font-family: var(--reda-display); font-size: 14px; }
+.reda-walllabel__meta { font-family: var(--reda-ui); font-size: 8px; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--reda-label); line-height: 1.7; margin-top: 4px; }
+
+/* ===== Primitives ===== */
+.reda-kicker { font-family: var(--reda-ui); font-weight: 600; font-size: 10px; letter-spacing: .26em;
+  text-transform: uppercase; color: var(--reda-gold); }
+.reda-rule { height: 1px; background: var(--reda-hairline); border: 0; }
+.reda-section-title { font-family: var(--reda-display); font-weight: 500; }
+.reda-panel { background: var(--reda-char-2); border: 1px solid var(--reda-line); border-radius: var(--reda-radius); }
+.reda-panel--parch { background: var(--reda-parch); border-color: #d3c6a8; color: var(--reda-ink); }
+.reda-icon { display: inline-block; vertical-align: middle; }

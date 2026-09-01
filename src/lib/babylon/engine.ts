@@ -75,10 +75,16 @@ export function initScene(canvas: HTMLCanvasElement): SceneHandle {
   // Handle canvas resize
   const handleResize = () => engine.resize();
   window.addEventListener('resize', handleResize);
+  let resizeObserver: ResizeObserver | null = null;
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => engine.resize());
+    resizeObserver.observe(canvas);
+  }
   engine.resize();
   setTimeout(handleResize, 50);
 
   function dispose() {
+    resizeObserver?.disconnect();
     window.removeEventListener('resize', handleResize);
     engine.stopRenderLoop();
     scene.dispose();

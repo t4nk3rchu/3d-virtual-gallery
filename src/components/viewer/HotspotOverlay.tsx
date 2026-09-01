@@ -3,11 +3,12 @@
  *
  * Spec §5.4:
  *   - Pins rendered at x_percent/y_percent over the image
- *   - Click → show interpretive card & trigger auto-fade
- *   - If audio_timestamp_seconds set → invoke audio seek callback
+ *   - Click -> show interpretive card & trigger auto-fade
+ *   - If audio_timestamp_seconds set -> invoke audio seek callback
  */
 import { useState } from 'react';
 import type { ArtworkHotspot } from '../../types/schema';
+import { Icon } from '../ui';
 
 interface HotspotOverlayProps {
   hotspots: ArtworkHotspot[];
@@ -38,7 +39,7 @@ function HotspotCard({ hotspot, onAudioSeek, onDismiss }: HotspotCardProps) {
         onClick={onDismiss}
         aria-label="Close hotspot"
       >
-        ×
+        <Icon name="close" size={13} />
       </button>
       <span className="hotspot-card__eyebrow">Interpretive Point</span>
       <h3 className="hotspot-card__title">{hotspot.title}</h3>
@@ -49,7 +50,7 @@ function HotspotCard({ hotspot, onAudioSeek, onDismiss }: HotspotCardProps) {
           className="hotspot-card__seek-btn"
           onClick={() => onAudioSeek(hotspot.audio_timestamp_seconds!)}
         >
-          ▶ Jump to {Math.floor(hotspot.audio_timestamp_seconds)}s in audio guide
+          <Icon name="play" size={12} /> Jump to {Math.floor(hotspot.audio_timestamp_seconds)}s in audio guide
         </button>
       )}
     </div>

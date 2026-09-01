@@ -5,6 +5,7 @@
  * navigation speeds, camera panning speed, and mouse behavior.
  */
 import { useState } from 'react';
+import { Icon, Button } from '../ui';
 
 export interface StudioKeybindings {
   forward: string;      // e.g. 'KeyW'
@@ -113,18 +114,18 @@ export function StudioSettingsSidebar({
     <aside className="gizmo-settings-sidebar" aria-label="Studio Keybindings & Controls">
       <div className="sidebar-header">
         <div className="header-title">
-          <span className="sidebar-icon">🎮</span>
+          <span className="sidebar-icon"><Icon name="cube" /></span>
           <h3>Studio 3D Controls</h3>
         </div>
         <button type="button" className="sidebar-close" onClick={onClose} aria-label="Close settings">
-          ✕
+          <Icon name="close" size={14} />
         </button>
       </div>
 
       <div className="sidebar-content">
         {/* Section 1: Keyboard Bindings */}
         <div className="settings-section">
-          <h4 className="section-title">⌨️ Keyboard Navigation</h4>
+          <h4 className="section-title">Keyboard Navigation</h4>
           <p className="section-subtitle">Click any button to remap key</p>
           <div className="keybindings-grid">
             {renderKeyRow('Move Forward', 'forward')}
@@ -139,7 +140,7 @@ export function StudioSettingsSidebar({
 
         {/* Section 2: Mouse Behavior & Speeds */}
         <div className="settings-section">
-          <h4 className="section-title">🖱️ Mouse Behavior &amp; Speeds</h4>
+          <h4 className="section-title">Mouse Behavior &amp; Speeds</h4>
           <div className="settings-row">
             <div>
               <span className="setting-title">Right-Click Drag Action</span>
@@ -242,7 +243,7 @@ export function StudioSettingsSidebar({
 
         {/* Section 3: Mouse Controls Cheat Sheet */}
         <div className="settings-section">
-          <h4 className="section-title">💡 Controls Cheat Sheet</h4>
+          <h4 className="section-title">Controls Cheat Sheet</h4>
           <ul className="controls-cheatsheet">
             <li><b>Left Click</b>: Select artwork / click background or Esc to unfocus</li>
             <li><b>Middle Mouse Drag</b>: Orbit 360° around view / mouse focus</li>
@@ -255,12 +256,12 @@ export function StudioSettingsSidebar({
       </div>
 
       <div className="sidebar-footer">
-        <button type="button" className="btn btn--ghost btn--sm" onClick={handleReset}>
-          ⟲ Reset Defaults
-        </button>
-        <button type="button" className="btn btn--primary btn--sm" onClick={onClose}>
+        <Button variant="ghost" size="sm" onClick={handleReset}>
+          Reset Defaults
+        </Button>
+        <Button variant="primary" size="sm" onClick={onClose}>
           Done
-        </button>
+        </Button>
       </div>
     </aside>
   );

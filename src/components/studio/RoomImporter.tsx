@@ -2,6 +2,7 @@ import { useState, type ChangeEvent } from 'react';
 import type { Room } from '../../types/schema';
 import { validateGlbFile, extractGoogleDriveFileId } from '../../lib/studio/validation';
 import { DriveFilePicker } from './DriveFilePicker';
+import { Button } from '../ui';
 
 interface RoomImporterProps {
   rooms: Room[];
@@ -27,6 +28,7 @@ export function RoomImporter({
     error?: string;
     warning?: string;
   } | null>(null);
+  const [pickedFileSize, setPickedFileSize] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -35,8 +37,10 @@ export function RoomImporter({
     const file = e.target.files?.[0];
     if (!file) {
       setValidationResult(null);
+      setPickedFileSize(null);
       return;
     }
+    setPickedFileSize(`${(file.size / 1024 / 1024).toFixed(1)} MB`);
     setValidating(true);
     try {
       const result = await validateGlbFile(file);
@@ -105,20 +109,23 @@ export function RoomImporter({
           Exhibition Gallery Architecture
         </label>
         <div className="room-importer__tabs">
-          <button
+          <Button
             type="button"
-            className={`btn btn--sm ${mode === 'select' ? 'btn--primary' : 'btn--ghost'}`}
+            variant={mode === 'select' ? 'primary' : 'ghost'}
+            size="sm"
             onClick={() => setMode('select')}
           >
-            🏛️ Select Room ({rooms.length} available)
-          </button>
-          <button
+            Select Room ({rooms.length} available)
+          </Button>
+          <Button
             type="button"
-            className={`btn btn--sm ${mode === 'import' ? 'btn--primary' : 'btn--ghost'}`}
+            variant={mode === 'import' ? 'primary' : 'ghost'}
+            size="sm"
+            iconLeft="plus"
             onClick={() => setMode('import')}
           >
-            + Add Custom Room GLB
-          </button>
+            Add Custom Room GLB
+          </Button>
         </div>
       </div>
 
@@ -170,7 +177,7 @@ export function RoomImporter({
               <DriveFilePicker
                 mimeTypes="model/gltf-binary,application/octet-stream"
                 isTeam={isTeam}
-                buttonLabel="📁 Pick GLB from Google Drive"
+                buttonLabel="Pick GLB from Google Drive"
                 onPicked={(fileId) => setSourceInput(fileId)}
                 onRejected={(fileName) =>
                   setApiError(`"${fileName}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
@@ -187,9 +194,9 @@ export function RoomImporter({
               className="input"
             />
             <p className="hint">
-              💡 <strong>For Google Drive:</strong> Set file sharing to &ldquo;Anyone with the link can view&rdquo; and paste the link here.
+              <strong>For Google Drive:</strong> Set file sharing to &ldquo;Anyone with the link can view&rdquo; and paste the link here.
               <br />
-              💡 <strong>For built-in templates:</strong> You can type <code>default-white-cube</code> or <code>default-grand-hall</code>.
+              <strong>For built-in templates:</strong> You can type <code>default-white-cube</code> or <code>default-grand-hall</code>.
             </p>
           </div>
 
@@ -204,7 +211,10 @@ export function RoomImporter({
               onChange={handleFileChange}
               className="input file-input"
             />
-            {validating && <p className="hint">Validating GLB format &amp; file size…</p>}
+            {pickedFileSize && !validating && !validationResult && (
+              <p className="hint">{pickedFileSize} — validating…</p>
+            )}
+            {validating && <p className="hint">{pickedFileSize} — checking GLB format…</p>}
             {validationResult && (
               <div
                 className={`validation-badge ${
@@ -215,10 +225,10 @@ export function RoomImporter({
                     : 'validation-badge--error'
                 }`}
               >
-                {validationResult.error && <span>⚠️ {validationResult.error}</span>}
-                {validationResult.warning && <span>⚠️ {validationResult.warning}</span>}
+                {validationResult.error && <span>{validationResult.error}</span>}
+                {validationResult.warning && <span>{validationResult.warning}</span>}
                 {validationResult.valid && !validationResult.warning && (
-                  <span>✓ Valid glTF 2.0 Binary file ready for 3D engine.</span>
+                  <span>Valid glTF 2.0 Binary — {pickedFileSize}</span>
                 )}
               </div>
             )}
@@ -241,14 +251,14 @@ export function RoomImporter({
           {apiError && <p className="error" role="alert">{apiError}</p>}
 
           <div className="form-actions">
-            <button
+            <Button
               type="button"
-              className="btn btn--primary"
+              variant="primary"
               disabled={submitting || (validationResult !== null && !validationResult.valid)}
               onClick={handleImportSubmit}
             >
               {submitting ? 'Saving Room…' : 'Save & Select Room'}
-            </button>
+            </Button>
             <button
               type="button"
               className="btn btn--ghost"

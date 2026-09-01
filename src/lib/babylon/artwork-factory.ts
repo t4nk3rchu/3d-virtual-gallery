@@ -53,25 +53,39 @@ function parseFrameConfig(json: string) {
 }
 
 /** Create a wall placard (title/artist/medium) via DynamicTexture */
-function createPlacard(scene: Scene, artwork: Artwork, parentName: string, width: number) {
+function createPlacard(scene: Scene, artwork: Artwork, parentName: string, width: number, height: number) {
   const texW = 512;
-  const texH = 128;
+  const texH = 160;
   const dt = new DynamicTexture(`${parentName}_placard_tex`, { width: texW, height: texH }, scene);
   const ctx = dt.getContext();
-  ctx.fillStyle = '#ffffff';
+
+  // Parchment plaque background with subtle border
+  ctx.fillStyle = '#FAF7EE';
   ctx.fillRect(0, 0, texW, texH);
-  ctx.fillStyle = '#222222';
+  ctx.strokeStyle = '#D3C6A8';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(2, 2, texW - 4, texH - 4);
+
+  // Artwork metadata
+  ctx.fillStyle = '#1A1813';
   ctx.font = 'bold 24px sans-serif';
-  ctx.fillText(artwork.title, 10, 36);
+  ctx.fillText(artwork.title || 'Untitled', 18, 42);
+
   ctx.font = '20px sans-serif';
-  ctx.fillStyle = '#555555';
-  if (artwork.artist) ctx.fillText(artwork.artist, 10, 66);
-  if (artwork.medium) ctx.fillText(artwork.medium, 10, 96);
+  ctx.fillStyle = '#4A4639';
+  if (artwork.artist) ctx.fillText(artwork.artist, 18, 78);
+
+  ctx.font = 'italic 16px sans-serif';
+  ctx.fillStyle = '#7A7566';
+  const meta = [artwork.year, artwork.medium].filter(Boolean).join(' • ');
+  if (meta) ctx.fillText(meta, 18, 116);
+  else if (artwork.medium) ctx.fillText(artwork.medium, 18, 116);
+
   dt.update();
 
   const placard = MeshBuilder.CreatePlane(
     `${parentName}_placard`,
-    { width, height: width * 0.25 },
+    { width, height },
     scene
   );
   const mat = new StandardMaterial(`${parentName}_placard_mat`, scene);
@@ -144,11 +158,15 @@ function createImage2DArtwork(scene: Scene, artwork: Artwork) {
   const dims = calculateFrameDimensions(artW, artH, frameConfig);
   createProceduralFrame(scene, dims, frameConfig, plane);
 
-  // Placard
+  // Placard placed below outer frame edge without intersecting
   if (frameConfig.showPlacard) {
-    const placard = createPlacard(scene, artwork, artwork.id, dims.outerWidth);
+    const placardWidth = Math.min(0.48, Math.max(0.32, dims.outerWidth * 0.55));
+    const placardHeight = placardWidth * 0.32;
+    const placard = createPlacard(scene, artwork, artwork.id, placardWidth, placardHeight);
     placard.parent = plane;
-    placard.position.y = -(dims.outerHeight / 2 + 0.08);
+    placard.position.x = 0;
+    placard.position.y = -(dims.outerHeight / 2 + 0.04 + placardHeight / 2);
+    placard.position.z = -0.005;
   }
 
   // Spotlight
@@ -201,11 +219,15 @@ function createVideoArtwork(scene: Scene, artwork: Artwork) {
   const dims = calculateFrameDimensions(artW, artH, frameConfig);
   createProceduralFrame(scene, dims, frameConfig, screen);
 
-  // Placard
+  // Placard placed below outer frame edge without intersecting
   if (frameConfig.showPlacard) {
-    const placard = createPlacard(scene, artwork, artwork.id, dims.outerWidth);
+    const placardWidth = Math.min(0.55, Math.max(0.35, dims.outerWidth * 0.45));
+    const placardHeight = placardWidth * 0.32;
+    const placard = createPlacard(scene, artwork, artwork.id, placardWidth, placardHeight);
     placard.parent = screen;
-    placard.position.y = -(dims.outerHeight / 2 + 0.08);
+    placard.position.x = 0;
+    placard.position.y = -(dims.outerHeight / 2 + 0.04 + placardHeight / 2);
+    placard.position.z = -0.005;
   }
 
   // Spotlight

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Artwork, Artist } from '../../types/schema';
 import { proxyMediaUrl } from '../../lib/media/gdrive';
+import { Icon } from '../ui';
 
 interface FocusPanelProps {
   artwork: Artwork & { artist_profile?: Artist | null };
@@ -39,7 +40,7 @@ export function FocusPanel({
           title="Exit focus view"
         >
           <span>Exit detail view</span>
-          <span className="focus-header-bar__exit-icon">✕</span>
+          <span className="focus-header-bar__exit-icon"><Icon name="close" size={14} /></span>
         </button>
 
         <button
@@ -49,7 +50,7 @@ export function FocusPanel({
           aria-label={isInfoOpen ? 'Close artwork information' : 'Show artwork information'}
           title="Artwork details"
         >
-          <span className="focus-info-icon">ℹ</span>
+          <span className="focus-info-icon"><Icon name="info" size={16} /></span>
         </button>
       </div>
 
@@ -73,7 +74,7 @@ export function FocusPanel({
                 onClick={() => setIsInfoOpen(false)}
                 aria-label="Close information card"
               >
-                ×
+                <Icon name="close" size={15} />
               </button>
             </div>
 
@@ -115,7 +116,7 @@ export function FocusPanel({
             {/* Audio guide narration player */}
             {artwork.audio_guide_file_id && artwork.artwork_type !== 'AUDIO' && (
               <div className="focus-info-modal__audio">
-                <p className="focus-info-modal__audio-label">🎧 Audio Guide</p>
+                <p className="focus-info-modal__audio-label"><Icon name="audio" size={13} /> Audio Guide</p>
                 <audio
                   controls
                   src={proxyMediaUrl(artwork.audio_guide_file_id, artwork.updated_at)}
@@ -146,7 +147,7 @@ export function FocusPanel({
                 onClick={() => onOpenArtist?.(artwork.artist_profile!)}
                 title={`Read biography of ${artwork.artist_profile.name}`}
               >
-                👤 Read Artist Bio →
+                <Icon name="user" size={14} /> Read Artist Bio
               </button>
             )}
 
@@ -157,7 +158,9 @@ export function FocusPanel({
                 className="focus-info-modal__inspect-btn"
                 onClick={onInspect}
               >
-                {artwork.artwork_type === 'VIDEO' ? '🎥 Open Cinema Mode →' : '🔍 Inspect Full Resolution →'}
+                {artwork.artwork_type === 'VIDEO'
+                  ? (<><Icon name="film" size={14} /> Open Cinema Mode</>)
+                  : (<><Icon name="search" size={14} /> Inspect Full Resolution</>)}
               </button>
             )}
           </div>
@@ -175,7 +178,7 @@ export function FocusPanel({
               title="Previous artwork"
               aria-label="Previous artwork"
             >
-              ⏮
+              <Icon name="chevronLeft" size={18} />
             </button>
           )}
           {onNextArtwork && (
@@ -186,7 +189,7 @@ export function FocusPanel({
               title="Next artwork"
               aria-label="Next artwork"
             >
-              ⏭
+              <Icon name="chevronRight" size={18} />
             </button>
           )}
         </div>

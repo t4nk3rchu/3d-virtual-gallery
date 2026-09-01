@@ -216,34 +216,71 @@ export class CameraController {
     this._renderObserver = this.scene.onBeforeRenderObservable.add(() => {
       if (this._animating) return;
 
+      const engine = this.scene.getEngine ? this.scene.getEngine() : null;
+      const dt = Math.min(0.1, (engine ? engine.getDeltaTime() : 16) / 1000);
       const keys = this._keysDown;
-      if (keys.size === 0) return;
 
-      const isShift = keys.has('shift');
-      const baseSpeed = isShift ? CAMERA_CONFIG.sprintSpeed : CAMERA_CONFIG.walkSpeed;
+      // 1. Process Keyboard Walking
+      if (keys.size > 0) {
+        const isShift = keys.has('shift');
+        const baseSpeed = isShift ? CAMERA_CONFIG.sprintSpeed : CAMERA_CONFIG.walkSpeed;
 
-      let forwardMove = 0;
-      let sideMove = 0;
+        let forwardMove = 0;
+        let sideMove = 0;
 
-      if (keys.has('w')) forwardMove += 1;
-      if (keys.has('s')) forwardMove -= 1;
-      if (keys.has('d')) sideMove += 1;
-      if (keys.has('a')) sideMove -= 1;
+        if (keys.has('w')) forwardMove += 1;
+        if (keys.has('s')) forwardMove -= 1;
+        if (keys.has('d')) sideMove += 1;
+        if (keys.has('a')) sideMove -= 1;
 
-      if (forwardMove === 0 && sideMove === 0) return;
+        if (forwardMove !== 0 || sideMove !== 0) {
+          // Compute horizontal direction from camera yaw (rotation.y)
+          const yaw = this.camera.rotation.y;
+          const forwardDir = new Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+          const rightDir = new Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
 
-      // Compute horizontal direction from camera yaw (rotation.y)
-      const yaw = this.camera.rotation.y;
-      const forwardDir = new Vector3(Math.sin(yaw), 0, Math.cos(yaw));
-      const rightDir = new Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+          const moveDir = forwardDir.scale(forwardMove).add(rightDir.scale(sideMove)).normalize();
+          const moveDelta = moveDir.scale(baseSpeed);
 
-      const moveDir = forwardDir.scale(forwardMove).add(rightDir.scale(sideMove)).normalize();
-      const moveDelta = moveDir.scale(baseSpeed);
+          // Use cameraDirection so Babylon checks ellipsoid collisions against walls/floor
+          this.camera.cameraDirection.addInPlace(moveDelta);
+        }
+      }
 
-      // Use cameraDirection so Babylon checks ellipsoid collisions against walls/floor
-      this.camera.cameraDirection.addInPlace(moveDelta);
+      // 2. Continuous Floor Gravity & Step-Down Handling (only active while roaming)
+      if (!this._focusedMesh && !this._animating) {
+        // Cast a ray downward from head height to detect the floor surface beneath the visitor
+        const rayOrigin = new Vector3(
+          this.camera.position.x,
+          CAMERA_CONFIG.eyeHeight + 0.5,
+          this.camera.position.z
+        );
+        const downRay = new Ray(rayOrigin, new Vector3(0, -1, 0), 10);
+        const pick = this.scene.pickWithRay ? this.scene.pickWithRay(downRay, (mesh) => {
+          if (!mesh.isVisible || !mesh.isPickable) return false;
+          if (mesh.metadata?.isArtwork || mesh.metadata?.isHotspot || mesh.metadata?.isPlacard || mesh.metadata?.isGizmo) {
+            return false;
+          }
+          if (mesh.metadata?.isFloor) return true;
+          const name = mesh.name.toLowerCase();
+          return name.includes('floor') || name.includes('ground') || name.startsWith('proc_floor');
+        }) : null;
 
-      // Hard safety bounds clamp so player can never tunnel or pass through walls
+        const floorY = pick?.hit && pick.pickedPoint ? pick.pickedPoint.y : 0;
+        const targetEyeY = floorY + CAMERA_CONFIG.eyeHeight;
+
+        // Smoothly settle camera onto floor eye-height without ever climbing furniture, railings, or beams
+        if (Math.abs(this.camera.position.y - targetEyeY) > 0.005) {
+          const settleSpeed = 3.5 * dt;
+          if (this.camera.position.y > targetEyeY) {
+            this.camera.position.y = Math.max(targetEyeY, this.camera.position.y - settleSpeed);
+          } else {
+            this.camera.position.y = Math.min(targetEyeY, this.camera.position.y + settleSpeed);
+          }
+        }
+      }
+
+      // 3. Hard safety bounds clamp so player can never tunnel or pass through outer perimeter walls
       const bounds = (this.scene.metadata as {
         roomBounds?: { minX: number; maxX: number; minZ: number; maxZ: number };
       })?.roomBounds;
@@ -357,8 +394,8 @@ export class CameraController {
       finalDist = Math.max(0.7, Math.min(idealDist, hit.distance - 0.45));
     }
 
-    // 5. Compute target position and clamp against room bounds
-    const eyeHeight = Math.max(1.3, Math.min(2.1, artCenter.y));
+    // 5. Compute target position at artwork height level for true 90° orthogonal eye-level view
+    const eyeHeight = Math.max(1.0, Math.min(2.5, artCenter.y));
     let targetX = artCenter.x + worldNormal.x * finalDist;
     let targetZ = artCenter.z + worldNormal.z * finalDist;
 
@@ -373,10 +410,11 @@ export class CameraController {
     }
 
     const targetPos = new Vector3(targetX, eyeHeight, targetZ);
+    const lookAtTarget = new Vector3(artCenter.x, eyeHeight, artCenter.z);
 
     // 6. Smoothly glide position and track target so camera ends up facing artwork at 90°
     const startPos = this.camera.position.clone();
-    this._animateCamera(startPos, targetPos, artCenter, 600);
+    this._animateCamera(startPos, targetPos, lookAtTarget, 600);
   }
 
   private _animateCamera(
@@ -416,19 +454,35 @@ export class CameraController {
     this._focusedMesh = null;
   }
 
-  /** Apply spawn_json camera position from the room */
-  applySpawn(spawnJson: string | null): void {
-    if (!spawnJson) return;
+  /** Apply spawn position and orientation from spawn point object or JSON */
+  applySpawn(spawnInput: { position?: number[]; target?: number[]; rotation?: number[] } | string | null): void {
+    if (!spawnInput) return;
     try {
-      const spawn = JSON.parse(spawnJson) as {
-        position?: number[];
-        target?: number[];
-      };
-      if (spawn.position) {
-        this.camera.position = new Vector3(...(spawn.position as [number, number, number]));
+      const spawn = typeof spawnInput === 'string'
+        ? (JSON.parse(spawnInput) as { position?: number[]; target?: number[]; rotation?: number[] })
+        : spawnInput;
+
+      if (spawn.position && spawn.position.length >= 3) {
+        this.camera.position = new Vector3(
+          Number(spawn.position[0]),
+          Number(spawn.position[1]),
+          Number(spawn.position[2])
+        );
       }
-      if (spawn.target) {
-        this.camera.setTarget(new Vector3(...(spawn.target as [number, number, number])));
+      if (spawn.rotation && spawn.rotation.length >= 3) {
+        this.camera.rotation = new Vector3(
+          Number(spawn.rotation[0]),
+          Number(spawn.rotation[1]),
+          Number(spawn.rotation[2])
+        );
+      } else if (spawn.target && spawn.target.length >= 3) {
+        this.camera.setTarget(
+          new Vector3(
+            Number(spawn.target[0]),
+            Number(spawn.target[1]),
+            Number(spawn.target[2])
+          )
+        );
       }
     } catch {
       // Invalid spawn JSON — keep defaults

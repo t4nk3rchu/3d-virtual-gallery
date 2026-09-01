@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { proxyMediaUrl } from '../../lib/media/gdrive';
 import { getIntroAnimation, type IntroTransition } from '../../lib/viewer/intro-animations';
+import { Icon } from '../ui';
 
 interface IntroVideoLoaderProps {
   videoFileId: string;
@@ -119,7 +120,7 @@ export function IntroVideoLoader({
 
       {/* Top Left Branding / Indicator */}
       <div className="intro-video-header">
-        <span className="intro-video-tag">🎬 Exhibition Intro</span>
+        <span className="intro-video-tag"><Icon name="film" size={13} /> Exhibition Intro</span>
       </div>
 
       {/* Unmute Prompt Overlay when browser forced muted autoplay */}
@@ -130,7 +131,7 @@ export function IntroVideoLoader({
           onClick={handleUnmute}
           title="Click to enable audio"
         >
-          🔊 Bật âm thanh / Enable sound
+          <Icon name="sound" size={15} /> Enable sound
         </button>
       )}
 
@@ -142,7 +143,7 @@ export function IntroVideoLoader({
             className="intro-skip-btn"
             onClick={handleEnterGallery}
           >
-            Enter Exhibition ➔
+            Enter Exhibition <Icon name="chevronRight" size={15} />
           </button>
         ) : (
           <div className="intro-loading-status">

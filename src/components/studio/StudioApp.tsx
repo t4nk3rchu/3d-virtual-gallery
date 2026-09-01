@@ -1,24 +1,12 @@
-/**
- * Task 11: Curator CMS — main Studio shell
- * Login, Dashboard, ExhibitionEditor, ArtworkManager, RoomImporter, 3D Gizmo Placement, and Hotspot Editor
- */
 import { useState, useEffect, type FormEvent } from 'react';
 import type {
-  Exhibition,
   ExhibitionDetail,
-  Artwork,
-  ArtworkHotspot,
   Room,
 } from '../../types/schema';
-import { getImageUrl, extractGoogleDriveFileId } from '../../lib/media/gdrive';
-import { RoomImporter } from './RoomImporter';
-import { ArtworkForm } from './ArtworkForm';
-import { HotspotEditor } from './HotspotEditor';
-import { GizmoPlacement } from './GizmoPlacement';
-import { ArtistManagerModal } from './ArtistManagerModal';
+import { Workbench } from './workbench/Workbench';
+import { Icon, Button, TextField, TextArea, SelectField } from '../ui';
 import { DriveFilePicker } from './DriveFilePicker';
-import { buildExhibitionPatch } from '../../lib/studio/exhibition-patch';
-import { INTRO_TRANSITIONS, type IntroTransition } from '../../lib/viewer/intro-animations';
+import { extractGoogleDriveFileId } from '../../lib/media/gdrive';
 
 type CmsView =
   | { type: 'login' }
@@ -53,7 +41,7 @@ export function StudioApp() {
       .finally(() => setChecking(false));
   }, []);
 
-  if (checking) return <div className="studio-loading">Loading Curator Studio…</div>;
+  if (checking) return <div className="studio-loading reda-dark">Loading Curator Studio…</div>;
 
   if (!user || view.type === 'login') {
     return (
@@ -83,7 +71,7 @@ export function StudioApp() {
 
   if (view.type === 'editor') {
     return (
-      <ExhibitionEditor
+      <Workbench
         exhibitionId={view.exhibitionId}
         isTeam={user.is_team}
         onBack={() => setView({ type: 'dashboard' })}
@@ -94,7 +82,6 @@ export function StudioApp() {
   if (view.type === 'new-exhibition') {
     return (
       <NewExhibitionForm
-        isTeam={user.is_team}
         onCreated={(id) => setView({ type: 'editor', exhibitionId: id })}
         onCancel={() => setView({ type: 'dashboard' })}
       />
@@ -150,113 +137,108 @@ function Login({ onLoggedIn }: LoginProps) {
   };
 
   return (
-    <main className="login-page" aria-label="Sign in">
+    <main className="login-page reda-dark" aria-labelledby="login-heading">
       <div className="login-card">
-        <h1 className="login-card__title">3D Virtual Gallery</h1>
-        <p className="login-card__subtitle">Curator Studio</p>
+        <header className="login-card__header">
+          <span className="app-badge">REDA Curator Studio</span>
+          <h1 id="login-heading" className="login-card__title">
+            {mode === 'login' ? 'Sign in to curate' : 'Create curator account'}
+          </h1>
+          <p className="login-card__subtitle">
+            Curate virtual 3D exhibitions with high-resolution imagery and spatial audio.
+          </p>
+        </header>
 
-        <a
-          className="btn btn--google"
-          href="/api/auth/google"
-          aria-label="Sign in with Google"
-        >
-          <span aria-hidden="true">G</span> Continue with Google
-        </a>
+        {error && (
+          <div className="alert alert--error" role="alert">
+            {error}
+          </div>
+        )}
 
-        <hr className="login-divider" aria-hidden="true" />
-        <p className="login-divider__label">
-          {mode === 'login' ? 'or sign in with password' : 'or create a local curator account'}
-        </p>
+        <div className="oauth-providers">
+          <a
+            className="btn btn--secondary btn--full btn--google"
+            href="/api/auth/google"
+          >
+            <Icon name="google" /> Continue with Google
+          </a>
+        </div>
 
-        <form onSubmit={handlePasswordSubmit} noValidate>
+        <div className="divider">
+          <span>or with email</span>
+        </div>
+
+        <form onSubmit={handlePasswordSubmit} className="login-form">
           {mode === 'register' && (
-            <div className="form-group" style={{ marginBottom: '12px' }}>
-              <label htmlFor="login-name" className="sr-only">
-                Full Name
-              </label>
-              <input
-                id="login-name"
-                type="text"
-                placeholder="Full Name (e.g. Curator Alex)"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-                className="input"
-              />
-            </div>
+            <TextField
+              id="full_name"
+              label="Full Name"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Elena Rostova"
+              required
+            />
           )}
 
-          <div className="form-group" style={{ marginBottom: '12px' }}>
-            <label htmlFor="login-email" className="sr-only">
-              Email
-            </label>
-            <input
-              id="login-email"
-              type="email"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              className="input"
-            />
-          </div>
+          <TextField
+            id="email"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="curator@gallery.org"
+            required
+          />
 
-          <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label htmlFor="login-password" className="sr-only">
-              Password
-            </label>
-            <input
-              id="login-password"
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-              className="input"
-            />
-          </div>
+          <TextField
+            id="password"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+          />
 
-          {error && (
-            <p className="login-error" role="alert">
-              {error}
-            </p>
-          )}
-
-          <button type="submit" className="btn btn--primary" style={{ width: '100%' }} disabled={loading}>
+          <Button
+            type="submit"
+            variant="primary"
+            className="btn--full"
+            disabled={loading}
+          >
             {loading
-              ? mode === 'register'
-                ? 'Creating account…'
-                : 'Signing in…'
-              : mode === 'register'
-              ? 'Create Curator Account'
-              : 'Sign in'}
-          </button>
+              ? 'Please wait…'
+              : mode === 'login'
+              ? 'Sign in with Password'
+              : 'Create Account'}
+          </Button>
 
-          <div style={{ marginTop: '16px', textAlign: 'center' }}>
+          <div className="login-toggle">
             {mode === 'login' ? (
-              <button
+              <Button
                 type="button"
-                className="btn btn--ghost btn--sm"
+                variant="ghost"
+                className="btn--sm"
                 onClick={() => {
                   setMode('register');
                   setError(null);
                 }}
               >
-                Need an account? Register here
-              </button>
+                Need an account? Register
+              </Button>
             ) : (
-              <button
+              <Button
                 type="button"
-                className="btn btn--ghost btn--sm"
+                variant="ghost"
+                className="btn--sm"
                 onClick={() => {
                   setMode('login');
                   setError(null);
                 }}
               >
                 Already have an account? Sign in
-              </button>
+              </Button>
             )}
           </div>
         </form>
@@ -275,104 +257,109 @@ interface DashboardProps {
 }
 
 function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
-  const [exhibitions, setExhibitions] = useState<Exhibition[]>([]);
+  const [exhibitions, setExhibitions] = useState<ExhibitionDetail[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchExhibitions = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/exhibitions', { credentials: 'include' });
+      if (res.ok) {
+        setExhibitions(await res.json());
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetch('/api/exhibitions', { credentials: 'include' })
-      .then(async (r) => (await r.json()) as Exhibition[])
-      .then(setExhibitions)
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    fetchExhibitions();
   }, []);
 
   const handleDelete = async (id: string, title: string) => {
-    if (!window.confirm(`Are you sure you want to delete the exhibition "${title}"? This action cannot be undone.`)) {
-      return;
-    }
-    try {
-      const res = await fetch(`/api/exhibitions/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (res.ok) {
-        setExhibitions((prev) => prev.filter((ex) => ex.id !== id));
-      } else {
-        alert('Failed to delete exhibition.');
-      }
-    } catch {
-      alert('Network error while deleting exhibition.');
+    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+    const res = await fetch(`/api/exhibitions/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    if (res.ok) {
+      setExhibitions((prev) => prev.filter((e) => e.id !== id));
     }
   };
 
   return (
-    <div className="studio-dashboard">
-      <header className="studio-header">
+    <div className="dash reda-dark">
+      <div className="dhead">
         <div>
-          <h1 className="studio-header__title">My Virtual Exhibitions</h1>
-          <p className="studio-header__curator">Logged in as {user.email}</p>
+          <div className="k">REDA · Legacy &amp; Archive</div>
+          <h1>Your exhibitions</h1>
+          <div className="who">Signed in as {user.email}</div>
         </div>
-        <div className="studio-header__actions">
-          <button className="btn btn--primary" onClick={onNew}>
-            + New Exhibition
-          </button>
-          <button className="btn btn--ghost" onClick={onLogout}>
-            Sign out
-          </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <Button type="button" variant="primary" iconLeft="plus" onClick={onNew}>
+            New exhibition
+          </Button>
+          <Button type="button" variant="ghost" onClick={onLogout}>
+            Sign Out
+          </Button>
         </div>
-      </header>
+      </div>
 
       {loading ? (
-        <p className="studio-loading">Loading exhibitions…</p>
-      ) : exhibitions.length === 0 ? (
-        <div className="studio-empty">
-          <p>You have not created any exhibitions yet.</p>
-          <button className="btn btn--primary" onClick={onNew}>
-            Create your first exhibition
-          </button>
-        </div>
+        <div className="studio-loading" style={{ minHeight: '300px' }}>Loading your exhibitions…</div>
       ) : (
-        <ul className="exhibition-list">
+        <div className="dgrid">
           {exhibitions.map((ex) => (
-            <li key={ex.id} className="exhibition-list__item">
-              <div className="exhibition-list__info">
-                <h3>{ex.title}</h3>
-                <p className="slug-preview">/e/{ex.slug}</p>
-                <span
-                  className={`badge ${
-                    ex.is_published ? 'badge--live' : 'badge--draft'
-                  }`}
-                >
-                  {ex.is_published ? 'Published (Live)' : 'Draft'}
+            <div key={ex.id} className="dcard">
+              <div className="prev">
+                <div style={{ position: 'absolute', inset: 0, color: 'var(--reda-gold)', opacity: 0.35, padding: '22px' }}>
+                  <svg viewBox="0 0 200 120" style={{ width: '100%', height: '100%' }} fill="none" stroke="currentColor" strokeWidth="1.2">
+                    <rect x="24" y="18" width="152" height="84" />
+                    <path d="M100 18v40h76" strokeDasharray="4 3" />
+                    <rect x="44" y="21" width="22" height="3" fill="currentColor" />
+                    <rect x="120" y="21" width="26" height="3" fill="currentColor" />
+                    <rect x="27" y="44" width="3" height="22" fill="currentColor" />
+                  </svg>
+                </div>
+                <span className="badge">{ex.is_published ? 'Live' : 'Draft'}</span>
+                <span className="ct">
+                  {ex.artworks?.length ?? 0} works · {ex.room?.name ?? 'No room'}
                 </span>
               </div>
-              <div className="exhibition-list__actions">
-                <button
-                  type="button"
-                  className="btn btn--secondary"
-                  onClick={() => onEdit(ex.id)}
-                >
-                  Edit &amp; Curate
-                </button>
+              <div className="bd">
+                <h3>{ex.title}</h3>
+                <div className="slug">/e/{ex.slug}</div>
+                <div className="cur">Curator · {ex.curator_name || '—'}</div>
+              </div>
+              <div className="acts">
+                <Button variant="primary" size="sm" onClick={() => onEdit(ex.id)}>
+                  Edit &amp; curate
+                </Button>
                 <a
-                  className="btn btn--ghost"
+                  className="btn btn--secondary btn--sm"
                   href={`/e/${ex.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  View 3D ↗
+                  View 3D <Icon name="external" size={12} />
                 </a>
-                <button
-                  type="button"
-                  className="btn btn--danger btn--sm"
+                <Button
+                  variant="danger"
+                  size="sm"
+                  iconLeft="trash"
+                  aria-label={`Delete ${ex.title}`}
                   onClick={() => handleDelete(ex.id, ex.title)}
-                >
-                  Delete
-                </button>
+                />
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
+          <button type="button" className="dnew" onClick={onNew} aria-label="Create new exhibition">
+            <div className="c">
+              <Icon name="plus" size={20} />
+            </div>
+            New exhibition
+          </button>
+        </div>
       )}
     </div>
   );
@@ -381,17 +368,18 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
 // ─── New Exhibition Form ───────────────────────────────────────────────────────
 
 interface NewExhibitionFormProps {
-  isTeam?: boolean;
   onCreated(id: string): void;
   onCancel(): void;
 }
 
-function NewExhibitionForm({ isTeam = false, onCreated, onCancel }: NewExhibitionFormProps) {
+function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
   const [title, setTitle] = useState('');
-  const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [curatorName, setCuratorName] = useState('');
+  const [roomSource, setRoomSource] = useState<'library' | 'custom_glb'>('library');
   const [roomId, setRoomId] = useState('');
+  const [customRoomName, setCustomRoomName] = useState('');
+  const [customGlbInput, setCustomGlbInput] = useState('');
   const [rooms, setRooms] = useState<Room[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -409,24 +397,60 @@ function NewExhibitionForm({ isTeam = false, onCreated, onCancel }: NewExhibitio
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (!roomId) {
-      setError('Please select or import a room.');
-      return;
-    }
-
     setCreating(true);
+
     try {
+      let finalRoomId = roomId;
+
+      if (roomSource === 'custom_glb') {
+        const glbFileId = extractGoogleDriveFileId(customGlbInput.trim()) || customGlbInput.trim();
+        if (!glbFileId) {
+          setError('Please provide a Google Drive link, file ID, or 3D model URL for the custom room.');
+          setCreating(false);
+          return;
+        }
+
+        const roomRes = await fetch('/api/rooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            name: customRoomName.trim() || `${title.trim() || 'Custom'} Space`,
+            glb_file_id: glbFileId,
+            glb_source: customGlbInput.includes('drive.google.com') ? 'curator_drive' : 'platform_drive',
+            is_public: 0,
+          }),
+        });
+
+        if (!roomRes.ok) {
+          setError(`Failed to create custom 3D space: ${await roomRes.text()}`);
+          setCreating(false);
+          return;
+        }
+
+        const newRoom = (await roomRes.json()) as Room;
+        finalRoomId = newRoom.id;
+      }
+
+      // Generate a memorable and clean unique slug from the title
+      const baseSlug = title
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'exhibition';
+      const uniqueSuffix = Math.random().toString(36).substring(2, 6);
+      const generatedSlug = `${baseSlug}-${uniqueSuffix}`;
+
       const res = await fetch('/api/exhibitions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           title: title.trim(),
-          slug: slug.trim().toLowerCase().replace(/\s+/g, '-'),
-          room_id: roomId,
-          description: description.trim() || null,
-          curator_name: curatorName.trim() || null,
+          slug: generatedSlug,
+          description: description.trim() || undefined,
+          curator_name: curatorName.trim() || undefined,
+          room_id: finalRoomId,
         }),
       });
 
@@ -435,852 +459,176 @@ function NewExhibitionForm({ isTeam = false, onCreated, onCancel }: NewExhibitio
         return;
       }
 
-      const ex = (await res.json()) as { id: string };
-      onCreated(ex.id);
+      const created = (await res.json()) as { id: string };
+      onCreated(created.id);
     } catch {
-      setError('Network error while creating exhibition.');
+      setError('Network error. Please try again.');
     } finally {
       setCreating(false);
     }
   };
 
   return (
-    <div className="studio-new-exhibition">
-      <h2>Create New Exhibition</h2>
-      <form onSubmit={handleSubmit} className="new-exhibition-form">
-        <div className="form-group">
-          <label htmlFor="new-ex-title" className="form-label">
-            Exhibition Title
-          </label>
-          <input
-            id="new-ex-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Modernist Horizons 2026"
-            required
-            className="input"
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="new-ex-slug" className="form-label">
-            Public URL Slug (e.g. /e/modernist-horizons)
-          </label>
-          <input
-            id="new-ex-slug"
-            value={slug}
-            onChange={(e) =>
-              setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))
-            }
-            placeholder="modernist-horizons"
-            required
-            pattern="[a-z0-9-]+"
-            className="input"
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="new-ex-curator" className="form-label">
-            Curator Name (Optional)
-          </label>
-          <input
-            id="new-ex-curator"
-            value={curatorName}
-            onChange={(e) => setCuratorName(e.target.value)}
-            placeholder="e.g. Elena Rostova"
-            className="input"
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="new-ex-desc" className="form-label">
-            Exhibition Statement / Description
-          </label>
-          <textarea
-            id="new-ex-desc"
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Overview of the exhibition concept and themes..."
-            className="input textarea"
-          />
-        </div>
-
-        {/* Room Importer Component */}
-        <RoomImporter
-          rooms={rooms}
-          selectedRoomId={roomId}
-          isTeam={isTeam}
-          onSelectRoom={setRoomId}
-          onRoomCreated={(r) => setRooms((prev) => [r, ...prev])}
-        />
-
-        {error && (
-          <p className="error" role="alert">
-            {error}
-          </p>
-        )}
-
-        <div className="form-actions">
-          <button
-            type="submit"
-            className="btn btn--primary"
-            disabled={creating || !roomId}
-          >
-            {creating ? 'Creating…' : 'Create Exhibition'}
-          </button>
-          <button type="button" className="btn btn--ghost" onClick={onCancel}>
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-// ─── Exhibition Editor ────────────────────────────────────────────────────────
-
-interface ExhibitionEditorProps {
-  exhibitionId: string;
-  isTeam?: boolean;
-  onBack(): void;
-}
-
-function ExhibitionEditor({ exhibitionId, isTeam = false, onBack }: ExhibitionEditorProps) {
-  const [exhibition, setExhibition] = useState<ExhibitionDetail | null>(null);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
-  const [isArtistModalOpen, setIsArtistModalOpen] = useState(false);
-  const [form, setForm] = useState<{
-    title: string;
-    description: string;
-    curator_name: string;
-    start_date: string;
-    end_date: string;
-    cover_image_url: string;
-    room_id: string;
-    intro_video_file_id: string;
-    intro_transition: IntroTransition;
-    curation_type: 'solo' | 'group';
-  }>({
-    title: '',
-    description: '',
-    curator_name: '',
-    start_date: '',
-    end_date: '',
-    cover_image_url: '',
-    room_id: '',
-    intro_video_file_id: '',
-    intro_transition: 'zoom_in',
-    curation_type: 'solo',
-  });
-
-  const fetchExhibition = () => {
-    fetch(`/api/exhibitions/${exhibitionId}`, { credentials: 'include' })
-      .then(async (r) => (await r.json()) as ExhibitionDetail)
-      .then((data) => {
-        setExhibition(data);
-        let parsedSettings: Record<string, unknown> = {};
-        try {
-          parsedSettings = data.settings_json ? JSON.parse(data.settings_json) : {};
-        } catch {}
-
-        setForm({
-          title: data.title ?? '',
-          description: data.description ?? '',
-          curator_name: data.curator_name ?? '',
-          start_date: data.start_date ?? '',
-          end_date: data.end_date ?? '',
-          cover_image_url: data.cover_image_url ?? '',
-          room_id: data.room_id ?? '',
-          intro_video_file_id: data.intro_video_file_id ?? '',
-          intro_transition: (parsedSettings.introTransition as IntroTransition) || 'zoom_in',
-          curation_type: data.curation_type ?? 'solo',
-        });
-      })
-      .catch(() => {});
-  };
-
-  useEffect(() => {
-    fetchExhibition();
-    fetch('/api/rooms', { credentials: 'include' })
-      .then(async (r) => (r.ok ? ((await r.json()) as Room[]) : []))
-      .then(setRooms)
-      .catch(() => {});
-  }, [exhibitionId]);
-
-  const handleSaveDetails = async (e: FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setStatus(null);
-    try {
-      let existingSettings: Record<string, unknown> = {};
-      try {
-        existingSettings = exhibition?.settings_json ? JSON.parse(exhibition.settings_json) : {};
-      } catch {}
-
-      const updatedSettingsJson = JSON.stringify({
-        ...existingSettings,
-        introTransition: form.intro_transition,
-      });
-
-      const patch = buildExhibitionPatch({
-        ...form,
-        settings_json: updatedSettingsJson,
-      });
-
-      const res = await fetch(`/api/exhibitions/${exhibitionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(patch),
-      });
-      if (res.ok) {
-        setStatus('✓ Exhibition details saved.');
-        fetchExhibition();
-      } else {
-        const errText = await res.text();
-        setStatus(`Failed to save: ${errText}`);
-      }
-    } catch {
-      setStatus('Network error while saving exhibition.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handlePublish = async () => {
-    if (!exhibition) return;
-    setSaving(true);
-    setStatus(null);
-    try {
-      const res = await fetch(`/api/exhibitions/${exhibitionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ is_published: 1 }),
-      });
-      if (res.ok) {
-        setExhibition({ ...exhibition, is_published: 1 });
-        setStatus('✓ Published! Edge CDN cache pre-warmed for 3D room and media.');
-      } else {
-        setStatus('Publish failed.');
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleUnpublish = async () => {
-    if (!exhibition) return;
-    setSaving(true);
-    setStatus(null);
-    try {
-      const res = await fetch(`/api/exhibitions/${exhibitionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ is_published: 0 }),
-      });
-      if (res.ok) {
-        setExhibition({ ...exhibition, is_published: 0 });
-        setStatus('Exhibition reverted to draft.');
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDeleteExhibition = async () => {
-    if (!exhibition) return;
-    if (!window.confirm(`Are you sure you want to delete "${exhibition.title}"? This will delete the exhibition, its artworks, and 3D configuration.`)) {
-      return;
-    }
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/exhibitions/${exhibitionId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (res.ok) {
-        onBack();
-      } else {
-        alert('Failed to delete exhibition.');
-      }
-    } catch {
-      alert('Network error while deleting exhibition.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (!exhibition) return <div className="studio-loading">Loading exhibition editor…</div>;
-
-  return (
-    <div className="studio-editor">
-      <header className="studio-editor__header">
-        <button className="btn btn--ghost" onClick={onBack}>
-          ← Dashboard
-        </button>
-        <div className="title-area">
-          <h2 className="studio-editor__title">{exhibition.title}</h2>
-          <span
-            className={`badge ${
-              exhibition.is_published ? 'badge--live' : 'badge--draft'
-            }`}
-          >
-            {exhibition.is_published ? 'Published' : 'Draft'}
-          </span>
-        </div>
-
-        <div className="header-actions">
-          {exhibition.is_published ? (
-            <button
-              type="button"
-              className="btn btn--ghost"
-              onClick={handleUnpublish}
-              disabled={saving}
-            >
-              Unpublish to Draft
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn--primary"
-              onClick={handlePublish}
-              disabled={saving}
-            >
-              {saving ? 'Publishing…' : 'Publish Exhibition'}
-            </button>
-          )}
-
-          <a
-            className="btn btn--secondary"
-            href={`/e/${exhibition.slug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Preview 3D Room ↗
-          </a>
-
-          <button
-            type="button"
-            className="btn btn--danger"
-            onClick={handleDeleteExhibition}
-            disabled={saving}
-          >
-            Delete Exhibition
-          </button>
-        </div>
+    <div className="studio-new-exhibition reda-dark">
+      <header className="studio-header">
+        <h1>Create New Exhibition</h1>
+        <Button variant="ghost" onClick={onCancel}>
+          Cancel
+        </Button>
       </header>
 
-      {status && (
-        <div className="studio-editor__status-banner" role="status">
-          {status}
-        </div>
-      )}
+      <div style={{ padding: '32px clamp(16px, 4vw, 48px) 64px', maxWidth: '720px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+        <div className="studio-card">
+          {error && (
+            <p className="error" role="alert" style={{ marginBottom: '1rem' }}>
+              {error}
+            </p>
+          )}
 
-      {/* Exhibition Details Edit Form */}
-      <section className="studio-card" style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '0.75rem', fontSize: '1.1rem' }}>
-          Exhibition Details &amp; 3D Space
-        </h3>
-        <p className="hint" style={{ marginBottom: '1rem' }}>
-          Public Link: <strong>/e/{exhibition.slug}</strong> (permanent)
-        </p>
-
-        <form onSubmit={handleSaveDetails} className="studio-form">
-          <div className="form-group">
-            <label htmlFor="edit-ex-title" className="form-label">
-              Exhibition Title *
-            </label>
-            <input
-              id="edit-ex-title"
-              value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+          <form onSubmit={handleSubmit} className="studio-form">
+            <TextField
+              id="new-ex-title"
+              label="Exhibition Title *"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Modernist Perspectives 2026"
               required
-              className="input"
             />
-          </div>
 
-          <div className="form-group">
-            <label htmlFor="edit-ex-curator" className="form-label">
-              Curator Name
-            </label>
-            <input
-              id="edit-ex-curator"
-              value={form.curator_name}
-              onChange={(e) => setForm((f) => ({ ...f, curator_name: e.target.value }))}
+            <TextField
+              id="new-ex-curator"
+              label="Curator Name"
+              value={curatorName}
+              onChange={(e) => setCuratorName(e.target.value)}
               placeholder="e.g. Elena Rostova"
-              className="input"
             />
-          </div>
 
-          <div className="form-group">
-            <label htmlFor="edit-ex-room" className="form-label">
-              Gallery Room (Swap 3D Space)
-            </label>
-            <select
-              id="edit-ex-room"
-              value={form.room_id}
-              onChange={(e) => setForm((f) => ({ ...f, room_id: e.target.value }))}
-              className="input select"
-              required
-            >
-              {/* Before rooms load, keep the current room selected instead of rendering blank */}
-              {rooms.length === 0 && (
-                <option value={form.room_id}>Loading rooms…</option>
-              )}
-              {/* If the current room isn't in the fetched list, still show it as selected */}
-              {rooms.length > 0 && !rooms.some((r) => r.id === form.room_id) && (
-                <option value={form.room_id}>
-                  {exhibition.room?.name ?? 'Current room'} (current)
-                </option>
-              )}
-              {rooms.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name} {r.is_public ? '(Platform Library)' : '(Custom Room)'}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Exhibition Curation Type</label>
-            <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem', marginBottom: '0.5rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#f0f6fc' }}>
-                <input
-                  type="radio"
-                  name="curation_type"
-                  value="solo"
-                  checked={form.curation_type === 'solo'}
-                  onChange={() => setForm((f) => ({ ...f, curation_type: 'solo' }))}
-                />
-                <span>👤 Solo Artist Exhibition</span>
+            {/* 3D Gallery Space Selector / Custom GLB */}
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+              <label className="form-label" style={{ display: 'block', marginBottom: '8px' }}>
+                3D Gallery Space *
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#f0f6fc' }}>
-                <input
-                  type="radio"
-                  name="curation_type"
-                  value="group"
-                  checked={form.curation_type === 'group'}
-                  onChange={() => setForm((f) => ({ ...f, curation_type: 'group' }))}
-                />
-                <span>👥 Group / Collective Exhibition</span>
-              </label>
-            </div>
-            <p className="hint">
-              {form.curation_type === 'group'
-                ? 'Group mode allows curating artworks by multiple artists and lets visitors explore individual artist profile modals in the 3D gallery.'
-                : 'Solo mode focuses the exhibition experience on a single featured artist or unified collection.'}
-            </p>
-          </div>
-
-          <div className="form-group" style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <strong style={{ color: '#f0f6fc' }}>Artist Profiles</strong>
-                <p className="hint" style={{ margin: '0.25rem 0 0' }}>
-                  {exhibition.artists && exhibition.artists.length > 0
-                    ? `${exhibition.artists.length} artist profile(s) configured.`
-                    : 'Add artist biographies, life dates, quotes, and portraits for fullscreen visitor bio overlays.'}
-                </p>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                <button
+                  type="button"
+                  className={`type-btn ${roomSource === 'library' ? 'active' : ''}`}
+                  onClick={() => setRoomSource('library')}
+                  style={{ flex: 1 }}
+                >
+                  <Icon name="cube" /> Platform Library Room
+                </button>
+                <button
+                  type="button"
+                  className={`type-btn ${roomSource === 'custom_glb' ? 'active' : ''}`}
+                  onClick={() => setRoomSource('custom_glb')}
+                  style={{ flex: 1 }}
+                >
+                  <Icon name="map" /> Custom 3D Space (.GLB)
+                </button>
               </div>
-              <button
-                type="button"
-                className="btn btn--secondary"
-                onClick={() => setIsArtistModalOpen(true)}
-              >
-                👥 Manage Artists ({exhibition.artists?.length || 0})
-              </button>
-            </div>
-          </div>
 
-          <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <label htmlFor="edit-ex-intro-video" className="form-label" style={{ marginBottom: 0 }}>
-                🎬 Intro Video File Link or ID (Optional, ≤20s · ≤30 MB · use YouTube for artwork video)
-              </label>
-              <DriveFilePicker
-                mimeTypes="video/mp4,video/webm"
-                isTeam={isTeam}
-                buttonLabel="📁 Pick Video from Google Drive"
-                onPicked={(fileId) => setForm((f) => ({ ...f, intro_video_file_id: fileId }))}
-                onRejected={(fileName) =>
-                  setStatus(`"${fileName}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
-                }
-              />
-            </div>
-            <input
-              id="edit-ex-intro-video"
-              value={form.intro_video_file_id}
-              onChange={(e) => {
-                const val = e.target.value;
-                const extracted = extractGoogleDriveFileId(val);
-                setForm((f) => ({ ...f, intro_video_file_id: extracted ?? val }));
-              }}
-              onBlur={() => {
-                if (form.intro_video_file_id) {
-                  const extracted = extractGoogleDriveFileId(form.intro_video_file_id);
-                  if (extracted) {
-                    setForm((f) => ({ ...f, intro_video_file_id: extracted }));
-                  }
-                }
-              }}
-              placeholder="Google Drive sharing link or file ID (MP4 / WebM)"
-              className="input"
-            />
-            <p className="hint">
-              Plays seamlessly during initial exhibition loading. Visitors can skip directly to the 3D room once assets are loaded.
-            </p>
-            <p className="hint" style={{ marginTop: '0.25rem' }}>
-              Recommended: MP4 / WebM, ≤ 20 MB, 5–10s duration. Long or high-bitrate clips stall the loader
-              (served from Google Drive; artwork video should use YouTube instead).
-            </p>
-          </div>
-
-          {form.intro_video_file_id && (
-            <div className="form-group">
-              <label htmlFor="edit-ex-intro-transition" className="form-label">
-                ✨ Intro-to-Exhibition Transition Animation
-              </label>
-              <select
-                id="edit-ex-intro-transition"
-                value={form.intro_transition}
-                onChange={(e) => setForm((f) => ({ ...f, intro_transition: e.target.value as IntroTransition }))}
-                className="input select"
-              >
-                {INTRO_TRANSITIONS.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label} — {t.description}
-                  </option>
-                ))}
-              </select>
-              <p className="hint">
-                Choose the default visual transition effect when the intro ends and visitors enter the 3D space.
-              </p>
-            </div>
-          )}
-
-          <div className="form-group">
-            <label htmlFor="edit-ex-desc" className="form-label">
-              Description / Curatorial Statement
-            </label>
-            <textarea
-              id="edit-ex-desc"
-              rows={3}
-              value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              placeholder="Exhibition overview..."
-              className="input textarea"
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" className="btn btn--primary" disabled={saving}>
-              {saving ? 'Saving…' : 'Save Details'}
-            </button>
-          </div>
-        </form>
-      </section>
-
-      {/* Artist Manager Modal */}
-      {isArtistModalOpen && (
-        <ArtistManagerModal
-          exhibitionId={exhibition.id}
-          artists={exhibition.artists ?? []}
-          onArtistsChanged={fetchExhibition}
-          onClose={() => setIsArtistModalOpen(false)}
-        />
-      )}
-
-      {/* Artworks Management Section */}
-      <ArtworkManager
-        exhibition={exhibition}
-        isTeam={isTeam}
-        onArtworksChanged={fetchExhibition}
-      />
-    </div>
-  );
-}
-
-// ─── Artwork Manager ─────────────────────────────────────────────────────────
-
-interface ArtworkManagerProps {
-  exhibition: ExhibitionDetail;
-  isTeam?: boolean;
-  onArtworksChanged(): void;
-}
-
-function ArtworkManager({ exhibition, isTeam = false, onArtworksChanged }: ArtworkManagerProps) {
-  const [formArtwork, setFormArtwork] = useState<Artwork | null | 'new'>(null);
-  const [hotspotArtwork, setHotspotArtwork] = useState<Artwork | null>(null);
-  const [gizmoActive, setGizmoActive] = useState(false);
-  const [selectedGizmoArtId, setSelectedGizmoArtId] = useState<string | undefined>(undefined);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const artworks = exhibition.artworks || [];
-  const artists = exhibition.artists || [];
-  const isGroup = exhibition.curation_type === 'group';
-
-  const handleDelete = async (artworkId: string) => {
-    if (!confirm('Are you sure you want to delete this artwork?')) return;
-    setDeletingId(artworkId);
-    try {
-      const res = await fetch(`/api/artworks/${artworkId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (res.ok) {
-        onArtworksChanged();
-      }
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const renderArtworkCard = (art: Artwork, index: number) => {
-    let thumbUrl: string | null = null;
-    if (art.artwork_type === 'IMAGE_2D' && art.media_file_id) {
-      thumbUrl = getImageUrl(art.media_file_id, 'thumbnail');
-    } else if (art.artwork_type === 'VIDEO' && art.youtube_video_id) {
-      thumbUrl = `https://img.youtube.com/vi/${art.youtube_video_id}/hqdefault.jpg`;
-    }
-
-    return (
-      <div key={art.id} className="artwork-card">
-        <div className="artwork-card__media">
-          {thumbUrl ? (
-            <img
-              src={thumbUrl}
-              alt={art.title}
-              className="artwork-card__thumb"
-            />
-          ) : art.artwork_type === 'AUDIO' ? (
-            <div className="artwork-card__audio-placeholder">
-              🎵 Audio Marker
-            </div>
-          ) : (
-            <div className="artwork-card__placeholder">No Media</div>
-          )}
-          <span className="artwork-type-badge">{art.artwork_type}</span>
-        </div>
-
-        <div className="artwork-card__body">
-          <h4 className="artwork-card__title">
-            {index + 1}. {art.title}
-          </h4>
-          {art.artist && (
-            <p className="artwork-card__artist">
-              👤 {art.artist}
-            </p>
-          )}
-          {art.medium && (
-            <p className="artwork-card__meta">{art.medium}</p>
-          )}
-          {art.dimensions && (
-            <p className="artwork-card__dims">{art.dimensions}</p>
-          )}
-
-          {art.artwork_type === 'IMAGE_2D' && (
-            <p className="artwork-card__hotspots-count">
-              Pins: {(art as Artwork & { hotspots?: ArtworkHotspot[] }).hotspots?.length || 0} hotspots
-            </p>
-          )}
-        </div>
-
-        <div className="artwork-card__footer">
-          <button
-            type="button"
-            className="btn btn--sm btn--ghost"
-            onClick={() => setFormArtwork(art)}
-          >
-            Edit Info
-          </button>
-
-          <button
-            type="button"
-            className="btn btn--sm btn--secondary"
-            onClick={() => {
-              setSelectedGizmoArtId(art.id);
-              setGizmoActive(true);
-            }}
-            title="Position artwork in 3D scene"
-          >
-            Move in 3D
-          </button>
-
-          {art.artwork_type === 'IMAGE_2D' && (
-            <button
-              type="button"
-              className="btn btn--sm btn--ghost"
-              onClick={() => setHotspotArtwork(art)}
-            >
-              Hotspots ({(art as Artwork & { hotspots?: ArtworkHotspot[] }).hotspots?.length || 0})
-            </button>
-          )}
-
-          <button
-            type="button"
-            className="btn btn--sm btn--danger"
-            onClick={() => handleDelete(art.id)}
-            disabled={deletingId === art.id}
-          >
-            {deletingId === art.id ? 'Deleting…' : 'Delete'}
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <section className="artwork-manager">
-      <div className="artwork-manager__header">
-        <div>
-          <h3>Exhibition Artworks ({artworks.length})</h3>
-          <p className="artwork-manager__hint">
-            Manage your paintings, videos, and audio installations. Use 3D Gizmo Placement to hang
-            them on the walls of {exhibition.room.name}.
-          </p>
-        </div>
-        <div className="artwork-manager__actions">
-          <button
-            type="button"
-            className="btn btn--primary"
-            onClick={() => setFormArtwork('new')}
-          >
-            + Add Artwork
-          </button>
-          {artworks.length > 0 && (
-            <button
-              type="button"
-              className="btn btn--secondary"
-              onClick={() => {
-                setSelectedGizmoArtId(artworks[0]?.id);
-                setGizmoActive(true);
-              }}
-            >
-              🎮 3D Gizmo Scene Placement
-            </button>
-          )}
-        </div>
-      </div>
-
-      {artworks.length === 0 ? (
-        <div className="artwork-manager__empty">
-          <p>No artworks in this exhibition yet.</p>
-          <button
-            type="button"
-            className="btn btn--primary"
-            onClick={() => setFormArtwork('new')}
-          >
-            Add First Artwork
-          </button>
-        </div>
-      ) : isGroup && artists.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {artists.map((artist) => {
-            const artistArtworks = artworks.filter(
-              (a) => a.artist_id === artist.id || (!a.artist_id && a.artist.trim().toLowerCase() === artist.name.trim().toLowerCase())
-            );
-            if (artistArtworks.length === 0) return null;
-
-            return (
-              <div key={artist.id} style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                  {artist.portrait_file_id ? (
-                    <img
-                      src={getImageUrl(artist.portrait_file_id)}
-                      alt={artist.name}
-                      style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255, 255, 255, 0.2)' }}
+              {roomSource === 'library' ? (
+                <SelectField
+                  id="new-ex-room"
+                  label="Select Gallery Room"
+                  value={roomId}
+                  onChange={(e) => setRoomId(e.target.value)}
+                  required
+                >
+                  {rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} {r.is_public ? '(Platform Library)' : '(Custom Room)'}
+                    </option>
+                  ))}
+                </SelectField>
+              ) : (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '14px',
+                    padding: '16px',
+                    background: 'var(--reda-parch)',
+                    borderRadius: '6px',
+                    border: '1px solid var(--reda-parch-border)',
+                    boxSizing: 'border-box',
+                    width: '100%',
+                  }}
+                >
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label htmlFor="custom-room-name" className="form-label" style={{ color: 'var(--reda-ink-2)' }}>
+                      Custom Space Name
+                    </label>
+                    <input
+                      id="custom-room-name"
+                      type="text"
+                      value={customRoomName}
+                      onChange={(e) => setCustomRoomName(e.target.value)}
+                      placeholder="e.g. Modern Minimalist Pavilion"
+                      className="input"
+                      style={{
+                        background: 'var(--reda-parch-card)',
+                        color: 'var(--reda-ink)',
+                        borderColor: 'var(--reda-parch-border)',
+                        width: '100%',
+                        boxSizing: 'border-box',
+                      }}
                     />
-                  ) : (
-                    <span style={{ fontSize: '1.4rem' }}>👤</span>
-                  )}
-                  <div>
-                    <h4 style={{ margin: 0, fontSize: '1.1rem', color: '#f0f6fc' }}>
-                      {artist.name} {artist.life_dates ? <span style={{ fontSize: '0.85rem', color: '#8b949e', fontWeight: 'normal' }}>({artist.life_dates})</span> : null}
-                    </h4>
-                    <span className="hint" style={{ fontSize: '0.8rem' }}>{artistArtworks.length} artwork(s)</span>
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label htmlFor="custom-glb-file" className="form-label" style={{ color: 'var(--reda-ink-2)' }}>
+                      Google Drive Link or File ID (.GLB Model) *
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px', width: '100%', boxSizing: 'border-box', alignItems: 'center' }}>
+                      <input
+                        id="custom-glb-file"
+                        type="text"
+                        value={customGlbInput}
+                        onChange={(e) => setCustomGlbInput(e.target.value)}
+                        placeholder="https://drive.google.com/file/d/... or File ID"
+                        className="input"
+                        required={roomSource === 'custom_glb'}
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          background: 'var(--reda-parch-card)',
+                          color: 'var(--reda-ink)',
+                          borderColor: 'var(--reda-parch-border)',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                      <DriveFilePicker
+                        mimeTypes="model/gltf-binary"
+                        onPicked={(fileId: string) => {
+                          setCustomGlbInput(fileId);
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="artwork-cards-grid">
-                  {artistArtworks.map((art, idx) => renderArtworkCard(art, idx))}
-                </div>
-              </div>
-            );
-          })}
+              )}
+            </div>
 
-          {/* Unassigned Artworks in Group Mode */}
-          {(() => {
-            const unassigned = artworks.filter((a) => {
-              if (a.artist_id) return !artists.some((art) => art.id === a.artist_id);
-              return !artists.some((art) => art.name.trim().toLowerCase() === a.artist.trim().toLowerCase());
-            });
-            if (unassigned.length === 0) return null;
+            <TextArea
+              id="new-ex-desc"
+              label="Curatorial Statement / Description"
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Exhibition overview..."
+            />
 
-            return (
-              <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <h4 style={{ margin: '0 0 1rem', fontSize: '1.1rem', color: '#f0f6fc' }}>
-                  🎨 Other Artworks ({unassigned.length})
-                </h4>
-                <div className="artwork-cards-grid">
-                  {unassigned.map((art, idx) => renderArtworkCard(art, idx))}
-                </div>
-              </div>
-            );
-          })()}
+            <div className="form-actions" style={{ marginTop: '1.5rem' }}>
+              <Button type="submit" variant="primary" disabled={creating}>
+                {creating ? 'Creating…' : 'Create & Start Curating'}
+              </Button>
+              <Button type="button" variant="ghost" onClick={onCancel}>
+                Cancel
+              </Button>
+            </div>
+          </form>
         </div>
-      ) : (
-        <div className="artwork-cards-grid">
-          {artworks.map((art, index) => renderArtworkCard(art, index))}
-        </div>
-      )}
-
-      {/* Artwork Form Modal */}
-      {formArtwork && (
-        <ArtworkForm
-          exhibitionId={exhibition.id}
-          artwork={formArtwork === 'new' ? null : formArtwork}
-          artists={artists}
-          isTeam={isTeam}
-          onSaved={() => {
-            setFormArtwork(null);
-            onArtworksChanged();
-          }}
-          onCancel={() => setFormArtwork(null)}
-        />
-      )}
-
-      {/* Hotspot Editor Modal */}
-      {hotspotArtwork && (
-        <HotspotEditor
-          artwork={hotspotArtwork}
-          hotspots={
-            exhibition.artworks.find((a) => a.id === hotspotArtwork.id)
-              ?.hotspots || []
-          }
-          isTeam={isTeam}
-          onHotspotsUpdated={() => {
-            onArtworksChanged();
-          }}
-          onClose={() => setHotspotArtwork(null)}
-        />
-      )}
-
-      {/* 3D Gizmo Placement View */}
-      {gizmoActive && (
-        <GizmoPlacement
-          room={exhibition.room}
-          artworks={artworks}
-          initialSelectedArtworkId={selectedGizmoArtId}
-          onArtworkTransformSaved={() => {
-            onArtworksChanged();
-          }}
-          onClose={() => setGizmoActive(false)}
-        />
-      )}
-    </section>
+      </div>
+    </div>
   );
 }

@@ -16,15 +16,15 @@ export interface GlbValidationResult {
 }
 
 const GLB_MAGIC = [0x67, 0x6c, 0x54, 0x46]; // "glTF"
-const MAX_SIZE_BYTES = 50 * 1024 * 1024;  // 50 MB hard cap
-const WARN_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB soft budget
+const MAX_SIZE_BYTES = 200 * 1024 * 1024;  // 200 MB hard cap
+const WARN_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB soft budget
 
 export async function validateGlbFile(file: File): Promise<GlbValidationResult> {
   // Size check
   if (file.size > MAX_SIZE_BYTES) {
     return {
       valid: false,
-      error: `File is ${(file.size / 1024 / 1024).toFixed(1)} MB — exceeds the 50 MB hard cap. Decimate geometry or reduce texture sizes and re-export.`,
+      error: `File is ${(file.size / 1024 / 1024).toFixed(1)} MB — exceeds the 200 MB hard cap. Decimate geometry or reduce texture sizes and re-export.`,
     };
   }
 
@@ -44,7 +44,7 @@ export async function validateGlbFile(file: File): Promise<GlbValidationResult> 
   if (file.size > WARN_SIZE_BYTES) {
     return {
       valid: true,
-      warning: `File is ${(file.size / 1024 / 1024).toFixed(1)} MB — above the 25 MB soft budget. Consider enabling Draco compression and reducing texture sizes.`,
+      warning: `File is ${(file.size / 1024 / 1024).toFixed(1)} MB — above the 100 MB soft budget. Consider enabling Draco compression and reducing texture sizes.`,
     };
   }
 

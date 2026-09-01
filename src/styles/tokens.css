@@ -1,0 +1,71 @@
+/* REDA design tokens — primitives → semantic. Source: 2026-08-30-reda-design-system-foundation.md */
+:root {
+  /* grounds */
+  --reda-char: #1B1A17;        /* app/dark ground */
+  --reda-char-2: #232019;      /* panels, bars */
+  --reda-char-3: #2B271F;      /* insets, hovered chrome */
+  --reda-wall: #2C2C31;        /* NEUTRAL art stage — distinct from brand charcoal */
+  --reda-wall-deep: #181820;   /* viewer gallery */
+  --reda-wall-deepest: #101015;
+  /* paper */
+  --reda-parch: #E7DDC6;
+  --reda-parch-2: #F0E8D4;
+  --reda-parch-border: #D3C6A8;
+  --reda-parch-border-subtle: #E6DCBF;
+  --reda-parch-field: #FCF8F0;
+  --reda-parch-card: #FAF7EE;
+  --reda-field: #FBF6EA;
+  --reda-border: #D3C6A8;
+  /* viewer glass (dark register chrome) */
+  --reda-glass: rgba(20, 18, 15, 0.68);
+  --reda-glass-2: rgba(28, 25, 20, 0.82);
+  /* text */
+  --reda-cream: #ECE3CE;       /* body on dark */
+  --reda-cream-hi: #F3EBD8;    /* headlines on dark */
+  --reda-ink: #2A2018;         /* text on parchment */
+  --reda-ink-2: #5A4A32;
+  --reda-label: #7A5A34;
+  --reda-muted-hi: #CDBF9E;    /* brightest muted on dark (spec §3.1) */
+  --reda-muted: #A79A7C;       /* de-emphasized on dark */
+  --reda-muted-2: #8B7E62;
+  /* brand accents */
+  --reda-oxblood: #8A322A;
+  --reda-oxblood-hi: #9A392E;
+  --reda-gold: #B98A3C;
+  --reda-gold-hi: #C79A48;
+  --reda-sage: #6E7358;
+  --reda-terra: #C0703F;
+  --reda-link: #D2823E;        /* warm link on dark, AA */
+  /* semantic status */
+  --reda-success: #206030;
+  --reda-success-bg: #E6EDE0;
+  --reda-success-border: #B8DDBA;
+  --reda-warning: #885511;
+  --reda-warning-bg: #FBF6EE;
+  --reda-warning-border: #E5D6B8;
+  --reda-error: #8A2B22;
+  --reda-error-bg: #FBEAE8;
+  --reda-error-border: #E8C5C5;
+  /* frame material preview */
+  --reda-frame-metal: #141414;
+  --reda-frame-float: #FDFBF7;
+  --reda-frame-gold-mat: #C8A96E;
+  --reda-frame-wood: #7A5230;
+  /* dashboard decorative (gradient mood, not brand palette) */
+  --reda-dash-vp-mid: #34343A;
+  --reda-dash-sheet-warm: #2A2620;
+  --reda-dash-prev-hi: #D9C39A;
+  --reda-dash-prev-deep: #1C150D;
+  --reda-dash-prev-label: #EFE6D2;
+  /* lines & fx */
+  --reda-line: rgba(185, 138, 60, 0.24);
+  --reda-hairline: linear-gradient(90deg, var(--reda-gold), transparent);
+  --reda-focus: 0 0 0 2px rgba(185, 138, 60, 0.45);
+  /* type */
+  --reda-display: 'Libre Bodoni', Georgia, serif;
+  --reda-text: 'EB Garamond', Georgia, serif;
+  --reda-ui: 'Montserrat', system-ui, sans-serif;
+  /* radius/space */
+  --reda-radius: 5px;
+  --reda-radius-sm: 3px;
+}

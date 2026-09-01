@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { Artist } from '../../types/schema';
 import { getImageUrl } from '../../lib/media/gdrive';
+import { Icon } from '../ui';
 
 interface ArtistDetailModalProps {
   artist: Artist;
@@ -39,7 +40,7 @@ export function ArtistDetailModal({ artist, onClose }: ArtistDetailModalProps) {
           onClick={onClose}
           aria-label="Close artist profile"
         >
-          ✕
+          <Icon name="close" size={16} />
         </button>
 
         <div className="artist-modal-content">
@@ -58,7 +59,7 @@ export function ArtistDetailModal({ artist, onClose }: ArtistDetailModalProps) {
               </div>
             ) : (
               <div className="artist-portrait-placeholder">
-                <span>👤</span>
+                <Icon name="user" size={52} />
               </div>
             )}
 
@@ -70,7 +71,7 @@ export function ArtistDetailModal({ artist, onClose }: ArtistDetailModalProps) {
 
             {artist.contact_info && (
               <div className="artist-contact-box">
-                <span className="artist-contact-icon">📍</span>
+                <span className="artist-contact-icon"><Icon name="pin" size={13} /></span>
                 <span className="artist-contact-text">{artist.contact_info}</span>
               </div>
             )}

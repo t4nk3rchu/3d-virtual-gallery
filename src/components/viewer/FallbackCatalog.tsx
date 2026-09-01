@@ -7,6 +7,7 @@
  */
 import type { Artwork } from '../../types/schema';
 import { getImageUrl, proxyMediaUrl } from '../../lib/media/gdrive';
+import { Icon } from '../ui';
 
 /**
  * Detect WebGL2 support.
@@ -85,7 +86,7 @@ export function FallbackCatalog({
             {artwork.artwork_type === 'AUDIO' && artwork.media_file_id && (
               <div className="fallback-catalog__audio">
                 <span className="fallback-catalog__audio-icon" aria-hidden="true">
-                  🎵
+                  <Icon name="audio" size={16} />
                 </span>
                 <audio
                   controls

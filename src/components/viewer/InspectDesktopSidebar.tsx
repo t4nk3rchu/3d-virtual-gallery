@@ -1,6 +1,7 @@
 import { useState, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import type { ArtworkHotspot } from '../../types/schema';
 import { resolveAudioUrl } from '../../lib/media/gdrive';
+import { Icon } from '../ui';
 
 interface InspectDesktopSidebarProps {
   activeHotspot: ArtworkHotspot;
@@ -89,7 +90,7 @@ export function InspectDesktopSidebar({
             Detail {String(activeHotspotIndex + 1).padStart(2, '0')} of {String(totalHotspots).padStart(2, '0')}
           </span>
           {isMinimized && (
-            <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
+            <span style={{ fontSize: '11px', color: 'var(--reda-muted-2)', fontStyle: 'italic' }}>
               (Drag to move)
             </span>
           )}
@@ -102,7 +103,9 @@ export function InspectDesktopSidebar({
             onClick={() => setIsMinimized((prev) => !prev)}
             title={isMinimized ? 'Expand full panel' : 'Minimize to compact card'}
           >
-            {isMinimized ? '🗖 Expand' : '🗕 Minimize'}
+            {isMinimized
+              ? (<><Icon name="maximize" size={12} /> Expand</>)
+              : (<><Icon name="minimize" size={12} /> Minimize</>)}
           </button>
           <button
             type="button"
@@ -110,7 +113,7 @@ export function InspectDesktopSidebar({
             onClick={onClose}
             title="Close panel"
           >
-            ✕
+            <Icon name="close" size={14} />
           </button>
         </div>
       </div>
@@ -122,7 +125,7 @@ export function InspectDesktopSidebar({
         {/* Dedicated Audio Player on Desktop */}
         {activeHotspot.audio_file_id && (
           <div className="hotspot-audio-player">
-            <label className="audio-label">🎧 Dedicated Hotspot Audio</label>
+            <label className="audio-label"><Icon name="audio" size={13} /> Dedicated Hotspot Audio</label>
             <audio
               controls
               src={resolveAudioUrl(activeHotspot.audio_file_id)!}
@@ -138,7 +141,7 @@ export function InspectDesktopSidebar({
             className="btn btn--secondary btn--sm hotspot-seek-action"
             onClick={() => onAudioSeek(activeHotspot.audio_timestamp_seconds!)}
           >
-            ▶ Jump to {Math.floor(activeHotspot.audio_timestamp_seconds)}s in Main Audio Guide
+            <Icon name="play" size={12} /> Jump to {Math.floor(activeHotspot.audio_timestamp_seconds)}s in Main Audio Guide
           </button>
         )}
 
@@ -148,14 +151,14 @@ export function InspectDesktopSidebar({
             className="btn btn--ghost btn--sm"
             onClick={() => onNavigate(prevIndex)}
           >
-            ◀ Prev
+            <Icon name="chevronLeft" size={12} /> Prev
           </button>
           <button
             type="button"
             className="btn btn--ghost btn--sm"
             onClick={() => onNavigate(nextIndex)}
           >
-            Next ▶
+            Next <Icon name="chevronRight" size={12} />
           </button>
         </div>
       </div>

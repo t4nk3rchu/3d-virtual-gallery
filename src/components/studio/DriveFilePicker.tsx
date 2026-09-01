@@ -16,7 +16,7 @@ export function DriveFilePicker({
   isTeam = false,
   onPicked,
   onRejected,
-  buttonLabel = '📁 Pick from Google Drive',
+  buttonLabel = 'Pick from Google Drive',
   className = 'btn btn--secondary btn--sm',
 }: DriveFilePickerProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -65,6 +65,7 @@ export function DriveFilePicker({
           }
           // No valid token: reject so the curator knows to re-open the picker
           onRejected?.(fileName);
+          1
         },
         onCancel: () => {
           setIsLoading(false);
@@ -87,7 +88,7 @@ export function DriveFilePicker({
       onClick={handleClick}
       disabled={isLoading}
     >
-      {isLoading ? '⏳ Opening...' : buttonLabel}
+      {isLoading ? 'Opening…' : buttonLabel}
     </button>
   );
 }
