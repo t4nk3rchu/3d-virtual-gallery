@@ -352,6 +352,25 @@ export async function handleExhibitionArtists(
     const artists = await getArtistsForExhibition(env.DB, exhibitionId);
     return json(artists);
   }
+  if (req.method === 'POST') {
+    const owner = await getExhibitionOwner(env, exhibitionId);
+    if (owner !== auth.sub) return json({ error: 'Forbidden' }, 403);
+
+    const body = await req.json<Record<string, unknown>>();
+    if (!body.name) return json({ error: 'Missing name' }, 400);
+
+    const artist = await createArtistRecord(env.DB, {
+      exhibition_id: exhibitionId,
+      name: body.name as string,
+      life_dates: (body.life_dates as string) ?? null,
+      quote: (body.quote as string) ?? null,
+      biography: (body.biography as string) ?? null,
+      contact_info: (body.contact_info as string) ?? null,
+      portrait_file_id: (body.portrait_file_id as string) ?? null,
+      order_index: (body.order_index as number) ?? 0,
+    });
+    return json(artist, 201);
+  }
   return json({ error: 'Method Not Allowed' }, 405);
 }
 
