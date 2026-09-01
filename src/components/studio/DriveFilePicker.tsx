@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { openGoogleDrivePicker } from '../../lib/studio/google-picker';
+import { openGoogleDrivePicker, shareFileWithServiceAccount } from '../../lib/studio/google-picker';
 
 interface DriveFilePickerProps {
   mimeTypes: string;
@@ -17,6 +17,7 @@ export function DriveFilePicker({
   className = 'btn btn--secondary btn--sm',
 }: DriveFilePickerProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
 
   const clientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || '';
   const appId = (import.meta as any).env?.VITE_GOOGLE_APP_ID || '';
@@ -28,6 +29,7 @@ export function DriveFilePicker({
 
   const handleClick = async () => {
     setIsLoading(true);
+    setShareError(null);
     try {
       await openGoogleDrivePicker({
         clientId,
@@ -35,7 +37,17 @@ export function DriveFilePicker({
         developerKey: developerKey || undefined,
         mimeTypes,
         isTeam,
-        onPicked: (fileId) => {
+        onPicked: async (fileId) => {
+          // Grant the service account read access so the Worker can serve it.
+          try {
+            await shareFileWithServiceAccount(fileId);
+          } catch (err) {
+            console.error('Failed to share picked file with service account:', err);
+            setShareError(
+              'File selected, but granting the Reda service account access failed. ' +
+                'The media may not load until you share it with the service account manually.'
+            );
+          }
           setIsLoading(false);
           onPicked(fileId);
         },
@@ -52,13 +64,20 @@ export function DriveFilePicker({
   };
 
   return (
-    <button
-      type="button"
-      className={className}
-      onClick={handleClick}
-      disabled={isLoading}
-    >
-      {isLoading ? 'Opening…' : buttonLabel}
-    </button>
+    <>
+      <button
+        type="button"
+        className={className}
+        onClick={handleClick}
+        disabled={isLoading}
+      >
+        {isLoading ? 'Opening…' : buttonLabel}
+      </button>
+      {shareError && (
+        <p role="alert" style={{ color: 'var(--reda-danger, #b3261e)', fontSize: '0.8rem', marginTop: '0.4rem' }}>
+          {shareError}
+        </p>
+      )}
+    </>
   );
 }

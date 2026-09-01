@@ -174,3 +174,38 @@ export async function openGoogleDrivePicker(options: OpenDrivePickerOptions): Pr
 export function getCachedDriveToken(): string | null {
   return cachedAccessToken && Date.now() < cachedTokenExpiry ? cachedAccessToken : null;
 }
+
+let cachedSaEmail: string | null = null;
+
+async function getServiceAccountEmail(): Promise<string> {
+  if (cachedSaEmail) return cachedSaEmail;
+  const res = await fetch('/api/config', { credentials: 'include' });
+  if (!res.ok) throw new Error('Could not load service account config');
+  const data = (await res.json()) as { serviceAccountEmail?: string };
+  if (!data.serviceAccountEmail) throw new Error('Service account email not configured on the server');
+  cachedSaEmail = data.serviceAccountEmail;
+  return cachedSaEmail;
+}
+
+/**
+ * Grant the Reda service account read access to a picked file, so the Worker
+ * (which fetches media as the SA) can serve it. Uses the picker's drive.file
+ * token, which permits managing permissions on files the app opened.
+ * sendNotificationEmail=false because service accounts can't receive email.
+ */
+export async function shareFileWithServiceAccount(fileId: string): Promise<void> {
+  const token = getCachedDriveToken();
+  if (!token) throw new Error('Drive authorization expired — re-open the picker and try again.');
+  const saEmail = await getServiceAccountEmail();
+  const url =
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/permissions` +
+    `?supportsAllDrives=true&sendNotificationEmail=false`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'reader', type: 'user', emailAddress: saEmail }),
+  });
+  if (!res.ok) {
+    throw new Error(`Sharing with the service account failed (${res.status}): ${await res.text()}`);
+  }
+}

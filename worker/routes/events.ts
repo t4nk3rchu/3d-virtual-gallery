@@ -42,6 +42,7 @@ export async function handleEvents(req: Request, env: Env): Promise<Response> {
       continue;
     }
 
+    if (!env.AE) continue; // Analytics Engine not provisioned on this account — skip telemetry
     env.AE.writeDataPoint({
       blobs: [
         ev.kind,

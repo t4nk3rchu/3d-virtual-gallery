@@ -91,6 +91,14 @@ export default {
       );
     }
 
+    // ── Public config (SA email so curators can share picked files with it) ──
+    if (path === '/api/config' && req.method === 'GET') {
+      return new Response(
+        JSON.stringify({ serviceAccountEmail: env.GDRIVE_SA_CLIENT_EMAIL ?? '' }),
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // ── Events (public write — no auth required, no PII) ────────────────────
     if (path === '/api/events') {
       return handleEvents(req, env);
