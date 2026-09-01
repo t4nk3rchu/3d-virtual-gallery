@@ -7,7 +7,7 @@
  * Format: "pbkdf2:sha256:<iterations>:<salt_hex>:<hash_hex>"
  */
 
-const ITERATIONS = 310_000; // OWASP 2023 minimum for PBKDF2-SHA256
+const ITERATIONS = 100_000; // Cloudflare Workers caps PBKDF2 at 100k; verify reads count from the stored hash
 const KEY_LENGTH = 32;      // 256-bit output
 
 function arrayToHex(buffer: ArrayBuffer): string {
