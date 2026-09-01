@@ -7,7 +7,7 @@
  * SCULPTURE_3D is explicitly not in phase 1.
  *
  * Spec §5.3:
- *   IMAGE_2D  → textured plane (lh3 CDN =w1600) + frame + placard + spotlight
+ *   IMAGE_2D  → textured plane (proxy /api/media) + frame + placard + spotlight
  *   VIDEO     → screen plane + YouTube Player API
  *   AUDIO     → marker/emitter mesh + spatial audio + Focus shows audio player
  */

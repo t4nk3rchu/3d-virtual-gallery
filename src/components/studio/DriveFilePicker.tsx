@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { isAnyoneWithLink } from '../../lib/studio/drive-share';
-import { openGoogleDrivePicker, getCachedDriveToken } from '../../lib/studio/google-picker';
+import { openGoogleDrivePicker } from '../../lib/studio/google-picker';
 
 interface DriveFilePickerProps {
   mimeTypes: string;
   isTeam?: boolean;
   onPicked(fileId: string): void;
-  onRejected?(fileName: string): void;
   buttonLabel?: string;
   className?: string;
 }
@@ -15,7 +13,6 @@ export function DriveFilePicker({
   mimeTypes,
   isTeam = false,
   onPicked,
-  onRejected,
   buttonLabel = 'Pick from Google Drive',
   className = 'btn btn--secondary btn--sm',
 }: DriveFilePickerProps) {
@@ -38,38 +35,11 @@ export function DriveFilePicker({
         developerKey: developerKey || undefined,
         mimeTypes,
         isTeam,
-        onPicked: async (fileId, fileName) => {
+        onPicked: (fileId) => {
           setIsLoading(false);
-          const token = getCachedDriveToken();
-          if (token) {
-            try {
-              const res = await fetch(
-                `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?fields=permissions(type)&supportsAllDrives=true`,
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
-              if (res.ok) {
-                const data = await res.json();
-                if (isAnyoneWithLink(data.permissions ?? [])) {
-                  onPicked(fileId);
-                  return;
-                } else {
-                  onRejected?.(fileName);
-                  return;
-                }
-              }
-            } catch {
-              // network error during validation — reject to be safe
-              onRejected?.(fileName);
-              return;
-            }
-          }
-          // No valid token: reject so the curator knows to re-open the picker
-          onRejected?.(fileName);
-          1
+          onPicked(fileId);
         },
-        onCancel: () => {
-          setIsLoading(false);
-        },
+        onCancel: () => setIsLoading(false),
         onError: (err) => {
           console.warn('Google Drive Picker encountered an error:', err);
           setIsLoading(false);

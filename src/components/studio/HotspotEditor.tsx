@@ -363,9 +363,6 @@ export function HotspotEditor({
                       isTeam={isTeam}
                       buttonLabel="Pick Audio from Google Drive"
                       onPicked={(fileId) => setAudioFileId(fileId)}
-                      onRejected={(name) =>
-                        setError(`"${name}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
-                      }
                     />
                   </div>
                   <input

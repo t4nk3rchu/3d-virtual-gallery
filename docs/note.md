@@ -141,9 +141,11 @@ This document summarizes the core features, responsive patterns, architecture de
 - [x] Interactive artist assigned works with 1-click curate mode editing navigation.
 - [x] Authentic Desktop PC and Mobile Landscape live visitor previews in Artists mode.
 - [x] Full mobile dynamic scaling and responsive audit.
-- [x] Complete automated test suite (**43 test files, 200 tests passing**) with 0 build errors.
 - [x] Code Simplification: Deduplicated `ArtistViewerPreview.tsx` via `DEVICE_CONFIG` pattern (-177 LOC).
 - [x] Centering fixes: Virtual joystick knob centered via `translate(-50%, -50%)` and Focus header bar info icon centering across mobile and desktop.
+- [x] Curator Atelier Sign In / Register Redesign: Dual-state mode switcher, atmospheric Florentine backdrop, gold medallion branding, and refined error handling.
+- [x] Service Account Media Auth Migration (ADR-0001): Replaced public "anyone with link" access with private Service Account proxy (`/api/media/:fileId`) + HMAC-SHA256 tokens; simplified `DriveFilePicker` and removed dead `drive-share.ts`.
+- [x] Complete automated test suite (**46 test files, 211 tests passing**) with 0 build errors.
 
 ### Future Enhancements (Backlog)
 - [ ] **Multi-Waypoint Guided Tour**: Extend the single Start Point beacon into an ordered sequence of tour waypoints with camera path interpolation.

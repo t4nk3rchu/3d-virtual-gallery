@@ -179,9 +179,6 @@ export function RoomImporter({
                 isTeam={isTeam}
                 buttonLabel="Pick GLB from Google Drive"
                 onPicked={(fileId) => setSourceInput(fileId)}
-                onRejected={(fileName) =>
-                  setApiError(`"${fileName}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
-                }
               />
             </div>
             <input
@@ -189,14 +186,14 @@ export function RoomImporter({
               type="text"
               value={sourceInput}
               onChange={(e) => setSourceInput(e.target.value)}
-              placeholder="https://drive.google.com/file/d/1A2B3C.../view or https://example.com/room.glb"
+              placeholder="https://drive.google.com/file/d/1A2B3C... or https://example.com/model.glb"
               required
               className="input"
             />
             <p className="hint">
-              <strong>For Google Drive:</strong> Set file sharing to &ldquo;Anyone with the link can view&rdquo; and paste the link here.
+              <strong>For Google Drive:</strong> Ensure the file is shared with the Reda Service Account and paste the link here.
               <br />
-              <strong>For built-in templates:</strong> You can type <code>default-white-cube</code> or <code>default-grand-hall</code>.
+              <strong>For Direct URLs:</strong> Must be a publicly accessible <code>.glb</code> file ending in <code>.glb</code>.
             </p>
           </div>
 

@@ -477,9 +477,6 @@ export function ArtworkForm({
                 mimeTypes="image/png,image/jpeg,image/webp,image/gif"
                 isTeam={isTeam}
                 onPicked={(fileId) => setDriveInput(fileId)}
-                onRejected={(name) =>
-                  setError(`"${name}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
-                }
               />
             </div>
             <input
@@ -492,7 +489,7 @@ export function ArtworkForm({
               className="input"
             />
             <p className="hint">
-              Ensure sharing in Google Drive is set to &ldquo;Anyone with the link can view&rdquo;.
+              Ensure the file is shared with the Reda Service Account in Google Drive.
             </p>
           </div>
         )}
@@ -533,9 +530,6 @@ export function ArtworkForm({
                 mimeTypes="audio/mp3,audio/mpeg,audio/wav,audio/ogg"
                 isTeam={isTeam}
                 onPicked={(fileId) => setDriveInput(fileId)}
-                onRejected={(name) =>
-                  setError(`"${name}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
-                }
               />
             </div>
             <input
@@ -560,9 +554,6 @@ export function ArtworkForm({
               mimeTypes="audio/mp3,audio/mpeg,audio/wav,audio/ogg"
               isTeam={isTeam}
               onPicked={(fileId) => setAudioGuideInput(fileId)}
-              onRejected={(name) =>
-                setError(`"${name}" isn't shared with "Anyone with the link" — please update sharing settings in Google Drive and try again.`)
-              }
             />
           </div>
           <input
