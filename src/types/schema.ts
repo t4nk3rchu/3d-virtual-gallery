@@ -74,8 +74,8 @@ export interface Artist {
 export type ArtistInput = Omit<Artist, 'id' | 'created_at'>;
 
 // ─── Artworks ─────────────────────────────────────────────────────────────────
-export type ArtworkType = 'IMAGE_2D' | 'VIDEO' | 'AUDIO';
-// SCULPTURE_3D deliberately excluded from phase 1
+export type ArtworkType = 'IMAGE_2D' | 'VIDEO';
+// SCULPTURE_3D and AUDIO deliberately excluded from phase 1
 
 export interface Artwork {
   id: string;

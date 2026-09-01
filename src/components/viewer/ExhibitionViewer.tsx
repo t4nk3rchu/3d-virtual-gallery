@@ -50,6 +50,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
   const [settings, setSettings] = useState<ViewerSettings>(getStoredViewerSettings);
   const [showSettings, setShowSettings] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ambientAudioRef = useRef<HTMLAudioElement | null>(null);
   const interactionRef = useRef<InteractionController | null>(null);
   const cameraControllerRef = useRef<CameraController | null>(null);
   const sceneRef = useRef<import('@babylonjs/core').Scene | null>(null);
@@ -71,6 +72,26 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
       })
       .catch(() => setLoadState('error'));
   }, [slug]);
+
+  // Ambient room audio — starts after intro is dismissed
+  useEffect(() => {
+    if (!exhibition || !isIntroDismissed) return;
+    let fileId: string | null = null;
+    try { fileId = JSON.parse(exhibition.settings_json ?? '{}')?.backgroundAudioFileId ?? null; } catch {}
+    if (!fileId) return;
+
+    const audio = new Audio(proxyMediaUrl(fileId));
+    audio.loop = true;
+    audio.volume = 0.35;
+    ambientAudioRef.current = audio;
+    audio.play().catch(() => {});
+
+    return () => {
+      audio.pause();
+      audio.src = '';
+      ambientAudioRef.current = null;
+    };
+  }, [exhibition, isIntroDismissed]);
 
   // Analytics dwell helper
   const flushDwell = () => {
@@ -351,9 +372,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
           }}
           onAudioSeek={(seconds) => {
             if (audioRef.current && inspectedArtwork) {
-              const audioSrc =
-                inspectedArtwork.audio_guide_file_id ||
-                (inspectedArtwork.artwork_type === 'AUDIO' ? inspectedArtwork.media_file_id : null);
+              const audioSrc = inspectedArtwork.audio_guide_file_id;
               if (audioSrc) {
                 const url = proxyMediaUrl(audioSrc, inspectedArtwork.updated_at);
                 if (!audioRef.current.src.endsWith(url)) {

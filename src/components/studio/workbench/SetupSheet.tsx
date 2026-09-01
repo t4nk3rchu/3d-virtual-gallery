@@ -51,6 +51,9 @@ export function SetupSheet({
     initialIntroTransition,
   );
   const [description, setDescription] = useState(exhibition.description ?? '');
+  const [ambientAudioFileId, setAmbientAudioFileId] = useState(() => {
+    try { return JSON.parse(exhibition.settings_json ?? '{}')?.backgroundAudioFileId ?? ''; } catch { return ''; }
+  });
 
   const [saving, setSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -63,6 +66,14 @@ export function SetupSheet({
     setError(null);
 
     try {
+      const existingSettings = (() => { try { return JSON.parse(exhibition.settings_json ?? '{}'); } catch { return {}; } })();
+      const mergedSettings: Record<string, unknown> = { ...existingSettings, introTransition };
+      if (ambientAudioFileId.trim()) {
+        mergedSettings.backgroundAudioFileId = ambientAudioFileId.trim();
+      } else {
+        delete mergedSettings.backgroundAudioFileId;
+      }
+
       const res = await fetch(`/api/exhibitions/${exhibition.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -73,8 +84,8 @@ export function SetupSheet({
           room_id: roomId,
           curation_type: curationType,
           intro_video_file_id: introVideoFileId.trim() || undefined,
-          intro_transition: introTransition,
           description: description.trim() || undefined,
+          settings_json: JSON.stringify(mergedSettings),
         }),
       });
 
@@ -166,6 +177,33 @@ export function SetupSheet({
               </option>
             ))}
           </SelectField>
+
+          {/* Room Ambient Audio */}
+          <div className="form-group">
+            <label htmlFor="setup-ambient-audio" className="form-label">
+              Room Ambient Audio (Optional)
+            </label>
+            <div style={{ display: 'flex', gap: '8px', width: '100%', alignItems: 'center' }}>
+              <input
+                id="setup-ambient-audio"
+                type="text"
+                value={ambientAudioFileId}
+                onChange={(e) => setAmbientAudioFileId(extractGoogleDriveFileId(e.target.value) || e.target.value)}
+                placeholder="Paste Google Drive link or file ID"
+                className="input"
+                style={{ flex: 1, minWidth: 0 }}
+              />
+              <DriveFilePicker
+                isTeam={isTeam}
+                mimeTypes="audio/mp3,audio/mpeg,audio/wav,audio/ogg"
+                buttonLabel="Pick Audio"
+                onPicked={(fileId) => setAmbientAudioFileId(fileId)}
+              />
+            </div>
+            <p className="hint" style={{ marginTop: '4px' }}>
+              Plays on loop when a visitor enters the exhibition. Loops automatically.
+            </p>
+          </div>
 
           {/* 3D Start Vantage Point */}
           <div

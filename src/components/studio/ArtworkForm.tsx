@@ -168,7 +168,7 @@ export function ArtworkForm({
     let mediaFileId: string | null = null;
     let youtubeVideoId: string | null = null;
 
-    if (artworkType === 'IMAGE_2D' || artworkType === 'AUDIO') {
+    if (artworkType === 'IMAGE_2D') {
       const input = driveInput.trim();
       mediaFileId =
         extractGoogleDriveFileId(input) ||
@@ -458,10 +458,12 @@ export function ArtworkForm({
             </button>
             <button
               type="button"
-              className={`type-btn ${artworkType === 'AUDIO' ? 'active' : ''}`}
-              onClick={() => setArtworkType('AUDIO')}
+              className="type-btn type-btn--disabled"
+              disabled
+              title="3D Object Model — coming in a future update"
             >
-              <Icon name="audio" /> Spatial Audio Track
+              <Icon name="cube" /> 3D Object Model
+              <span style={{ display: 'block', fontSize: '9px', letterSpacing: '.08em', opacity: 0.7, marginTop: '2px' }}>Under Construction</span>
             </button>
           </div>
         </div>
@@ -517,30 +519,6 @@ export function ArtworkForm({
                 />
               </div>
             )}
-          </div>
-        )}
-
-        {artworkType === 'AUDIO' && (
-          <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <label htmlFor="art-audio" className="form-label" style={{ marginBottom: 0 }}>
-                Google Drive Audio File Link or ID
-              </label>
-              <DriveFilePicker
-                mimeTypes="audio/mp3,audio/mpeg,audio/wav,audio/ogg"
-                isTeam={isTeam}
-                onPicked={(fileId) => setDriveInput(fileId)}
-              />
-            </div>
-            <input
-              id="art-audio"
-              type="text"
-              value={driveInput}
-              onChange={(e) => setDriveInput(e.target.value)}
-              placeholder="https://drive.google.com/file/d/... or audio fileId"
-              required
-              className="input"
-            />
           </div>
         )}
 

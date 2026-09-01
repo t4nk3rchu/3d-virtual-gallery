@@ -217,7 +217,7 @@ export async function handleArtworks(
       medium: (body.medium as string) ?? null,
       dimensions: (body.dimensions as string) ?? null,
       description: (body.description as string) ?? null,
-      artwork_type: (body.artwork_type as 'IMAGE_2D' | 'VIDEO' | 'AUDIO') ?? 'IMAGE_2D',
+      artwork_type: (body.artwork_type as 'IMAGE_2D' | 'VIDEO') ?? 'IMAGE_2D',
       media_file_id: (body.media_file_id as string) ?? null,
       youtube_video_id: (body.youtube_video_id as string) ?? null,
       audio_guide_file_id: (body.audio_guide_file_id as string) ?? null,

@@ -39,15 +39,15 @@ const artworks: Artwork[] = [
   {
     id: 'art2',
     exhibition_id: 'ex1',
-    title: 'Ocean Sounds',
-    artist: 'John Audio',
+    title: 'Ocean Video',
+    artist: 'Jane Artist',
     year: null,
-    medium: 'Sound installation',
+    medium: 'Video',
     dimensions: null,
     description: null,
-    artwork_type: 'AUDIO',
-    media_file_id: 'audioFileId',
-    youtube_video_id: null,
+    artwork_type: 'VIDEO',
+    media_file_id: null,
+    youtube_video_id: 'dQw4w9WgXcQ',
     audio_guide_file_id: null,
     transform_json: '{}',
     frame_config_json: '{}',
@@ -70,7 +70,7 @@ describe('FallbackCatalog', () => {
   it('renders all artworks', () => {
     render(<FallbackCatalog title="Test" artworks={artworks} />);
     expect(screen.getByText('Sunlit Meadow')).toBeTruthy();
-    expect(screen.getByText('Ocean Sounds')).toBeTruthy();
+    expect(screen.getByText('Ocean Video')).toBeTruthy();
   });
 
   it('renders IMAGE_2D as an img element', () => {
@@ -79,13 +79,6 @@ describe('FallbackCatalog', () => {
     expect(img.tagName).toBe('IMG');
     expect(img.src).toContain('/api/media/');
     expect(img.src).toContain('tier=gallery');
-  });
-
-  it('renders AUDIO artwork with audio element', () => {
-    const { container } = render(<FallbackCatalog title="Test" artworks={artworks} />);
-    // HTMLAudioElement has no ARIA role — query by tag name
-    const audioEls = container.querySelectorAll('audio');
-    expect(audioEls.length).toBeGreaterThan(0);
   });
 
   it('shows WebGL notice', () => {
@@ -100,14 +93,7 @@ describe('FallbackCatalog', () => {
       .getAllByRole('article')
       .map((el) => el.querySelector('h2')?.textContent ?? '');
     expect(titles[0]).toBe('Sunlit Meadow');
-    expect(titles[1]).toBe('Ocean Sounds');
+    expect(titles[1]).toBe('Ocean Video');
   });
 
-  it('uses an icon for the audio marker, not emoji', () => {
-    const testArtworks = [{ id: 'a', title: 'Track', artwork_type: 'AUDIO', media_file_id: 'm',
-      order_index: 0, updated_at: 1 }] as any;
-    const { container } = render(<FallbackCatalog title="X" artworks={testArtworks} />);
-    expect(container.querySelectorAll('.reda-icon').length).toBeGreaterThan(0);
-    expect(container.textContent ?? '').not.toMatch(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/u);
-  });
 });

@@ -1,15 +1,9 @@
 /**
- * Task 7: Artwork factory — IMAGE_2D, VIDEO, AUDIO
- *
- * Gap fix from v1: artwork-factory only handled IMAGE_2D.
- * VIDEO and AUDIO paths were unimplemented despite being in the spec.
- *
- * SCULPTURE_3D is explicitly not in phase 1.
+ * Task 7: Artwork factory — IMAGE_2D, VIDEO
  *
  * Spec §5.3:
  *   IMAGE_2D  → textured plane (proxy /api/media) + frame + placard + spotlight
  *   VIDEO     → screen plane + YouTube Player API
- *   AUDIO     → marker/emitter mesh + spatial audio + Focus shows audio player
  */
 import type { Scene } from '@babylonjs/core';
 import {
@@ -236,53 +230,15 @@ function createVideoArtwork(scene: Scene, artwork: Artwork) {
   return screen;
 }
 
-// ─── AUDIO ────────────────────────────────────────────────────────────────────
-
-function createAudioArtwork(scene: Scene, artwork: Artwork) {
-  const transform = parseTransform(artwork.transform_json);
-
-  // Visible marker mesh — a small glowing sphere at the transform position
-  const marker = MeshBuilder.CreateSphere(
-    artwork.id,
-    { diameter: 0.15 },
-    scene
-  );
-  marker.position = new Vector3(...transform.position);
-
-  const mat = new StandardMaterial(`${artwork.id}_audio_mat`, scene);
-  mat.emissiveColor = new Color3(0.4, 0.7, 1.0);
-  mat.wireframe = false;
-  marker.material = mat;
-
-  marker.metadata = { artworkId: artwork.id, isAudioMarker: true };
-  marker.isPickable = true;
-
-  // Optional: spatial audio source (Babylon Sound pinned to position)
-  if (artwork.media_file_id) {
-    // Note: Babylon Sound is dynamically imported to avoid SSR issues
-    // The actual audio playback is handled by the FocusPanel <audio> element
-    marker.metadata.audioFileId = artwork.media_file_id;
-  }
-
-  return marker;
-}
-
 // ─── Factory ──────────────────────────────────────────────────────────────────
 
-/**
- * Create the appropriate Babylon mesh for an artwork, based on artwork_type.
- * Returns the primary mesh (which carries metadata.artworkId for picking).
- */
 export function createArtworkMesh(scene: Scene, artwork: Artwork) {
   switch (artwork.artwork_type) {
     case 'IMAGE_2D':
       return createImage2DArtwork(scene, artwork);
     case 'VIDEO':
       return createVideoArtwork(scene, artwork);
-    case 'AUDIO':
-      return createAudioArtwork(scene, artwork);
     default:
-      // SCULPTURE_3D is phase 2 — silently skip unknown types
       console.warn(`[artwork-factory] Unknown artwork type: ${(artwork as Artwork).artwork_type}`);
       return null;
   }

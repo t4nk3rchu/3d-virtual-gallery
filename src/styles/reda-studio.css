@@ -1459,6 +1459,16 @@ textarea.input {
   border-color: var(--reda-oxblood) !important;
 }
 
+.type-btn--disabled,
+.type-btn--disabled:hover {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-style: dashed;
+  background: var(--reda-field) !important;
+  border-color: #cbbd9d !important;
+  color: var(--reda-ink-2) !important;
+}
+
 /* ---- artist item card in ArtistManagerModal ---- */
 .artist-item-card {
   display: flex;

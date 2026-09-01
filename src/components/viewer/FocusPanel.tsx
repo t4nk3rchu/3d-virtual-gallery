@@ -102,19 +102,8 @@ export function FocusPanel({
               <p className="focus-info-modal__desc">{artwork.description}</p>
             )}
 
-            {/* Audio player for AUDIO artworks */}
-            {artwork.artwork_type === 'AUDIO' && artwork.media_file_id && (
-              <div className="focus-info-modal__audio">
-                <audio
-                  controls
-                  src={proxyMediaUrl(artwork.media_file_id, artwork.updated_at)}
-                  aria-label="Artwork audio track"
-                />
-              </div>
-            )}
-
             {/* Audio guide narration player */}
-            {artwork.audio_guide_file_id && artwork.artwork_type !== 'AUDIO' && (
+            {artwork.audio_guide_file_id && (
               <div className="focus-info-modal__audio">
                 <p className="focus-info-modal__audio-label"><Icon name="audio" size={13} /> Audio Guide</p>
                 <audio

@@ -58,9 +58,13 @@ export async function tokensForExhibition(
   detail: ExhibitionDetail,
   key: string
 ): Promise<Record<string, string>> {
+  let backgroundAudioFileId: string | null = null;
+  try { backgroundAudioFileId = JSON.parse(detail.settings_json ?? '{}')?.backgroundAudioFileId ?? null; } catch {}
+
   const ids: Array<string | null | undefined> = [
     detail.room?.glb_file_id,
     detail.intro_video_file_id,
+    backgroundAudioFileId,
   ];
   for (const a of detail.artworks ?? []) {
     ids.push(a.media_file_id, a.audio_guide_file_id);
