@@ -1,10 +1,10 @@
-import { useState, useEffect, type MouseEvent } from 'react';
+import { useState, useEffect, useRef, type MouseEvent } from 'react';
 import type { Artwork, ArtworkHotspot, FrameConfig, HotspotTransition } from '../../types/schema';
 import { getImageUrl, proxyMediaUrl } from '../../lib/media/gdrive';
 import { HOTSPOT_TRANSITIONS, getHotspotAnimation } from '../../lib/viewer/hotspot-animations';
 import { HotspotTransitionPreview } from './HotspotTransitionPreview';
 import { DriveFilePicker } from './DriveFilePicker';
-import { Icon, Button } from '../ui';
+import { Button } from '../ui';
 
 interface HotspotEditorProps {
   artwork: Artwork;
@@ -26,9 +26,12 @@ export function HotspotEditor({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [audioTimestamp, setAudioTimestamp] = useState<string>('');
+  const [audioTimestampEnd, setAudioTimestampEnd] = useState<string>('');
   const [audioFileId, setAudioFileId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Track the previously-selected hotspot id so the effect only fires on change
+  const prevSelectedId = useRef<string | null>(null);
 
   const initialFrameConfig: FrameConfig = (() => {
     try {
@@ -99,8 +102,54 @@ export function HotspotEditor({
     setTitle('');
     setDescription('');
     setAudioTimestamp('');
+    setAudioTimestampEnd('');
     setAudioFileId('');
     setError(null);
+  };
+
+  // Populate edit fields when an existing hotspot is selected
+  useEffect(() => {
+    if (!selectedHotspot || selectedHotspot.id === prevSelectedId.current) return;
+    prevSelectedId.current = selectedHotspot.id;
+    setTitle(selectedHotspot.title);
+    setDescription(selectedHotspot.description);
+    setAudioTimestamp(selectedHotspot.audio_timestamp_seconds != null ? String(selectedHotspot.audio_timestamp_seconds) : '');
+    setAudioTimestampEnd(selectedHotspot.audio_timestamp_end_seconds != null ? String(selectedHotspot.audio_timestamp_end_seconds) : '');
+    setAudioFileId(selectedHotspot.audio_file_id ?? '');
+    setError(null);
+  }, [selectedHotspot]);
+
+  const handleUpdateHotspot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedHotspot) return;
+    setSaving(true);
+    setError(null);
+    const cleanAudioId = audioFileId.trim();
+    const match = cleanAudioId.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || cleanAudioId.match(/id=([a-zA-Z0-9_-]+)/);
+    const resolvedAudioId = match ? match[1] : cleanAudioId;
+    try {
+      const res = await fetch(`/api/hotspots/${selectedHotspot.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: title.trim() || 'Detail Hotspot',
+          description: description.trim(),
+          audio_timestamp_seconds: audioTimestamp.trim() ? parseFloat(audioTimestamp) : null,
+          audio_timestamp_end_seconds: audioTimestampEnd.trim() ? parseFloat(audioTimestampEnd) : null,
+          audio_file_id: resolvedAudioId || null,
+        }),
+      });
+      if (!res.ok) { setError(await res.text()); return; }
+      const updated = (await res.json()) as ArtworkHotspot;
+      onHotspotsUpdated(hotspots.map((h) => (h.id === updated.id ? updated : h)));
+      setSelectedHotspot(updated);
+      prevSelectedId.current = updated.id;
+    } catch {
+      setError('Failed to update hotspot.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCreateHotspot = async (e: React.FormEvent) => {
@@ -128,6 +177,9 @@ export function HotspotEditor({
           audio_timestamp_seconds: audioTimestamp.trim()
             ? parseFloat(audioTimestamp)
             : null,
+          audio_timestamp_end_seconds: audioTimestampEnd.trim()
+            ? parseFloat(audioTimestampEnd)
+            : null,
           audio_file_id: resolvedAudioId || null,
         }),
       });
@@ -143,6 +195,7 @@ export function HotspotEditor({
       setTitle('');
       setDescription('');
       setAudioTimestamp('');
+      setAudioTimestampEnd('');
       setAudioFileId('');
     } catch {
       setError('Failed to create hotspot.');
@@ -339,18 +392,36 @@ export function HotspotEditor({
 
                 <div className="form-group">
                   <label htmlFor="hs-seek" className="form-label">
-                    Option A: Audio Guide Timestamp (Seconds)
+                    Option A: Audio Guide Segment (Seconds)
                   </label>
-                  <input
-                    id="hs-seek"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={audioTimestamp}
-                    onChange={(e) => setAudioTimestamp(e.target.value)}
-                    placeholder="e.g. 42.5 (jump in main audio guide)"
-                    className="input"
-                  />
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      id="hs-seek"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={audioTimestamp}
+                      onChange={(e) => setAudioTimestamp(e.target.value)}
+                      placeholder="Start (e.g. 42.5)"
+                      className="input"
+                      style={{ flex: 1, minWidth: 0 }}
+                    />
+                    <span style={{ color: 'var(--reda-ink-2)', fontSize: '0.85rem' }}>to</span>
+                    <input
+                      id="hs-seek-end"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={audioTimestampEnd}
+                      onChange={(e) => setAudioTimestampEnd(e.target.value)}
+                      placeholder="Stop (optional)"
+                      className="input"
+                      style={{ flex: 1, minWidth: 0 }}
+                    />
+                  </div>
+                  <p className="hint">
+                    Jump to a point in the main audio guide. Leave Stop empty to play to the end.
+                  </p>
                 </div>
 
                 <div className="form-group">
@@ -396,46 +467,117 @@ export function HotspotEditor({
             )}
 
             {selectedHotspot && !newPin && (
-              <div className="hotspot-details-card">
-                <h3>{selectedHotspot.title}</h3>
+              <form onSubmit={handleUpdateHotspot} className="hotspot-pin-form">
+                <h3>Edit Hotspot</h3>
                 <p className="coords-readout">
                   Pin at: X: {selectedHotspot.x_percent}%, Y: {selectedHotspot.y_percent}%
                 </p>
-                <p className="hotspot-desc">{selectedHotspot.description}</p>
-                {selectedHotspot.audio_timestamp_seconds != null && (
-                  <p className="audio-tag">
-                    Audio Guide Seek: {selectedHotspot.audio_timestamp_seconds}s
-                  </p>
-                )}
-                {selectedHotspot.audio_file_id && (
-                  <p className="audio-tag" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Icon name="audio" /> Dedicated Audio File: {selectedHotspot.audio_file_id}
-                  </p>
-                )}
+
+                <div className="form-group">
+                  <label htmlFor="hs-edit-title" className="form-label">Hotspot Title</label>
+                  <input
+                    id="hs-edit-title"
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required
+                    className="input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="hs-edit-desc" className="form-label">Interpretive Text</label>
+                  <textarea
+                    id="hs-edit-desc"
+                    rows={4}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    required
+                    className="input textarea"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="hs-edit-seek" className="form-label">
+                    Option A: Audio Guide Segment (Seconds)
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      id="hs-edit-seek"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={audioTimestamp}
+                      onChange={(e) => setAudioTimestamp(e.target.value)}
+                      placeholder="Start (e.g. 42.5)"
+                      className="input"
+                      style={{ flex: 1, minWidth: 0 }}
+                    />
+                    <span style={{ color: 'var(--reda-ink-2)', fontSize: '0.85rem' }}>to</span>
+                    <input
+                      id="hs-edit-seek-end"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={audioTimestampEnd}
+                      onChange={(e) => setAudioTimestampEnd(e.target.value)}
+                      placeholder="Stop (optional)"
+                      className="input"
+                      style={{ flex: 1, minWidth: 0 }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label htmlFor="hs-edit-audio" className="form-label" style={{ marginBottom: 0 }}>
+                      Option B: Dedicated Audio File
+                    </label>
+                    <DriveFilePicker
+                      mimeTypes="audio/mp3,audio/mpeg,audio/wav,audio/ogg"
+                      isTeam={isTeam}
+                      buttonLabel="Pick from Drive"
+                      onPicked={(fileId) => setAudioFileId(fileId)}
+                    />
+                  </div>
+                  <input
+                    id="hs-edit-audio"
+                    type="text"
+                    value={audioFileId}
+                    onChange={(e) => setAudioFileId(e.target.value)}
+                    placeholder="Google Drive link or direct URL"
+                    className="input"
+                  />
+                </div>
+
+                {error && <p className="error">{error}</p>}
 
                 <div className="form-actions">
+                  <Button type="submit" variant="primary" disabled={saving}>
+                    {saving ? 'Saving…' : 'Save Changes'}
+                  </Button>
                   <Button
                     type="button"
                     variant="danger"
                     onClick={() => handleDeleteHotspot(selectedHotspot.id)}
                     disabled={saving}
                   >
-                    {saving ? 'Deleting…' : 'Delete Hotspot Pin'}
+                    Delete
                   </Button>
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => setSelectedHotspot(null)}
+                    onClick={() => { setSelectedHotspot(null); prevSelectedId.current = null; }}
                   >
-                    Deselect
+                    Cancel
                   </Button>
                 </div>
-              </div>
+              </form>
             )}
 
             {!newPin && !selectedHotspot && (
               <div className="hotspot-empty-state">
-                <p>Click on the image to place a pin, or click an existing pin to inspect/delete it.</p>
+                <p>Click on the image to place a new pin, or click an existing pin to edit or delete it.</p>
                 <p>Total hotspots on this artwork: {hotspots.length}</p>
               </div>
             )}

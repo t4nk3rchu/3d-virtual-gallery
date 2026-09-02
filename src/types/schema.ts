@@ -125,6 +125,7 @@ export interface ArtworkHotspot {
   title: string;
   description: string;
   audio_timestamp_seconds: number | null;
+  audio_timestamp_end_seconds: number | null;
   audio_file_id: string | null;
 }
 

@@ -102,10 +102,10 @@ export function createProceduralFrame(
   bottom.position.z = -depth / 2;
   bottom.material = mat;
 
-  // Left strip
+  // Left strip — height must span the area between top and bottom strips
   const left = MeshBuilder.CreateBox(
     `${parentName}_frame_left`,
-    { width: fw, height: dims.innerHeight, depth },
+    { width: fw, height: dims.outerHeight - 2 * fw, depth },
     scene
   );
   left.parent = parentMesh;
@@ -114,10 +114,10 @@ export function createProceduralFrame(
   left.position.z = -depth / 2;
   left.material = mat;
 
-  // Right strip
+  // Right strip — height must span the area between top and bottom strips
   const right = MeshBuilder.CreateBox(
     `${parentName}_frame_right`,
-    { width: fw, height: dims.innerHeight, depth },
+    { width: fw, height: dims.outerHeight - 2 * fw, depth },
     scene
   );
   right.parent = parentMesh;

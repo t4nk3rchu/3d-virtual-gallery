@@ -983,6 +983,84 @@
   transform: scale(1.04);
 }
 
+.btn-mode-toggle {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f1f5f9;
+  border-radius: 9999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-mode-toggle:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btn-mode-toggle--fps {
+  background: rgba(185, 138, 60, 0.25);
+  border-color: rgba(185, 138, 60, 0.6);
+  color: #fffaee;
+}
+
+.btn-mode-toggle--fps:hover {
+  background: rgba(185, 138, 60, 0.4);
+  border-color: rgba(185, 138, 60, 0.85);
+}
+
+.mode-hotkey {
+  font-family: inherit;
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  padding: 1px 4px;
+  color: #cbd5e1;
+}
+
+/* ─── FPS Crosshair Reticle ────────────────────────────────────────────── */
+.viewer__crosshair {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 65;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+}
+
+.viewer__crosshair-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.viewer__crosshair--active {
+  border-color: var(--reda-gold, #c89d5c);
+  transform: translate(-50%, -50%) scale(1.45);
+  box-shadow: 0 0 10px rgba(200, 157, 92, 0.8);
+}
+
+.viewer__crosshair--active .viewer__crosshair-dot {
+  background: var(--reda-gold, #c89d5c);
+}
+
 /* ─── Artwork Hover Tooltip (Roam Mode - Image 1) ───────────────────────── */
 .artwork-hover-tooltip {
   background: rgba(15, 23, 42, 0.78);

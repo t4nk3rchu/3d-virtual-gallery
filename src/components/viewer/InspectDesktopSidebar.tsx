@@ -1,4 +1,4 @@
-import { useState, useRef, type PointerEvent as ReactPointerEvent } from 'react';
+import { useState, useRef, useEffect, type PointerEvent as ReactPointerEvent } from 'react';
 import type { ArtworkHotspot } from '../../types/schema';
 import { resolveAudioUrl } from '../../lib/media/gdrive';
 import { Icon } from '../ui';
@@ -9,7 +9,7 @@ interface InspectDesktopSidebarProps {
   totalHotspots: number;
   onClose(): void;
   onNavigate(index: number): void;
-  onAudioSeek?(seconds: number): void;
+  onAudioSeek?(seconds: number, endSeconds?: number | null): void;
 }
 
 export function InspectDesktopSidebar({
@@ -23,6 +23,17 @@ export function InspectDesktopSidebar({
   const [isMinimized, setIsMinimized] = useState(false);
   const [cardPos, setCardPos] = useState<{ x: number; y: number } | null>(null);
   const isDragging = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Autoplay the dedicated hotspot audio on select; stop it when this panel closes.
+  // With key={hotspot.id} on the parent, the panel remounts per hotspot, so mount = a new
+  // hotspot (autoplay) and unmount = hotspot change / deselect / exit (stop).
+  // Capture the element now — React nulls the ref before this cleanup runs on unmount.
+  useEffect(() => {
+    const audio = audioRef.current;
+    audio?.play().catch(() => {});
+    return () => { audio?.pause(); };
+  }, []);
   const dragOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -127,6 +138,7 @@ export function InspectDesktopSidebar({
           <div className="hotspot-audio-player">
             <label className="audio-label"><Icon name="audio" size={13} /> Dedicated Hotspot Audio</label>
             <audio
+              ref={audioRef}
               controls
               src={resolveAudioUrl(activeHotspot.audio_file_id)!}
               className="hotspot-audio-element"
@@ -139,7 +151,7 @@ export function InspectDesktopSidebar({
           <button
             type="button"
             className="btn btn--secondary btn--sm hotspot-seek-action"
-            onClick={() => onAudioSeek(activeHotspot.audio_timestamp_seconds!)}
+            onClick={() => onAudioSeek(activeHotspot.audio_timestamp_seconds!, activeHotspot.audio_timestamp_end_seconds)}
           >
             <Icon name="play" size={12} /> Jump to {Math.floor(activeHotspot.audio_timestamp_seconds)}s in Main Audio Guide
           </button>

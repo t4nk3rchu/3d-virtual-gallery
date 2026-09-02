@@ -31,8 +31,8 @@ export interface InteractionHandlers {
 
 export interface InteractionController {
   getState(): ViewerState;
-  leaveInspect(): void;
-  leaveFocus(): void;
+  leaveInspect(onRestoreRoam?: () => void): void;
+  leaveFocus(onRestoreRoam?: () => void): void;
   reset(): void;
   focusArtwork(artworkId: string, mesh: AbstractMesh): void;
   inspectArtwork(artworkId: string): void;
@@ -60,14 +60,17 @@ export function wireInteraction(
     handlers.onArtworkHover?.(null, null);
   }
 
-  function leaveInspect() {
+  function leaveInspect(onRestoreRoam?: () => void) {
     scaler.setTier('FOCUS');
     setState('FOCUS');
     handlers.onArtworkHover?.(null, null);
+    // Return to focus UI; the caller handles restoring FPS once back in ROAM
+    onRestoreRoam?.();
   }
 
-  function leaveFocus() {
+  function leaveFocus(onRestoreRoam?: () => void) {
     handleLeave();
+    onRestoreRoam?.();
   }
 
   function focusArtwork(artworkId: string, mesh: AbstractMesh) {
@@ -82,13 +85,33 @@ export function wireInteraction(
     scaler.setTier('POPUP');
     setState('INSPECT');
     handlers.onArtworkHover?.(null, null);
+    // Release pointer lock so cursor is free inside the inspect lightbox
+    if (cameraController.isPointerLocked) {
+      cameraController.exitPointerLock();
+    }
     handlers.onArtworkInspect(artworkId);
   }
 
+  // ── FPS Center Crosshair Hover Tracking ────────────────────────────────
+  const renderObserver = scene.onBeforeRenderObservable?.add(() => {
+    if (state !== 'ROAM') return;
+    if (cameraController.isPointerLocked) {
+      const pick = cameraController.pickFromCenter?.((m) => Boolean(m.metadata?.artworkId));
+      const hoveredArtId: string | undefined = pick?.hit ? pick.pickedMesh?.metadata?.artworkId : undefined;
+      if (hoveredArtId) {
+        const cx = typeof window !== 'undefined' ? window.innerWidth / 2 : 0;
+        const cy = typeof window !== 'undefined' ? window.innerHeight / 2 : 0;
+        handlers.onArtworkHover?.(hoveredArtId, { x: cx, y: cy });
+      } else {
+        handlers.onArtworkHover?.(null, null);
+      }
+    }
+  });
+
   const observer = scene.onPointerObservable.add((pointerInfo) => {
-    // ── Hover tracking in ROAM mode ───────────────────────────────────────
+    // ── Hover tracking in ROAM mode (standard cursor) ─────────────────────
     if (pointerInfo.type === PointerEventTypes.POINTERMOVE) {
-      if (state === 'ROAM') {
+      if (state === 'ROAM' && !cameraController.isPointerLocked) {
         const pick = scene.pick(scene.pointerX, scene.pointerY, (m) => Boolean(m.metadata?.artworkId));
         const hoveredArtId: string | undefined = pick?.hit ? pick.pickedMesh?.metadata?.artworkId : undefined;
         if (hoveredArtId) {
@@ -98,14 +121,20 @@ export function wireInteraction(
         } else {
           handlers.onArtworkHover?.(null, null);
         }
-      } else {
+      } else if (!cameraController.isPointerLocked) {
         handlers.onArtworkHover?.(null, null);
       }
       return;
     }
 
     if (pointerInfo.type !== PointerEventTypes.POINTERPICK) return;
-    const hit = pointerInfo.pickInfo;
+
+    // In FPS mode with pointer locked, clicks are picked from the center reticle
+    const isLocked = cameraController.isPointerLocked;
+    const hit = isLocked
+      ? cameraController.pickFromCenter?.()
+      : pointerInfo.pickInfo;
+
     if (!hit?.hit || !hit.pickedMesh) return;
 
     const mesh = hit.pickedMesh;
@@ -115,6 +144,10 @@ export function wireInteraction(
     if (artworkId) {
       if (state === 'ROAM') {
         // Roam → Focus
+        // In FPS mode, exit pointer lock so user can interact with focus UI
+        if (isLocked) {
+          cameraController.exitPointerLock();
+        }
         focusArtwork(artworkId, mesh);
       } else if (state === 'FOCUS') {
         if (cameraController.focusedMesh === mesh) {
@@ -153,6 +186,9 @@ export function wireInteraction(
     inspectArtwork,
     dispose: () => {
       scene.onPointerObservable.remove(observer);
+      if (renderObserver && scene.onBeforeRenderObservable) {
+        scene.onBeforeRenderObservable.remove(renderObserver);
+      }
     },
   };
 }

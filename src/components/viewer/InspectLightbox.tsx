@@ -37,7 +37,8 @@ interface InspectLightboxProps {
   artwork: Artwork & { artist_profile?: Artist | null };
   hotspots: ArtworkHotspot[];
   onClose(): void;
-  onAudioSeek?(seconds: number): void;
+  onAudioSeek?(seconds: number, endSeconds?: number | null): void;
+  onAudioStop?(): void;
   onOpenArtist?(artist: Artist): void;
   settings?: ViewerSettings;
 }
@@ -63,6 +64,7 @@ export function InspectLightbox({
   hotspots,
   onClose,
   onAudioSeek,
+  onAudioStop,
   onOpenArtist,
   settings: propSettings,
 }: InspectLightboxProps) {
@@ -287,7 +289,7 @@ export function InspectLightbox({
       }
 
       if (h.audio_timestamp_seconds != null && onAudioSeek) {
-        onAudioSeek(h.audio_timestamp_seconds);
+        onAudioSeek(h.audio_timestamp_seconds, h.audio_timestamp_end_seconds);
       }
     },
     [hotspots, onAudioSeek, triggerTransitionFlight]
@@ -487,15 +489,23 @@ export function InspectLightbox({
     }
   }, [isPlayingAudio]);
 
-  // When changing hotspot, stop current audio and collapse expanded description
+  // Stop hotspot audio when the hotspot changes (including deselect to -1) or on exit.
   useEffect(() => {
     setIsPlayingAudio(false);
     setIsDescExpanded(false);
-    if (audioPlayerRef.current) {
-      audioPlayerRef.current.pause();
-      audioPlayerRef.current.currentTime = 0;
+    // Dedicated per-hotspot audio element (capture now — ref is null by cleanup on unmount)
+    const el = audioPlayerRef.current;
+    const hs = activeHotspotIndex >= 0 ? hotspots[activeHotspotIndex] : null;
+    if (el) {
+      el.currentTime = 0;
+      // Autoplay the dedicated hotspot audio on select (mobile)
+      if (hs?.audio_file_id) el.play().catch(() => {});
     }
-  }, [activeHotspotIndex]);
+    // Shared audio-guide-seek element: stop it unless the new hotspot auto-seeks (has a
+    // timestamp — focusHotspot already re-seeked it synchronously before this effect ran).
+    if (hs?.audio_timestamp_seconds == null) onAudioStop?.();
+    return () => { el?.pause(); };
+  }, [activeHotspotIndex, hotspots, onAudioStop]);
 
   return (
     <div
@@ -734,6 +744,7 @@ export function InspectLightbox({
         {/* Desktop Side Panel: Active Hotspot Detail (Draggable & Minimizable) */}
         {!isMobile && activeHotspot && (
           <InspectDesktopSidebar
+            key={activeHotspot.id}
             activeHotspot={activeHotspot}
             activeHotspotIndex={activeHotspotIndex}
             totalHotspots={hotspots.length}
@@ -845,7 +856,7 @@ export function InspectLightbox({
               <button
                 type="button"
                 className="btn btn--sm btn--secondary inspect-audio-btn"
-                onClick={() => onAudioSeek(activeHotspot.audio_timestamp_seconds!)}
+                onClick={() => onAudioSeek(activeHotspot.audio_timestamp_seconds!, activeHotspot.audio_timestamp_end_seconds)}
                 title={`Jump to ${Math.floor(activeHotspot.audio_timestamp_seconds)}s in Main Audio Guide`}
               >
                 <Icon name="audio" size={13} /> Guide ({Math.floor(activeHotspot.audio_timestamp_seconds)}s)

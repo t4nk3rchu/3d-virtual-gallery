@@ -20,6 +20,7 @@ describe('HotspotOverlay', () => {
       title: 'Craquelure detail',
       description: 'Fine cracks in the varnish layer.',
       audio_timestamp_seconds: 42.5,
+      audio_timestamp_end_seconds: null,
       audio_file_id: null,
     },
     {
@@ -30,6 +31,7 @@ describe('HotspotOverlay', () => {
       title: 'Signature',
       description: 'The artist signed in pencil.',
       audio_timestamp_seconds: null,
+      audio_timestamp_end_seconds: null,
       audio_file_id: null,
     },
   ];

@@ -12,7 +12,10 @@ import { useState, useCallback } from 'react';
 import type { IntroTransition } from '../../lib/viewer/intro-animations';
 import { Icon, Toggle } from '../ui';
 
+export type CameraControlMode = 'gallery' | 'fps';
+
 export interface ViewerSettings {
+  controlMode: CameraControlMode;
   tiltEnabled: boolean;
   introTransition: IntroTransition;
   walkSpeed: number;
@@ -27,6 +30,7 @@ export interface ViewerSettings {
 }
 
 export const DEFAULT_VIEWER_SETTINGS: ViewerSettings = {
+  controlMode: 'gallery',
   tiltEnabled: true,
   introTransition: 'zoom_in',
   walkSpeed: 0.02,
@@ -164,7 +168,32 @@ export function SettingsModal({ settings, onChange, onClose }: SettingsModalProp
 
           {/* Section 3: Desktop Controls */}
           <section className="settings-section">
-            <h3><Icon name="mouse" size={14} /> Desktop Mouse Look</h3>
+            <h3><Icon name="mouse" size={14} /> Desktop Camera &amp; Mouse Look</h3>
+
+            <div className="settings-slider-group" style={{ marginBottom: '16px' }}>
+              <div className="settings-slider-header">
+                <span>Camera Control Mode</span>
+                <span>{local.controlMode === 'fps' ? 'FPS (Pointer Lock)' : 'Gallery (Drag Look)'}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  className={`btn btn--sm ${local.controlMode === 'gallery' ? 'btn--primary' : 'btn--ghost'}`}
+                  style={{ flex: 1 }}
+                  onClick={() => update({ controlMode: 'gallery' })}
+                >
+                  Gallery Mode
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn--sm ${local.controlMode === 'fps' ? 'btn--primary' : 'btn--ghost'}`}
+                  style={{ flex: 1 }}
+                  onClick={() => update({ controlMode: 'fps' })}
+                >
+                  FPS Mode (Pointer Lock)
+                </button>
+              </div>
+            </div>
 
             <div className="settings-toggles-grid">
               <div className="settings-toggle-item">

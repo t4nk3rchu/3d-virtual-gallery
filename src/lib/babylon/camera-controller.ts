@@ -17,6 +17,9 @@ import {
 
 // ─── CAMERA & MOVEMENT CONFIGURATION (Tweak these values) ─────────────────────
 export const CAMERA_CONFIG = {
+  /** Camera control mode: 'gallery' (drag look) or 'fps' (pointer lock) */
+  controlMode: 'gallery' as 'gallery' | 'fps',
+
   /** Normal WASD walking speed (default: 0.02) */
   walkSpeed: 0.02,
 
@@ -77,8 +80,13 @@ export class CameraController {
   private _animating = false;
   private _onMovementCallback: (() => void) | null = null;
 
+  readonly canvas: HTMLCanvasElement;
+  private _isPointerLocked = false;
+  private _onPointerLockCallbacks: Set<(isLocked: boolean) => void> = new Set();
+
   constructor(scene: Scene, canvas: HTMLCanvasElement) {
     this.scene = scene;
+    this.canvas = canvas;
     this.camera = new UniversalCamera(
       'playerCamera',
       new Vector3(0, CAMERA_CONFIG.eyeHeight, -6), // eye height from config, stepped back to view gallery
@@ -104,6 +112,7 @@ export class CameraController {
     this.camera.keysRight = [];
 
     this._setupPointerLook(canvas);
+    this._setupPointerLock(canvas);
     this._setupKeyboardControls(canvas);
     this._setupRenderLoop();
   }
@@ -112,8 +121,38 @@ export class CameraController {
     return this._focusedMesh;
   }
 
+  get isPointerLocked(): boolean {
+    return this._isPointerLocked;
+  }
+
   set onMovement(cb: (() => void) | null) {
     this._onMovementCallback = cb;
+  }
+
+  onPointerLockChange(cb: (isLocked: boolean) => void): () => void {
+    this._onPointerLockCallbacks.add(cb);
+    return () => this._onPointerLockCallbacks.delete(cb);
+  }
+
+  requestPointerLock(): void {
+    if (this._isPointerLocked) return;
+    try {
+      const promise = this.canvas.requestPointerLock?.();
+      if (promise && typeof (promise as Promise<void>).catch === 'function') {
+        (promise as Promise<void>).catch(() => {
+          // Browser prevented pointer lock or user denied
+        });
+      }
+    } catch {}
+  }
+
+  exitPointerLock(): void {
+    if (!this._isPointerLocked) return;
+    try {
+      if (document.exitPointerLock) {
+        document.exitPointerLock();
+      }
+    } catch {}
   }
 
   /** Update camera & movement parameters at runtime from Settings */
@@ -124,12 +163,42 @@ export class CameraController {
     }
   }
 
+  /** Center screen picking ray for FPS crosshair reticle */
+  pickFromCenter(predicate?: (mesh: AbstractMesh) => boolean) {
+    const width = this.canvas.clientWidth || window.innerWidth;
+    const height = this.canvas.clientHeight || window.innerHeight;
+    return this.scene.pick(width / 2, height / 2, predicate);
+  }
+
+  private _setupPointerLock(canvas: HTMLCanvasElement) {
+    const onLockChange = () => {
+      const locked = document.pointerLockElement === canvas;
+      this._isPointerLocked = locked;
+      this._onPointerLockCallbacks.forEach((cb) => cb(locked));
+    };
+
+    document.addEventListener('pointerlockchange', onLockChange);
+    this._pointerLockCleanup = () => {
+      document.removeEventListener('pointerlockchange', onLockChange);
+    };
+  }
+
+  private _pointerLockCleanup: (() => void) | null = null;
+
   private _setupPointerLook(canvas: HTMLCanvasElement) {
     let activePointerId: number | null = null;
     let prevX = 0;
     let prevY = 0;
 
     const onPointerDown = (e: PointerEvent) => {
+      if (CAMERA_CONFIG.controlMode === 'fps') {
+        // In FPS mode, clicking the canvas requests pointer lock if not already locked
+        if (!this._isPointerLocked && !this._focusedMesh && (e.button === 0)) {
+          this.requestPointerLock();
+        }
+        return;
+      }
+
       if (e.button === 0 || e.pointerType === 'touch') {
         activePointerId = e.pointerId;
         prevX = e.clientX;
@@ -141,7 +210,30 @@ export class CameraController {
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      if (activePointerId !== e.pointerId || this._animating) return;
+      if (this._animating) return;
+
+      const isFps = CAMERA_CONFIG.controlMode === 'fps' && this._isPointerLocked;
+
+      if (isFps) {
+        // FPS mode: use movementX and movementY with pointer locked
+        const dx = e.movementX ?? 0;
+        const dy = e.movementY ?? 0;
+        if (dx === 0 && dy === 0) return;
+
+        const sens = 1 / Math.max(100, CAMERA_CONFIG.mouseSensitivity);
+        const multX = CAMERA_CONFIG.invertMouseX ? -1 : 1;
+        const multY = CAMERA_CONFIG.invertMouseY ? -1 : 1;
+
+        this.camera.rotation.y += dx * sens * multX * 4;
+        this.camera.rotation.x += dy * sens * multY * 4;
+
+        const maxPitch = Math.PI / 2.2;
+        this.camera.rotation.x = Math.max(-maxPitch, Math.min(maxPitch, this.camera.rotation.x));
+        return;
+      }
+
+      // Gallery mode: drag-to-look
+      if (activePointerId !== e.pointerId) return;
 
       const dx = e.clientX - prevX;
       const dy = e.clientY - prevY;
@@ -490,6 +582,12 @@ export class CameraController {
   }
 
   dispose(): void {
+    this.exitPointerLock();
+    if (this._pointerLockCleanup) {
+      this._pointerLockCleanup();
+      this._pointerLockCleanup = null;
+    }
+    this._onPointerLockCallbacks.clear();
     if (this._renderObserver) {
       this.scene.onBeforeRenderObservable.remove(this._renderObserver);
     }

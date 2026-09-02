@@ -56,7 +56,40 @@ This document summarizes the core features, responsive patterns, architecture de
 
 ---
 
-## 5. Curator Studio & REDA Workbench (Recent Updates)
+## 5. Audio System
+
+### 5.0 Three-Track Audio Architecture
+The gallery supports three independent audio layers that interact cleanly:
+
+1. **Ambient Room Audio** — looping background audio attached to the exhibition; ducked to 8% volume when a focus-mode artwork has a narration guide, otherwise 35%.
+2. **Artwork Audio Guide** — narration file attached per artwork; autoplays when focus mode opens (panel stays closed), controlled by a play/pause button below the info icon. The shared hidden `<audio>` element persists independently of the info panel so playback is never interrupted by opening/closing the modal.
+3. **Dedicated Hotspot Audio** — a separate audio clip attached per hotspot; autoplays on hotspot select, stops on deselect, hotspot change, or inspect-mode exit.
+
+### 5.1 Audio Guide Segment Timestamps (Hotspots)
+- Each hotspot can now specify a **start → stop** time range in the main audio guide rather than playing to the end.
+- Stored as `audio_timestamp_seconds` (start) and `audio_timestamp_end_seconds` (stop, optional) in `artwork_hotspots`.
+- A `timeupdate` watcher pauses the guide at the stop time; the watcher is cleaned up on re-seek, hotspot change, and inspect exit.
+- **Migration**: `migrations/0007_hotspot_audio_end.sql` (`ALTER TABLE artwork_hotspots ADD COLUMN audio_timestamp_end_seconds REAL`).
+- Hotspot Editor UI shows a "Start … to … Stop" pair of number inputs.
+
+### 5.2 Dedicated Hotspot Audio Autoplay
+- Hotspots with `audio_file_id` autoplay their clip when the hotspot is selected.
+- Keyed sidebar (`key={hotspot.id}`) causes a full remount per hotspot, so mount = autoplay, unmount = stop — no manual lifecycle wiring required.
+- Mobile lightbox effect mirrors the same autoplay-on-change / stop-on-change behaviour.
+
+### 5.3 Focus Mode Audio Controls
+- A play/pause icon button appears **below the info icon** in the focus-mode header bar whenever the artwork has an audio guide.
+- The button reflects the real playback state (subscribes to actual `<audio>` element events, not React state) so it stays in sync with the full AudioGuidePlayer controls inside the info panel.
+- CSS: `.focus-header-bar__stack` (flex column, gap 10px) wraps the info and guide-toggle buttons.
+
+### 5.4 Audio Bug Fixes
+- **Ambient audio autoplay policy**: installs a one-time `click`/`keydown` retry listener when the browser blocks autoplay; listener is removed on unmount.
+- **Seek audio not stopping**: `seekEndCleanupRef` (non-DOM ref) tracks the `timeupdate` watcher so it is cleaned up on re-seek, hotspot change, and inspect exit via an `onAudioStop` callback threaded through InspectLightbox.
+- **React ref timing**: all stop-on-unmount effects capture the element before the cleanup runs (`const audio = ref.current; return () => audio?.pause()`) to avoid the null-ref trap.
+
+---
+
+## 6. Curator Studio & REDA Workbench (Recent Updates)
 
 ### 5.1 Mode Isolation (`Artworks` | `Waypoints` | `Walkthrough`)
 - **`Artworks` Mode**:
@@ -145,7 +178,9 @@ This document summarizes the core features, responsive patterns, architecture de
 - [x] Centering fixes: Virtual joystick knob centered via `translate(-50%, -50%)` and Focus header bar info icon centering across mobile and desktop.
 - [x] Curator Atelier Sign In / Register Redesign: Dual-state mode switcher, atmospheric Florentine backdrop, gold medallion branding, and refined error handling.
 - [x] Service Account Media Auth Migration (ADR-0001): Replaced public "anyone with link" access with private Service Account proxy (`/api/media/:fileId`) + HMAC-SHA256 tokens; simplified `DriveFilePicker` and removed dead `drive-share.ts`.
-- [x] Complete automated test suite (**46 test files, 211 tests passing**) with 0 build errors.
+- [x] **Audio system** (2026-09-03): Three-track audio architecture (ambient, artwork guide, hotspot); ambient ducking; guide autoplays on focus entry with persistent hidden element; play/pause toggle button in focus header; hotspot audio guide segment (start→stop timestamps, migration 0007); dedicated hotspot audio autoplay; autoplay-policy retry; seek-audio stop-on-exit and React ref timing fixes.
+- [x] **Hotspot editing** (2026-09-03): Clicking an existing pin now shows a pre-populated edit form (title, description, timestamps, audio file) with Save / Delete / Cancel. Added `PUT /api/hotspots/:id` route and `updateHotspot` db helper.
+- [x] Complete automated test suite (**48 test files, 221 tests passing**) with 0 build errors.
 
 ### Future Enhancements (Backlog)
 - [ ] **Multi-Waypoint Guided Tour**: Extend the single Start Point beacon into an ordered sequence of tour waypoints with camera path interpolation.
