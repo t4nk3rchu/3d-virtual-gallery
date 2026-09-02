@@ -19,6 +19,7 @@ import {
   deleteArtworkRecord,
   createHotspot,
   deleteHotspot,
+  updateHotspot,
   createArtistRecord,
   getArtistsForExhibition,
   getArtistById,
@@ -302,6 +303,7 @@ export async function handleHotspots(
       title: (body.title as string) ?? '',
       description: (body.description as string) ?? '',
       audio_timestamp_seconds: (body.audio_timestamp_seconds as number) ?? null,
+      audio_timestamp_end_seconds: (body.audio_timestamp_end_seconds as number) ?? null,
       audio_file_id: (body.audio_file_id as string) || null,
     });
 
@@ -326,6 +328,19 @@ export async function handleHotspotById(
 
   const owner = await getArtworkExhibitionOwner(env, row.artwork_id);
   if (owner !== auth.sub) return json({ error: 'Forbidden' }, 403);
+
+  if (req.method === 'PUT') {
+    const body = await req.json() as Record<string, unknown>;
+    const cleanAudioId = (body.audio_file_id as string) || null;
+    const updated = await updateHotspot(env.DB, id, {
+      title: (body.title as string) || 'Detail Hotspot',
+      description: (body.description as string) || '',
+      audio_timestamp_seconds: (body.audio_timestamp_seconds as number) ?? null,
+      audio_timestamp_end_seconds: (body.audio_timestamp_end_seconds as number) ?? null,
+      audio_file_id: cleanAudioId,
+    });
+    return updated ? json(updated) : json({ error: 'Not found' }, 404);
+  }
 
   if (req.method === 'DELETE') {
     await deleteHotspot(env.DB, id, row.artwork_id);

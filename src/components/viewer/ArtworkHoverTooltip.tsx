@@ -14,11 +14,15 @@ export function ArtworkHoverTooltip({ artwork, position }: ArtworkHoverTooltipPr
     artwork.artist ||
     'Untitled Artist';
 
-  // Position tooltip adjacent to cursor, clamping slightly to avoid edge overflow
-  const offsetX = 16;
-  const offsetY = 16;
-  const left = Math.min(position.x + offsetX, window.innerWidth - 220);
-  const top = Math.min(position.y + offsetY, window.innerHeight - 100);
+  // Position tooltip adjacent to cursor or crosshair, clamping slightly to avoid edge overflow
+  const isCenter = typeof window !== 'undefined' &&
+    Math.abs(position.x - window.innerWidth / 2) < 5 &&
+    Math.abs(position.y - window.innerHeight / 2) < 5;
+
+  const offsetX = isCenter ? 24 : 16;
+  const offsetY = isCenter ? -12 : 16;
+  const left = Math.min(position.x + offsetX, (typeof window !== 'undefined' ? window.innerWidth : 800) - 220);
+  const top = Math.min(Math.max(10, position.y + offsetY), (typeof window !== 'undefined' ? window.innerHeight : 600) - 100);
 
   return (
     <div

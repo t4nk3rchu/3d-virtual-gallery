@@ -118,6 +118,317 @@
   .hotspot-pin::after { animation: none; }
 }
 
+/* ─── 00 LOADING CURTAIN (REDA Codex Atelier) ────────────────────────── */
+.loading-curtain {
+  position: absolute;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--reda-wall-deepest);
+  color: var(--reda-cream);
+  overflow: hidden;
+  transition-property: transform, opacity, filter, clip-path;
+  transition-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
+  will-change: transform, opacity;
+  pointer-events: auto;
+}
+
+.loading-curtain__ambient-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(185, 138, 60, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(185, 138, 60, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: center center;
+  pointer-events: none;
+}
+
+.loading-curtain__ambient-glow {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(600px, 90vw);
+  height: min(600px, 90vw);
+  background: radial-gradient(circle, rgba(185, 138, 60, 0.12) 0%, rgba(138, 50, 42, 0.06) 45%, transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.loading-curtain__card {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 540px;
+  width: 90%;
+  padding: 40px 24px;
+}
+
+.loading-curtain__emblem-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 1px solid rgba(185, 138, 60, 0.4);
+  background: radial-gradient(circle at 35% 35%, rgba(35, 32, 25, 0.9), rgba(27, 26, 23, 0.95));
+  box-shadow: 0 0 28px rgba(185, 138, 60, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  animation: emblemBreathe 4s ease-in-out infinite alternate;
+}
+
+@keyframes emblemBreathe {
+  0% { box-shadow: 0 0 20px rgba(185, 138, 60, 0.15); transform: scale(1); }
+  100% { box-shadow: 0 0 36px rgba(185, 138, 60, 0.35); transform: scale(1.03); }
+}
+
+.loading-curtain__emblem {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.loading-curtain__kicker {
+  font-family: var(--reda-ui);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--reda-gold);
+  margin-bottom: 12px;
+}
+
+.loading-curtain__title {
+  font-family: var(--reda-display);
+  font-weight: 500;
+  font-size: clamp(26px, 4.5vw, 42px);
+  line-height: 1.15;
+  color: var(--reda-cream-hi);
+  margin: 0 0 10px;
+}
+
+.loading-curtain__curator {
+  font-family: var(--reda-text);
+  font-size: 16px;
+  color: var(--reda-muted-hi);
+  margin: 0 0 36px;
+}
+
+.loading-curtain__curator em {
+  font-style: italic;
+  color: var(--reda-cream);
+}
+
+.loading-curtain__progress-section {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.loading-curtain__progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--reda-ui);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.loading-curtain__stage-text {
+  color: var(--reda-muted-hi);
+}
+
+.loading-curtain__percentage {
+  font-family: var(--reda-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--reda-gold);
+}
+
+.loading-curtain__progress-track {
+  width: 100%;
+  height: 3px;
+  background: rgba(185, 138, 60, 0.15);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.loading-curtain__progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--reda-oxblood), var(--reda-gold));
+  border-radius: 999px;
+  transition: width 0.3s ease-out;
+  box-shadow: 0 0 12px rgba(185, 138, 60, 0.5);
+}
+
+/* ─── TRANSITION PRESETS (Applied to both LoadingCurtain and IntroVideoLoader) ─── */
+.loading-curtain.loading-curtain--revealing,
+.intro-video-overlay.intro-video-overlay--fading-out {
+  pointer-events: none;
+}
+
+.loading-curtain.intro-video-overlay--slide-up,
+.intro-video-overlay.intro-video-overlay--slide-up {
+  transform: translateY(-100%);
+  opacity: 0.95;
+}
+
+.loading-curtain.intro-video-overlay--fade,
+.intro-video-overlay.intro-video-overlay--fade {
+  opacity: 0;
+  transform: scale(1.02);
+}
+
+.loading-curtain.intro-video-overlay--zoom-in,
+.intro-video-overlay.intro-video-overlay--zoom-in {
+  opacity: 0;
+  transform: scale(1.35);
+  filter: brightness(1.25);
+}
+
+.loading-curtain.intro-video-overlay--blur-fade,
+.intro-video-overlay.intro-video-overlay--blur-fade {
+  opacity: 0;
+  transform: scale(1.05);
+  filter: blur(24px) contrast(0.85);
+}
+
+.loading-curtain.intro-video-overlay--iris-circle,
+.intro-video-overlay.intro-video-overlay--iris-circle {
+  clip-path: circle(0% at 50% 50%);
+  opacity: 0;
+}
+
+.loading-curtain.intro-video-overlay--flash-white,
+.intro-video-overlay.intro-video-overlay--flash-white {
+  opacity: 0;
+  filter: brightness(3.5) contrast(0.7);
+}
+
+/* ─── 00 ARCHIVAL ERROR VIEWS (REDA Codex) ───────────────────────────── */
+.viewer-error-view {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--reda-wall-deepest);
+  color: var(--reda-cream);
+  overflow: hidden;
+  padding: 24px;
+}
+
+.viewer-error-view__ambient-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(185, 138, 60, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(185, 138, 60, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: center center;
+  pointer-events: none;
+}
+
+.viewer-error-view__ambient-glow {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(650px, 92vw);
+  height: min(650px, 92vw);
+  background: radial-gradient(circle, rgba(138, 50, 42, 0.12) 0%, rgba(185, 138, 60, 0.05) 50%, transparent 70%);
+  filter: blur(48px);
+  pointer-events: none;
+}
+
+.viewer-error-card {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 520px;
+  width: 100%;
+  padding: 44px 32px;
+  background: rgba(35, 32, 25, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(185, 138, 60, 0.3);
+  border-radius: var(--reda-radius-md, 8px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.viewer-error-card__emblem-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1px solid rgba(185, 138, 60, 0.45);
+  background: radial-gradient(circle at 35% 35%, rgba(43, 39, 31, 0.9), rgba(27, 26, 23, 0.95));
+  box-shadow: 0 0 24px rgba(185, 138, 60, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--reda-gold);
+  margin-bottom: 22px;
+}
+
+.viewer-error-card__kicker {
+  font-family: var(--reda-ui);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--reda-gold);
+  margin-bottom: 12px;
+}
+
+.viewer-error-card__title {
+  font-family: var(--reda-display);
+  font-weight: 500;
+  font-size: clamp(24px, 4vw, 36px);
+  line-height: 1.18;
+  color: var(--reda-cream-hi);
+  margin: 0 0 14px;
+}
+
+.viewer-error-card__message {
+  font-family: var(--reda-text);
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--reda-muted-hi);
+  margin: 0 0 32px;
+  max-width: 440px;
+}
+
+.viewer-error-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  width: 100%;
+}
+
+.viewer-error-btn {
+  font-family: var(--reda-ui);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 160px;
+}
+
 /* ─── 01 INTRO VIDEO LOADER ───────────────────────────────────────────── */
 .intro-video-overlay {
   position: absolute;
@@ -128,6 +439,8 @@
   justify-content: space-between;
   background: var(--reda-wall-deepest);
   overflow: hidden;
+  transition-property: transform, opacity, filter, clip-path;
+  transition-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
 }
 .intro-demo {
   position: relative;
@@ -570,6 +883,12 @@
 .focus-header-bar__info-btn .reda-icon {
   display: block;
 }
+.focus-header-bar__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
 .focus-nav-rail {
   position: absolute;
   right: 20px;
@@ -753,6 +1072,9 @@
   .focus-header-bar__info-btn .reda-icon {
     width: 14px;
     height: 14px;
+  }
+  .focus-header-bar__stack {
+    gap: 5px;
   }
   .focus-nav-rail {
     right: 8px;
@@ -2026,3 +2348,241 @@
   color: var(--reda-muted-hi);
   margin: 6px 0 0;
 }
+
+/* ─── 08 REDA RENAISSANCE CODEX AUDIO GUIDE PLAYER ─────────────────────── */
+.reda-audio-player {
+  background: var(--reda-char-2);
+  border: 1px solid rgba(185, 138, 60, 0.28);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.reda-audio-player:hover {
+  border-color: rgba(185, 138, 60, 0.45);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 12px rgba(185, 138, 60, 0.08);
+}
+
+.reda-audio-player__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reda-audio-player__title-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reda-audio-player__icon {
+  color: var(--reda-gold);
+  display: inline-flex;
+  align-items: center;
+}
+
+.reda-audio-player__kicker {
+  font-family: var(--reda-ui);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--reda-gold);
+}
+
+.reda-audio-player__status {
+  font-family: var(--reda-ui);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--reda-muted-2);
+  background: rgba(185, 138, 60, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(185, 138, 60, 0.18);
+}
+
+.reda-audio-player__body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Round Play/Pause Button */
+.reda-audio-player__play-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--reda-gold);
+  border: 1px solid var(--reda-gold-hi);
+  color: var(--reda-char);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.reda-audio-player__play-btn:hover {
+  background: var(--reda-gold-hi);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(185, 138, 60, 0.35);
+}
+
+.reda-audio-player__play-btn:active {
+  transform: scale(0.95);
+}
+
+.reda-audio-player__play-btn.is-playing {
+  background: var(--reda-oxblood);
+  border-color: var(--reda-oxblood-hi);
+  color: var(--reda-cream-hi);
+  box-shadow: 0 2px 8px rgba(138, 50, 42, 0.4);
+}
+
+.reda-audio-player__play-btn.is-playing:hover {
+  background: var(--reda-oxblood-hi);
+  box-shadow: 0 4px 14px rgba(138, 50, 42, 0.55);
+}
+
+/* Scrubber & Progress */
+.reda-audio-player__scrubber-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.reda-audio-player__progress-wrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.reda-audio-player__time-display {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--reda-ui);
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--reda-muted-hi);
+  letter-spacing: 0.02em;
+}
+
+.reda-audio-player__time-current {
+  color: var(--reda-cream-hi);
+  font-weight: 600;
+}
+
+.reda-audio-player__time-divider {
+  color: var(--reda-muted-2);
+  opacity: 0.6;
+}
+
+.reda-audio-player__time-total {
+  color: var(--reda-muted-hi);
+}
+
+/* Range input sliders (custom cross-browser track & thumb) */
+.reda-audio-player__slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  border: none;
+  margin: 0;
+  transition: height 0.15s ease;
+}
+
+.reda-audio-player__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--reda-cream-hi);
+  border: 1.5px solid var(--reda-gold);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.reda-audio-player__slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--reda-cream-hi);
+  border: 1.5px solid var(--reda-gold);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.reda-audio-player__slider:hover::-webkit-slider-thumb {
+  transform: scale(1.3);
+  background: var(--reda-cream-hi);
+}
+
+.reda-audio-player__slider:hover::-moz-range-thumb {
+  transform: scale(1.3);
+  background: var(--reda-cream-hi);
+}
+
+/* Volume Group */
+.reda-audio-player__volume-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.reda-audio-player__mute-btn {
+  background: transparent;
+  border: none;
+  color: var(--reda-muted-hi);
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.reda-audio-player__mute-btn:hover {
+  color: var(--reda-cream-hi);
+  transform: scale(1.1);
+}
+
+.reda-audio-player__slider--volume {
+  width: 44px;
+  height: 3px;
+}
+
+.reda-audio-player__slider--volume::-webkit-slider-thumb {
+  width: 8px;
+  height: 8px;
+  border-width: 1px;
+}
+
+.reda-audio-player__slider--volume::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  border-width: 1px;
+}
+
+

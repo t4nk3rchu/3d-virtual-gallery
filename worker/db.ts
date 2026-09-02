@@ -391,17 +391,36 @@ export async function createHotspot(
   await db
     .prepare(
       `INSERT INTO artwork_hotspots
-         (id, artwork_id, x_percent, y_percent, title, description, audio_timestamp_seconds, audio_file_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+         (id, artwork_id, x_percent, y_percent, title, description, audio_timestamp_seconds, audio_timestamp_end_seconds, audio_file_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       id, input.artwork_id, input.x_percent, input.y_percent,
       input.title, input.description, input.audio_timestamp_seconds ?? null,
+      input.audio_timestamp_end_seconds ?? null,
       input.audio_file_id ?? null
     )
     .run();
 
   return { id, ...input, audio_file_id: input.audio_file_id ?? null };
+}
+
+export async function updateHotspot(
+  db: D1Database,
+  id: string,
+  input: Partial<Omit<ArtworkHotspotInput, 'artwork_id'>>
+): Promise<ArtworkHotspot | null> {
+  const fields = [
+    ['title', input.title],
+    ['description', input.description],
+    ['audio_timestamp_seconds', input.audio_timestamp_seconds ?? null],
+    ['audio_timestamp_end_seconds', input.audio_timestamp_end_seconds ?? null],
+    ['audio_file_id', input.audio_file_id ?? null],
+  ] as const;
+  const sets = fields.map(([col]) => `${col} = ?`).join(', ');
+  const values = fields.map(([, v]) => v);
+  await db.prepare(`UPDATE artwork_hotspots SET ${sets} WHERE id = ?`).bind(...values, id).run();
+  return db.prepare('SELECT * FROM artwork_hotspots WHERE id = ?').bind(id).first<ArtworkHotspot>();
 }
 
 export async function deleteHotspot(

@@ -38,6 +38,7 @@ async function makeTestDb(): Promise<D1Database> {
         '0004_artwork_updated_at.sql',
         '0005_artists_and_intro_video.sql',
         '0006_users_team_flag.sql',
+        '0007_hotspot_audio_end.sql',
       ];
 
       for (const file of migrationFiles) {

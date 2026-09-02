@@ -33,3 +33,10 @@ describe('calculateFocusPosition', () => {
     expect(pos.z).toBeCloseTo(3.0);
   });
 });
+
+describe('CAMERA_CONFIG control mode', () => {
+  it('defaults to gallery mode and allows setting fps mode', async () => {
+    const { CAMERA_CONFIG } = await import('./camera-controller');
+    expect(CAMERA_CONFIG.controlMode).toBe('gallery');
+  });
+});

@@ -5,7 +5,7 @@
  * renders FocusPanel and InspectLightbox. Falls back to FallbackCatalog when
  * WebGL2 is unavailable.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ExhibitionDetail, ArtworkHotspot, Artist } from '../../types/schema';
 import type { AbstractMesh } from '@babylonjs/core';
 import type { InteractionController } from '../../lib/babylon/interaction';
@@ -17,13 +17,16 @@ import { ArtistDetailModal } from './ArtistDetailModal';
 import { IntroVideoLoader } from './IntroVideoLoader';
 import { ArtworkHoverTooltip } from './ArtworkHoverTooltip';
 import { VirtualJoystick } from './VirtualJoystick';
-import { SettingsModal, getStoredViewerSettings, type ViewerSettings } from './SettingsModal';
+import { SettingsModal, getStoredViewerSettings, type ViewerSettings, type CameraControlMode } from './SettingsModal';
 import { trackEvent } from '../../lib/analytics';
 import { proxyMediaUrl } from '../../lib/media/gdrive';
 import { registerMediaTokens } from '../../lib/media/media-tokens';
 import { parseSpawnPoint } from '../../lib/studio/spawn-point';
 import { isArtworkPlaced } from '../../lib/studio/artwork-placement';
 import { Icon } from '../ui';
+import { LoadingCurtain } from './LoadingCurtain';
+import { ViewerErrorView, type ViewerErrorType } from './ViewerErrorView';
+import type { IntroTransition } from '../../lib/viewer/intro-animations';
 
 interface ExhibitionViewerProps {
   slug: string;
@@ -35,6 +38,7 @@ type ViewerArtwork = ExhibitionDetail['artworks'][number];
 export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loadState, setLoadState] = useState<LoadState>('loading');
+  const [errorType, setErrorType] = useState<ViewerErrorType>('not_found');
   const [exhibition, setExhibition] = useState<ExhibitionDetail | null>(null);
   const [focusedArtwork, setFocusedArtwork] = useState<ViewerArtwork | null>(null);
   const [hoveredArtwork, setHoveredArtwork] = useState<{
@@ -48,21 +52,35 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
   const [isSceneReady, setIsSceneReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [settings, setSettings] = useState<ViewerSettings>(getStoredViewerSettings);
+  const [controlMode, setControlMode] = useState<CameraControlMode>(() => getStoredViewerSettings().controlMode || 'gallery');
+  const [isPointerLocked, setIsPointerLocked] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ambientAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Cleanup for the "stop at end timestamp" watcher on the seek audio element
+  const seekEndCleanupRef = useRef<(() => void) | null>(null);
   const interactionRef = useRef<InteractionController | null>(null);
   const cameraControllerRef = useRef<CameraController | null>(null);
   const sceneRef = useRef<import('@babylonjs/core').Scene | null>(null);
   const dwellStartRef = useRef<{ artworkId: string; artworkType?: ViewerArtwork['artwork_type']; startTime: number } | null>(null);
+  /** Remembers if we were in FPS mode before entering focus/inspect, so we can restore it on return to ROAM */
+  const wasFpsModeRef = useRef<boolean>(false);
 
   const webglSupported = isWebGLSupported();
 
   // Fetch exhibition data
-  useEffect(() => {
+  const fetchExhibition = () => {
+    setLoadState('loading');
     fetch(`/api/exhibitions/by-slug/${slug}`, { credentials: 'include' })
       .then(async (r) => {
-        if (!r.ok) throw new Error('Not found');
+        if (r.status === 403) {
+          setErrorType('private');
+          throw new Error('Private exhibition');
+        }
+        if (!r.ok) {
+          setErrorType('not_found');
+          throw new Error('Not found');
+        }
         return (await r.json()) as ExhibitionDetail;
       })
       .then((data) => {
@@ -70,7 +88,16 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
         setExhibition(data);
         setLoadState('loaded');
       })
-      .catch(() => setLoadState('error'));
+      .catch((err) => {
+        if (err.message !== 'Private exhibition' && err.message !== 'Not found') {
+          setErrorType('network_error');
+        }
+        setLoadState('error');
+      });
+  };
+
+  useEffect(() => {
+    fetchExhibition();
   }, [slug]);
 
   // Ambient room audio — starts after intro is dismissed
@@ -84,14 +111,49 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
     audio.loop = true;
     audio.volume = 0.35;
     ambientAudioRef.current = audio;
-    audio.play().catch(() => {});
+    let retryCleanup: (() => void) | undefined;
+    audio.play().catch(() => {
+      // Autoplay blocked — retry on first user interaction
+      const resume = () => {
+        audio.play().catch(() => {});
+      };
+      document.addEventListener('click', resume, { once: true });
+      document.addEventListener('keydown', resume, { once: true });
+      retryCleanup = () => {
+        document.removeEventListener('click', resume);
+        document.removeEventListener('keydown', resume);
+      };
+    });
 
     return () => {
+      retryCleanup?.();
       audio.pause();
       audio.src = '';
       ambientAudioRef.current = null;
     };
   }, [exhibition, isIntroDismissed]);
+
+  // Duck ambient volume when artwork audio guide is in focus, restore when leaving
+  useEffect(() => {
+    if (!ambientAudioRef.current) return;
+    ambientAudioRef.current.volume = focusedArtwork?.audio_guide_file_id ? 0.08 : 0.35;
+  }, [focusedArtwork]);
+
+  // The audio-guide-seek element (audioRef) is driven by onAudioSeek during inspect mode.
+  // It must stop the moment inspect mode ends, or it plays on to the end of the track.
+  useEffect(() => {
+    if (!inspectedArtwork) {
+      seekEndCleanupRef.current?.();
+      seekEndCleanupRef.current = null;
+      audioRef.current?.pause();
+    }
+  }, [inspectedArtwork]);
+
+  const stopSeekAudio = useCallback(() => {
+    seekEndCleanupRef.current?.();
+    seekEndCleanupRef.current = null;
+    audioRef.current?.pause();
+  }, []);
 
   // Analytics dwell helper
   const flushDwell = () => {
@@ -117,6 +179,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
 
     let disposed = false;
     let sceneHandle: import('../../lib/babylon/engine').SceneHandle | null = null;
+    let unsubscribePointerLock: (() => void) | null = null;
 
     (async () => {
       const { initScene } = await import('../../lib/babylon/engine');
@@ -168,78 +231,161 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
         }
       }
 
-      sceneRef.current = scene;
-      setIsSceneReady(true);
+    sceneRef.current = scene;
+    setIsSceneReady(true);
 
-      // Wire interaction controller
-      interactionRef.current = wireInteraction(scene, cameraController, scaler, {
-        onArtworkFocus: (artworkId, _mesh: AbstractMesh) => {
-          flushDwell();
-          const art = exhibition.artworks.find((a) => a.id === artworkId);
-          setFocusedArtwork(art ?? null);
-          setInspectedArtwork(null);
-          setHoveredArtwork(null);
+    // Sync control mode and pointer lock changes
+    cameraController.updateConfig({ controlMode });
+    unsubscribePointerLock = cameraController.onPointerLockChange((locked) => {
+      setIsPointerLocked(locked);
+    });
 
-          if (art) {
-            dwellStartRef.current = {
-              artworkId: art.id,
-              artworkType: art.artwork_type,
-              startTime: Date.now(),
-            };
-            trackEvent({
-              kind: 'artwork_focus',
-              exhibition_id: exhibition.id,
-              room_id: exhibition.room_id,
-              artwork_id: art.id,
-              artwork_type: art.artwork_type,
-            });
-          }
-        },
-        onArtworkInspect: (artworkId: string) => {
-          const art = exhibition.artworks.find((a) => a.id === artworkId);
-          if (!art) return;
-          setInspectedArtwork(art);
-          setInspectedHotspots(art.hotspots ?? []);
-          setHoveredArtwork(null);
+    // Wire interaction controller
+    interactionRef.current = wireInteraction(scene, cameraController, scaler, {
+      onArtworkFocus: (artworkId, _mesh: AbstractMesh) => {
+        flushDwell();
+        // Remember if FPS was active before entering focus, so we can restore it on return to ROAM
+        wasFpsModeRef.current = cameraControllerRef.current?.isPointerLocked ?? false;
+        const art = exhibition.artworks.find((a) => a.id === artworkId);
+        setFocusedArtwork(art ?? null);
+        setInspectedArtwork(null);
+        setHoveredArtwork(null);
 
+        if (art) {
+          dwellStartRef.current = {
+            artworkId: art.id,
+            artworkType: art.artwork_type,
+            startTime: Date.now(),
+          };
           trackEvent({
-            kind: 'artwork_inspect',
+            kind: 'artwork_focus',
             exhibition_id: exhibition.id,
             room_id: exhibition.room_id,
             artwork_id: art.id,
             artwork_type: art.artwork_type,
           });
-        },
-        onArtworkHover: (artworkId, pos) => {
-          if (!artworkId || !pos) {
-            setHoveredArtwork(null);
-            return;
-          }
-          const art = exhibition.artworks.find((a) => a.id === artworkId);
-          if (art) {
-            setHoveredArtwork({ artwork: art, position: pos });
-          } else {
-            setHoveredArtwork(null);
-          }
-        },
-        onStateChange: (state) => {
-          if (state === 'ROAM') {
-            flushDwell();
-            setFocusedArtwork(null);
-            setInspectedArtwork(null);
-          }
-        },
-      });
-    })();
+        }
+      },
+      onArtworkInspect: (artworkId: string) => {
+        const art = exhibition.artworks.find((a) => a.id === artworkId);
+        if (!art) return;
+        setInspectedArtwork(art);
+        setInspectedHotspots(art.hotspots ?? []);
+        setHoveredArtwork(null);
+        // Also release pointer lock here — covers the FocusPanel "Inspect" button path
+        // (the interaction.ts inspectArtwork covers the in-scene click path)
+        cameraControllerRef.current?.exitPointerLock();
 
-    return () => {
-      disposed = true;
-      flushDwell();
-      interactionRef.current?.dispose();
-      sceneHandle?.dispose();
-      sceneRef.current = null;
+        trackEvent({
+          kind: 'artwork_inspect',
+          exhibition_id: exhibition.id,
+          room_id: exhibition.room_id,
+          artwork_id: art.id,
+          artwork_type: art.artwork_type,
+        });
+      },
+      onArtworkHover: (artworkId, pos) => {
+        if (!artworkId || !pos) {
+          setHoveredArtwork(null);
+          return;
+        }
+        const art = exhibition.artworks.find((a) => a.id === artworkId);
+        if (art) {
+          setHoveredArtwork({ artwork: art, position: pos });
+        } else {
+          setHoveredArtwork(null);
+        }
+      },
+      onStateChange: (state) => {
+        if (state === 'ROAM') {
+          flushDwell();
+          setFocusedArtwork(null);
+          setInspectedArtwork(null);
+        }
+      },
+    });
+  })();
+
+  return () => {
+    disposed = true;
+    flushDwell();
+    unsubscribePointerLock?.();
+    interactionRef.current?.dispose();
+    sceneHandle?.dispose();
+    sceneRef.current = null;
+  };
+}, [exhibition, webglSupported]);
+
+  // Mode switching & Escape key safety listener
+  const toggleControlMode = (targetMode?: CameraControlMode) => {
+    const nextMode = targetMode ?? (controlMode === 'gallery' ? 'fps' : 'gallery');
+    setControlMode(nextMode);
+    const updatedSettings = { ...settings, controlMode: nextMode };
+    setSettings(updatedSettings);
+    cameraControllerRef.current?.updateConfig({ controlMode: nextMode });
+
+    if (nextMode === 'fps') {
+      cameraControllerRef.current?.requestPointerLock();
+    } else {
+      cameraControllerRef.current?.exitPointerLock();
+    }
+  };
+
+  useEffect(() => {
+    const MOVE_KEYS = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright']);
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept when user is typing in forms or dialogs
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      // CRITICAL ESCAPE SAFETY: If pointer is locked and user presses ESC, stop propagation
+      // so parent containers or dialogs never receive an unhandled Escape to exit the exhibition
+      if (e.key === 'Escape' && isPointerLocked) {
+        e.stopPropagation();
+        return;
+      }
+
+      // WASD / Arrow keys while in focus or inspect -> walk away and restore FPS if needed
+      if (MOVE_KEYS.has(e.key.toLowerCase())) {
+        const restoreFps = () => {
+          if (wasFpsModeRef.current) {
+            cameraControllerRef.current?.requestPointerLock();
+          }
+        };
+        if (inspectedArtwork) {
+          // Inspect -> FOCUS -> then immediately ROAM (two-step unwinding)
+          interactionRef.current?.leaveInspect();
+          setInspectedArtwork(null);
+          // Allow one frame for state to settle, then leave focus too
+          requestAnimationFrame(() => {
+            interactionRef.current?.leaveFocus(restoreFps);
+            setFocusedArtwork(null);
+          });
+          return;
+        }
+        if (focusedArtwork) {
+          interactionRef.current?.leaveFocus(restoreFps);
+          setFocusedArtwork(null);
+          return;
+        }
+      }
+
+      // Hotkey 'C' toggles between Gallery and FPS mode
+      if (e.key === 'c' || e.key === 'C') {
+        // Only toggle when not focused on an artwork or inspecting
+        if (!focusedArtwork && !inspectedArtwork && !activeArtistProfile && !showSettings) {
+          e.preventDefault();
+          toggleControlMode();
+        }
+      }
     };
-  }, [exhibition, webglSupported]);
+
+    window.addEventListener('keydown', onKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
+  }, [controlMode, isPointerLocked, focusedArtwork, inspectedArtwork, activeArtistProfile, showSettings, settings]);
 
   // Analytics: fire exhibition_view event on mount
   useEffect(() => {
@@ -251,19 +397,29 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
     });
   }, [exhibition]);
 
-  if (loadState === 'loading') {
-    return (
-      <div className="viewer-loading" role="status" aria-live="polite">
-        Loading exhibition…
-      </div>
-    );
+  // Dynamic transition style configured in exhibition settings (fallback to settings or slide_up)
+  let configuredTransition: IntroTransition = settings.introTransition || 'slide_up';
+  if (exhibition?.settings_json) {
+    try {
+      const parsed = JSON.parse(exhibition.settings_json);
+      if (parsed.introTransition) {
+        configuredTransition = parsed.introTransition;
+      }
+    } catch {}
   }
 
-  if (loadState === 'error' || !exhibition) {
+  if (loadState === 'error' || (!exhibition && loadState === 'loaded')) {
+    return <ViewerErrorView type={errorType} onRetry={fetchExhibition} />;
+  }
+
+  if (loadState === 'loading' && !exhibition) {
     return (
-      <div className="viewer-error" role="alert">
-        Exhibition not found or not yet published.
-      </div>
+      <LoadingCurtain
+        title="Opening Exhibition…"
+        progress={20}
+        isReady={false}
+        onRevealed={() => {}}
+      />
     );
   }
 
@@ -286,7 +442,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
     }
   };
 
-  if (!webglSupported) {
+  if (!webglSupported && exhibition) {
     return (
       <FallbackCatalog
         title={exhibition.title}
@@ -297,30 +453,30 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
     );
   }
 
+  if (!exhibition) return null;
+
   return (
     <div className="viewer" aria-label={`3D exhibition: ${exhibition.title}`}>
-      {/* Intro Video Loader (plays at start to hide loading screen) */}
+      {/* Intro Video Loader (plays when configured) */}
       {exhibition.intro_video_file_id && !isIntroDismissed && (
         <IntroVideoLoader
           videoFileId={exhibition.intro_video_file_id}
           isSceneReady={isSceneReady}
-          transitionStyle={settings.introTransition}
+          transitionStyle={configuredTransition}
           onEnterGallery={() => setIsIntroDismissed(true)}
         />
       )}
 
-      {/* Loading progress (if no intro video or intro dismissed during loading) */}
-      {(!exhibition.intro_video_file_id || isIntroDismissed) && loadProgress < 100 && (
-        <div
-          className="viewer-progress"
-          role="progressbar"
-          aria-valuenow={loadProgress}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        >
-          <div className="viewer-progress__bar" style={{ width: `${loadProgress}%` }} />
-          <span className="viewer-progress__label">Loading room… {loadProgress}%</span>
-        </div>
+      {/* Loading Curtain (default loading screen when no intro video is configured) */}
+      {!exhibition.intro_video_file_id && !isIntroDismissed && (
+        <LoadingCurtain
+          title={exhibition.title}
+          curatorName={exhibition.curator_name}
+          progress={loadProgress}
+          isReady={isSceneReady}
+          transitionStyle={configuredTransition}
+          onRevealed={() => setIsIntroDismissed(true)}
+        />
       )}
 
       {/* 3D canvas */}
@@ -342,6 +498,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
       {/* Focus panel slide-out & Top-Right Compact Bar (Images 2 & 3) */}
       {focusedArtwork && !inspectedArtwork && (
         <FocusPanel
+          key={focusedArtwork.id}
           artwork={focusedArtwork}
           onInspect={() => {
             interactionRef.current?.inspectArtwork(focusedArtwork.id);
@@ -353,7 +510,12 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
           onNextArtwork={exhibition.artworks.length > 1 ? () => handleNavigateArtwork('next') : undefined}
           onClose={() => {
             flushDwell();
-            interactionRef.current?.leaveFocus();
+            interactionRef.current?.leaveFocus(() => {
+              // If the user was in FPS mode before entering focus, re-engage pointer lock
+              if (wasFpsModeRef.current) {
+                cameraControllerRef.current?.requestPointerLock();
+              }
+            });
             setFocusedArtwork(null);
           }}
         />
@@ -369,18 +531,29 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
           onClose={() => {
             interactionRef.current?.leaveInspect();
             setInspectedArtwork(null);
+            // If user was in FPS mode before focus, re-engage pointer lock when returning to focus panel
+            // (leaveFocus will eventually restore it fully when they close the focus panel too)
           }}
-          onAudioSeek={(seconds) => {
-            if (audioRef.current && inspectedArtwork) {
-              const audioSrc = inspectedArtwork.audio_guide_file_id;
-              if (audioSrc) {
-                const url = proxyMediaUrl(audioSrc, inspectedArtwork.updated_at);
-                if (!audioRef.current.src.endsWith(url)) {
-                  audioRef.current.src = url;
-                }
-                audioRef.current.currentTime = seconds;
-                audioRef.current.play().catch(() => { });
-              }
+          onAudioStop={stopSeekAudio}
+          onAudioSeek={(seconds, endSeconds) => {
+            const audio = audioRef.current;
+            if (!audio || !inspectedArtwork) return;
+            const audioSrc = inspectedArtwork.audio_guide_file_id;
+            if (!audioSrc) return;
+            const url = proxyMediaUrl(audioSrc, inspectedArtwork.updated_at);
+            if (!audio.src.endsWith(url)) audio.src = url;
+            // Drop any previous end-of-segment watcher before starting a new segment
+            seekEndCleanupRef.current?.();
+            seekEndCleanupRef.current = null;
+            audio.currentTime = seconds;
+            audio.play().catch(() => {});
+            // Stop at the segment end if one was configured
+            if (endSeconds != null && endSeconds > seconds) {
+              const onTime = () => {
+                if (audio.currentTime >= endSeconds) stopSeekAudio();
+              };
+              audio.addEventListener('timeupdate', onTime);
+              seekEndCleanupRef.current = () => audio.removeEventListener('timeupdate', onTime);
             }
           }}
         />
@@ -403,13 +576,47 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
         />
       )}
 
+      {/* FPS Crosshair Reticle (active in FPS mode while roaming) */}
+      {controlMode === 'fps' && !focusedArtwork && !inspectedArtwork && !activeArtistProfile && isPointerLocked && (
+        <div
+          className={`viewer__crosshair ${hoveredArtwork ? 'viewer__crosshair--active' : ''}`}
+          aria-hidden="true"
+        >
+          <div className="viewer__crosshair-dot" />
+        </div>
+      )}
+
       {/* Gallery Controls HUD & Settings (Desktop) */}
       {!focusedArtwork && !inspectedArtwork && !activeArtistProfile && (!exhibition.intro_video_file_id || isIntroDismissed) && (
         <div className="viewer-controls-hint">
-          <span><Icon name="walk" size={15} /> <kbd>WASD</kbd> to walk</span>
-          <span><Icon name="mouse" size={15} /> <strong>Drag</strong> to look</span>
-          <span><Icon name="frame" size={15} /> <strong>Click art</strong> to focus (90°)</span>
-          <span><Icon name="target" size={15} /> <strong>Click floor</strong> to teleport</span>
+          {/* Mode Switcher Pill */}
+          <button
+            type="button"
+            className={`btn btn--sm btn-mode-toggle ${controlMode === 'fps' ? 'btn-mode-toggle--fps' : ''}`}
+            onClick={() => toggleControlMode()}
+            title="Toggle Camera Mode (Shortcut: C)"
+          >
+            <Icon name={controlMode === 'fps' ? 'target' : 'mouse'} size={14} />
+            <span>{controlMode === 'fps' ? 'FPS Mode' : 'Gallery Mode'}</span>
+            <kbd className="mode-hotkey">C</kbd>
+          </button>
+
+          <span><Icon name="walk" size={15} /> <kbd>WASD</kbd> walk</span>
+
+          {controlMode === 'fps' ? (
+            <>
+              <span><Icon name="mouse" size={15} /> Mouse looks</span>
+              <span><Icon name="frame" size={15} /> Click art to focus</span>
+              <span><kbd>ESC</kbd> unlock cursor</span>
+            </>
+          ) : (
+            <>
+              <span><Icon name="mouse" size={15} /> <strong>Drag</strong> look</span>
+              <span><Icon name="frame" size={15} /> <strong>Click art</strong> to focus (90°)</span>
+              <span><Icon name="target" size={15} /> <strong>Click floor</strong> to teleport</span>
+            </>
+          )}
+
           <button
             type="button"
             className="btn btn--ghost btn--sm btn-settings-hud"

@@ -41,7 +41,18 @@ export function StudioApp() {
       .finally(() => setChecking(false));
   }, []);
 
-  if (checking) return <div className="studio-loading reda-dark">Loading Curator Studio…</div>;
+  if (checking) {
+    return (
+      <div className="studio-loading reda-dark" role="status" aria-live="polite">
+        <div className="studio-loading__emblem-wrap">
+          <img src="/reda_logo.png" alt="Reda Gallery" className="studio-loading__emblem" />
+        </div>
+        <div className="studio-loading__kicker">Reda Atelier</div>
+        <div className="studio-loading__text">Connecting to Curator Vault…</div>
+        <div className="studio-loading__spinner" />
+      </div>
+    );
+  }
 
   if (!user || view.type === 'login') {
     return (
