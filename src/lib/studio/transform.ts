@@ -11,10 +11,6 @@ export interface Transform {
   scale: [number, number, number];
 }
 
-export function serializeTransform(transform: Transform): string {
-  return JSON.stringify(transform);
-}
-
 export function deserializeTransform(json: string): Transform {
   try {
     const parsed = JSON.parse(json) as Transform;

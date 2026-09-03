@@ -214,20 +214,51 @@ export async function loadGlbRoom(
   const loadUrl = proxyMediaUrl(glbFileId, version); // passthrough handles direct URLs
 
   try {
-    const result = await SceneLoader.AppendAsync(
-      '',
-      loadUrl,
-      scene,
-      (event) => {
-        const total = event.total || 1;
-        onProgress({
-          total,
-          loaded: event.loaded,
-          fraction: Math.min(event.loaded / total, 1),
-        });
-      },
-      '.glb'
-    );
+    let lastProgressTime = Date.now();
+
+    const result = await new Promise<Scene>((resolve, reject) => {
+      // Overall safety limit in case connection never starts
+      const initialTimeout = setTimeout(() => {
+        clearInterval(stallInterval);
+        reject(new Error('Room GLB connection timed out after 90s'));
+      }, 90000);
+
+      // Only abort if data transfer freezes with zero progress for 30 consecutive seconds
+      const stallInterval = setInterval(() => {
+        if (Date.now() - lastProgressTime > 30000) {
+          clearInterval(stallInterval);
+          clearTimeout(initialTimeout);
+          reject(new Error('Room GLB download stalled for >30s'));
+        }
+      }, 4000);
+
+      SceneLoader.AppendAsync(
+        '',
+        loadUrl,
+        scene,
+        (event) => {
+          lastProgressTime = Date.now();
+          const total = event.total || 1;
+          onProgress({
+            total,
+            loaded: event.loaded,
+            fraction: Math.min(event.loaded / total, 1),
+          });
+        },
+        '.glb'
+      ).then(
+        (res) => {
+          clearInterval(stallInterval);
+          clearTimeout(initialTimeout);
+          resolve(res);
+        },
+        (err) => {
+          clearInterval(stallInterval);
+          clearTimeout(initialTimeout);
+          reject(err);
+        }
+      );
+    });
 
     const loadedMeshes = result.meshes;
     const floorMeshes: AbstractMesh[] = [];

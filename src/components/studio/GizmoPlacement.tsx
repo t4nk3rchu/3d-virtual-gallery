@@ -18,7 +18,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Artwork, Room } from '../../types/schema';
 import type { AbstractMesh, Scene, Mesh } from '@babylonjs/core';
 import { GizmoManager, ArcRotateCamera, Vector3 } from '@babylonjs/core';
-import { deserializeTransform, serializeTransform } from '../../lib/studio/transform';
+import { deserializeTransform } from '../../lib/studio/transform';
 import { isArtworkPlaced } from '../../lib/studio/artwork-placement';
 import {
   parseSpawnPoint,
@@ -178,7 +178,7 @@ export function GizmoPlacement({
       ] as [number, number, number],
     };
 
-    const transformJson = serializeTransform(transform);
+    const transformJson = JSON.stringify(transform);
     setTransformValues(transform);
 
     // Update in-memory snapshot so diffing knows it has already been synchronized

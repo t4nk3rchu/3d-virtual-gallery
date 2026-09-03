@@ -164,23 +164,55 @@ The gallery supports three independent audio layers that interact cleanly:
 
 ---
 
-## 7. Current Status & Next Steps
+## 7. Recent Enhancements & Design Refinements (2026-09-04)
+
+### 7.1 White Flash Elimination (Pre-Entrance FOUC Fix)
+- **Problem**: When entering the 3D exhibition, a momentary white screen flash occurred right before the entrance card / intro video rendered.
+- **Fix**:
+  - Injected dark background styling into `index.html` on `<html>` and `<body>` (`style="background-color: #0a0a0a; color-scheme: dark;"`), added `<meta name="color-scheme" content="dark" />`, `<meta name="theme-color" content="#0a0a0a" />`, and an early inline `<style>` block in `<head>`.
+  - Removed the initial 300ms transparency window caused by `animation: fadeInOverlay 0.3s ease;` on `.intro-video-overlay` in `src/App.css`.
+  - Added `backgroundColor: '#000000'` directly to `<video>` in `IntroVideoLoader.tsx` to prevent blank surface flash during Chromium hardware decoder initialization.
+
+### 7.2 Complete Lucide Icons Migration (`lucide-react`)
+- **Package Installation**: Added `lucide-react` to replace all custom, uncurated SVG glyphs and raw Unicode characters.
+- **Unified Icon Component**: Re-architected `src/components/ui/Icon.tsx` into a type-safe Lucide component mapping 38+ registered names (`MousePointer2`, `Frame`, `MapPin`, `Box`, `User`, `Users`, `Settings`, `X`, `Volume2`, `VolumeX`, `Map`, `Maximize`, `Play`, `ZoomIn`, `Plus`, `ChevronRight`, `ExternalLink`, `Trash2`, `Film`, `Palette`, `AudioLines`, `Footprints`, `Mouse`, `Crosshair`, `Info`, `Search`, `RotateCcw`, `RotateCw`, `Minimize2`, `Maximize2`, `List`, `Pause`, `Smartphone`, `Lock`, `Shield`, `ArrowRight`, etc.).
+- **Brand Mark Preservation**: Retained custom Google "G" multicolor mark for authentication (not bundled in Lucide).
+- **Codebase Sweep**: Replaced all literal `×` close glyphs in `Inspector.tsx`, `ArtistInspector.tsx`, and `HotspotEditor.tsx` with `<Icon name="close" size={16} />`. Fixed button props in `ArtistInspector.tsx` and `ViewerErrorView.tsx`.
+- **Testing**: Added unit test suite in `src/components/ui/Icon.test.tsx` verifying all icon names render valid SVG DOM trees.
+
+### 7.3 Artist Quote Section Redesign (`design-taste-frontend`)
+- **Editorial Museum Pull-Quote**:
+  - Eliminated generic gray pill container (`background: rgba(255, 255, 255, 0.03)` with `border-radius: 0 12px 12px 0`) and clashing `#6366f1` indigo border.
+  - Applied REDA signature `--reda-gold` in a crisp 2px vertical hairline (`border-left: 2px solid var(--reda-gold)`).
+  - Applied atmospheric gold wash: `background: linear-gradient(90deg, rgba(185, 138, 60, 0.08) 0%, rgba(185, 138, 60, 0.02) 65%, transparent 100%)`.
+  - Upgraded straight ASCII quotes (`" "`) to authentic typographic curved quotation marks: **“** and **”** in `--reda-display` (*Libre Bodoni*) with optical baseline alignments (`vertical-align: -3px` / `-6px`).
+  - Set statement text in luminous `--reda-cream-hi` (`#F3EBD8`) in fluid *EB Garamond* italic with relaxed `1.55` line height.
+
+### 7.4 Artist Modal 2-Column Layout & Full-Height Portrait
+- **1:2 Grid Ratio (`grid-template-columns: 1fr 2fr;`)**:
+  - Set `.artist-modal-content` to an exact 1:2 ratio across `ArtistViewerPreview.tsx`, `src/styles/reda-viewer.css`, and `src/App.css` (1 part portrait to 2 parts biography).
+- **Full-Height Alignment (`align-items: stretch`)**:
+  - Removed conflicting legacy rules in `App.css` with `align-items: start;` that previously caused the portrait column to prematurely collapse.
+  - The portrait column now stretches to the exact height of the text/biography column (`height: 100%; min-height: 100%`).
+- **Centering & Edge-to-Edge Column Presentation**:
+  - Removed legacy `padding: 44px` on `.artist-modal-container` in `App.css` (set to `padding: 0; overflow: hidden;`), allowing the left column to span edge-to-edge without an awkward severed bottom border.
+  - The avatar placeholder is centered both horizontally and vertically (`display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; margin: 0 auto;`).
+  - Centered background lighting to `radial-gradient(circle at 50% 50%, var(--reda-char-2), var(--reda-wall-deepest))`.
+  - For uploaded artist photos, the image spans full-bleed (`object-fit: cover; height: 100%; width: 100%`) with an elegant dark gradient bottom scrim overlaying the life dates and contact info.
+- **Synchronized Across Studio & Public Viewer**:
+  - Synchronized `ArtistViewerPreview.tsx` (Curator Workbench Preview) and `ArtistDetailModal.tsx` (Public Visitor Modal) with matching layout rules and tokens.
+
+---
+
+## 8. Current Status & Next Steps
 
 ### Completed & Verified
-- [x] REDA Design System Foundations (Renaissance Codex aesthetic, typography tokens, zero creamy buttons).
-- [x] 3D perspective tilt slab on 2D artworks with curator-level toggle.
-- [x] Paced 4-stage intro cinema live transition preview in curator workbench.
-- [x] Artist filtering across In Room and Storage catalogs.
-- [x] Interactive artist assigned works with 1-click curate mode editing navigation.
-- [x] Authentic Desktop PC and Mobile Landscape live visitor previews in Artists mode.
-- [x] Full mobile dynamic scaling and responsive audit.
-- [x] Code Simplification: Deduplicated `ArtistViewerPreview.tsx` via `DEVICE_CONFIG` pattern (-177 LOC).
-- [x] Centering fixes: Virtual joystick knob centered via `translate(-50%, -50%)` and Focus header bar info icon centering across mobile and desktop.
-- [x] Curator Atelier Sign In / Register Redesign: Dual-state mode switcher, atmospheric Florentine backdrop, gold medallion branding, and refined error handling.
-- [x] Service Account Media Auth Migration (ADR-0001): Replaced public "anyone with link" access with private Service Account proxy (`/api/media/:fileId`) + HMAC-SHA256 tokens; simplified `DriveFilePicker` and removed dead `drive-share.ts`.
-- [x] **Audio system** (2026-09-03): Three-track audio architecture (ambient, artwork guide, hotspot); ambient ducking; guide autoplays on focus entry with persistent hidden element; play/pause toggle button in focus header; hotspot audio guide segment (start→stop timestamps, migration 0007); dedicated hotspot audio autoplay; autoplay-policy retry; seek-audio stop-on-exit and React ref timing fixes.
-- [x] **Hotspot editing** (2026-09-03): Clicking an existing pin now shows a pre-populated edit form (title, description, timestamps, audio file) with Save / Delete / Cancel. Added `PUT /api/hotspots/:id` route and `updateHotspot` db helper.
-- [x] Complete automated test suite (**48 test files, 221 tests passing**) with 0 build errors.
+- [x] White flash elimination on 3D gallery entry before entrance card.
+- [x] Full Lucide icon migration (`lucide-react`) across UI and Studio components.
+- [x] Gallery-grade editorial quote redesign (`design-taste-frontend`).
+- [x] Artist profile modal: 1:2 grid ratio (`1fr 2fr`) and equal-height portrait presentation.
+- [x] Portrait placeholder true horizontal and vertical centering with edge-to-edge column presentation.
+- [x] Complete test suite passing (**48 test files, 220 tests passed**) and zero TypeScript errors (`tsc -b --noEmit`).
 
 ### Future Enhancements (Backlog)
 - [ ] **Multi-Waypoint Guided Tour**: Extend the single Start Point beacon into an ordered sequence of tour waypoints with camera path interpolation.

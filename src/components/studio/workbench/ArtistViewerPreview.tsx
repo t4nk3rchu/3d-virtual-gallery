@@ -54,10 +54,10 @@ const DEVICE_CONFIG: Record<PreviewDevice, DeviceConfig> = {
     containerMaxHeight: 'min(620px, calc(100% - 48px))',
     backdropPadding: '64px 24px 24px',
     colWidth: '280px',
-    portraitSize: 180,
+    portraitSize: 130,
     portraitBorder: '2px solid var(--reda-gold)',
-    iconSize: 56,
-    colPadding: '32px 26px',
+    iconSize: 52,
+    colPadding: '0',
     colGap: '16px',
     closeIconSize: 16,
     closeStyle: { pointerEvents: 'none' },
@@ -66,12 +66,12 @@ const DEVICE_CONFIG: Record<PreviewDevice, DeviceConfig> = {
     kickerLetterSpacing: '0.24em',
     titleFontSize: '36px',
     titleMargin: '8px 0 18px',
-    quoteBorderLeft: '3px solid var(--reda-oxblood)',
-    quotePadding: '4px 0 4px 20px',
-    quoteMarginBottom: '20px',
-    quoteMarkSize: '34px',
-    quoteMarkSpacing: '4px',
-    quoteFontSize: '17px',
+    quoteBorderLeft: '2px solid var(--reda-gold)',
+    quotePadding: '14px 20px',
+    quoteMarginBottom: '22px',
+    quoteMarkSize: '24px',
+    quoteMarkSpacing: '6px',
+    quoteFontSize: '17.5px',
     bioFontSize: '15px',
     bioLineHeight: 1.65,
     bioParaMargin: '0 0 14px',
@@ -89,10 +89,10 @@ const DEVICE_CONFIG: Record<PreviewDevice, DeviceConfig> = {
     containerMaxHeight: 'min(335px, calc(100% - 24px))',
     backdropPadding: '54px 16px 16px',
     colWidth: '130px',
-    portraitSize: 74,
+    portraitSize: 68,
     portraitBorder: '1.5px solid var(--reda-gold)',
-    iconSize: 34,
-    colPadding: '14px 10px',
+    iconSize: 30,
+    colPadding: '0',
     colGap: '8px',
     closeIconSize: 13,
     closeStyle: { pointerEvents: 'none', top: '10px', right: '10px', width: '30px', height: '30px' },
@@ -101,12 +101,12 @@ const DEVICE_CONFIG: Record<PreviewDevice, DeviceConfig> = {
     kickerLetterSpacing: '0.18em',
     titleFontSize: '20px',
     titleMargin: '3px 0 8px',
-    quoteBorderLeft: '2.5px solid var(--reda-oxblood)',
-    quotePadding: '2px 0 2px 10px',
-    quoteMarginBottom: '10px',
-    quoteMarkSize: '20px',
-    quoteMarkSpacing: '2px',
-    quoteFontSize: '12.5px',
+    quoteBorderLeft: '2px solid var(--reda-gold)',
+    quotePadding: '8px 14px',
+    quoteMarginBottom: '12px',
+    quoteMarkSize: '16px',
+    quoteMarkSpacing: '4px',
+    quoteFontSize: '13px',
     bioFontSize: '12.5px',
     bioLineHeight: 1.5,
     bioParaMargin: '0 0 8px',
@@ -435,6 +435,7 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                 overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
+                padding: 0,
               }}
             >
               <button
@@ -450,7 +451,8 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                 className="artist-modal-content"
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: `${cfg.colWidth} 1fr`,
+                  gridTemplateColumns: '1fr 2fr',
+                  alignItems: 'stretch',
                   flex: 1,
                   minHeight: 0,
                   overflow: 'hidden',
@@ -464,89 +466,181 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                     padding: cfg.colPadding,
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: cfg.colGap,
+                    alignItems: 'stretch',
+                    justifyContent: 'center',
                     borderRight: '1px solid rgba(185, 138, 60, 0.18)',
-                    overflowY: 'auto',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    height: '100%',
+                    minHeight: '100%',
                   }}
                 >
                   {portraitUrl ? (
                     <div
                       className="artist-portrait-wrapper"
                       style={{
-                        width: cfg.portraitSize,
-                        height: cfg.portraitSize,
-                        borderRadius: '50%',
+                        position: 'relative',
+                        width: '100%',
+                        height: '100%',
+                        flex: 1,
+                        minHeight: 0,
                         overflow: 'hidden',
-                        border: cfg.portraitBorder,
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        flexDirection: 'column',
+                        justifyContent: 'flex-end',
                       }}
                     >
                       <img
                         src={portraitUrl}
                         alt={artistName}
                         className="artist-portrait-img"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = 'none';
                         }}
                       />
+                      {(lifeDates || contact) && (
+                        <div
+                          className="artist-portrait-bottom-overlay"
+                          style={{
+                            position: 'relative',
+                            zIndex: 2,
+                            padding: '24px 16px 16px',
+                            background:
+                              'linear-gradient(to top, rgba(16, 16, 21, 0.95) 0%, rgba(16, 16, 21, 0.6) 65%, transparent 100%)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: cfg.colGap,
+                          }}
+                        >
+                          {lifeDates && (
+                            <div
+                              className="artist-lifedates-badge"
+                              style={{
+                                fontFamily: 'var(--reda-ui)',
+                                fontSize: cfg.lifedateFontSize,
+                                letterSpacing: cfg.lifedateLetterSpacing,
+                                color: 'var(--reda-gold)',
+                                border: '1px solid rgba(185, 138, 60, 0.4)',
+                                borderRadius: '999px',
+                                padding: cfg.lifedatePadding,
+                                background: 'rgba(27, 26, 23, 0.75)',
+                                backdropFilter: 'blur(4px)',
+                              }}
+                            >
+                              {lifeDates}
+                            </div>
+                          )}
+                          {contact && (
+                            <div
+                              className="artist-contact-box"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: cfg.contactGap,
+                                fontFamily: 'var(--reda-ui)',
+                                fontSize: cfg.contactFontSize,
+                                color: 'var(--reda-muted-hi)',
+                              }}
+                            >
+                              <span className="artist-contact-icon">
+                                <Icon name="pin" size={cfg.contactIconSize} />
+                              </span>
+                              <span className="artist-contact-text">{contact}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div
                       className="artist-portrait-placeholder"
                       style={{
-                        width: cfg.portraitSize,
-                        height: cfg.portraitSize,
-                        borderRadius: '50%',
-                        overflow: 'hidden',
-                        border: cfg.portraitBorder,
+                        position: 'relative',
+                        width: '100%',
+                        height: '100%',
+                        flex: 1,
+                        minHeight: 0,
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        background: 'radial-gradient(circle at 50% 35%, var(--reda-char-3), var(--reda-char))',
-                        color: 'var(--reda-muted-2)',
+                        textAlign: 'center',
+                        gap: cfg.colGap,
+                        padding: '24px 16px',
+                        boxSizing: 'border-box',
+                        background:
+                          'radial-gradient(circle at 50% 50%, var(--reda-char-2), var(--reda-wall-deepest))',
                       }}
                     >
-                      <Icon name="user" size={cfg.iconSize} />
-                    </div>
-                  )}
+                      <div
+                        className="artist-portrait-circle"
+                        style={{
+                          width: cfg.portraitSize,
+                          height: cfg.portraitSize,
+                          borderRadius: '50%',
+                          border: cfg.portraitBorder,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--reda-gold)',
+                          background: 'rgba(185, 138, 60, 0.05)',
+                          margin: '0 auto',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Icon name="user" size={cfg.iconSize} />
+                      </div>
 
-                  {lifeDates && (
-                    <div
-                      className="artist-lifedates-badge"
-                      style={{
-                        fontFamily: 'var(--reda-ui)',
-                        fontSize: cfg.lifedateFontSize,
-                        letterSpacing: cfg.lifedateLetterSpacing,
-                        color: 'var(--reda-gold)',
-                        border: '1px solid rgba(185, 138, 60, 0.4)',
-                        borderRadius: '999px',
-                        padding: cfg.lifedatePadding,
-                      }}
-                    >
-                      {lifeDates}
-                    </div>
-                  )}
+                      {lifeDates && (
+                        <div
+                          className="artist-lifedates-badge"
+                          style={{
+                            fontFamily: 'var(--reda-ui)',
+                            fontSize: cfg.lifedateFontSize,
+                            letterSpacing: cfg.lifedateLetterSpacing,
+                            color: 'var(--reda-gold)',
+                            border: '1px solid rgba(185, 138, 60, 0.4)',
+                            borderRadius: '999px',
+                            padding: cfg.lifedatePadding,
+                            background: 'rgba(27, 26, 23, 0.75)',
+                            backdropFilter: 'blur(4px)',
+                            margin: '0 auto',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {lifeDates}
+                        </div>
+                      )}
 
-                  {contact && (
-                    <div
-                      className="artist-contact-box"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: cfg.contactGap,
-                        fontFamily: 'var(--reda-ui)',
-                        fontSize: cfg.contactFontSize,
-                        color: 'var(--reda-muted-hi)',
-                      }}
-                    >
-                      <span className="artist-contact-icon">
-                        <Icon name="pin" size={cfg.contactIconSize} />
-                      </span>
-                      <span className="artist-contact-text">{contact}</span>
+                      {contact && (
+                        <div
+                          className="artist-contact-box"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: cfg.contactGap,
+                            fontFamily: 'var(--reda-ui)',
+                            fontSize: cfg.contactFontSize,
+                            color: 'var(--reda-muted-hi)',
+                            margin: '0 auto',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <span className="artist-contact-icon">
+                            <Icon name="pin" size={cfg.contactIconSize} />
+                          </span>
+                          <span className="artist-contact-text">{contact}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -593,6 +687,8 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                         padding: cfg.quotePadding,
                         margin: `0 0 ${cfg.quoteMarginBottom}`,
                         position: 'relative',
+                        background: 'linear-gradient(90deg, rgba(185, 138, 60, 0.08) 0%, rgba(185, 138, 60, 0.02) 65%, transparent 100%)',
+                        borderRadius: '0 6px 6px 0',
                       }}
                     >
                       <span
@@ -603,18 +699,22 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                           color: 'var(--reda-gold)',
                           lineHeight: 0,
                           marginRight: cfg.quoteMarkSpacing,
+                          opacity: 0.85,
+                          verticalAlign: '-3px',
+                          userSelect: 'none',
                         }}
                       >
-                        "
+                        “
                       </span>
                       <p
                         style={{
                           fontFamily: 'var(--reda-text)',
                           fontStyle: 'italic',
                           fontSize: cfg.quoteFontSize,
-                          color: 'var(--reda-cream)',
+                          color: 'var(--reda-cream-hi)',
                           margin: 0,
                           display: 'inline',
+                          letterSpacing: '0.01em',
                         }}
                       >
                         {quote}
@@ -627,9 +727,12 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                           color: 'var(--reda-gold)',
                           lineHeight: 0,
                           marginLeft: cfg.quoteMarkSpacing,
+                          opacity: 0.85,
+                          verticalAlign: '-6px',
+                          userSelect: 'none',
                         }}
                       >
-                        "
+                        ”
                       </span>
                     </blockquote>
                   )}

@@ -22,7 +22,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 import type { Artwork, ArtworkHotspot, FrameConfig, Artist } from '../../types/schema';
-import { getImageUrl, proxyMediaUrl, resolveAudioUrl } from '../../lib/media/gdrive';
+import { getImageUrl, proxyMediaUrl } from '../../lib/media/gdrive';
 import { HotspotOverlay } from './HotspotOverlay';
 import { InspectDesktopSidebar } from './InspectDesktopSidebar';
 import { type ViewerSettings, getStoredViewerSettings } from './SettingsModal';
@@ -834,7 +834,7 @@ export function InspectLightbox({
               <>
                 <audio
                   ref={audioPlayerRef}
-                  src={resolveAudioUrl(activeHotspot.audio_file_id)!}
+                  src={proxyMediaUrl(activeHotspot.audio_file_id!) || ''}
                   onPlay={() => setIsPlayingAudio(true)}
                   onPause={() => setIsPlayingAudio(false)}
                   onEnded={() => setIsPlayingAudio(false)}

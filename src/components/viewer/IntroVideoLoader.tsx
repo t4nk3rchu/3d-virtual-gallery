@@ -4,21 +4,28 @@ import { getIntroAnimation, type IntroTransition } from '../../lib/viewer/intro-
 import { Icon } from '../ui';
 
 interface IntroVideoLoaderProps {
+  title?: string;
+  curatorName?: string | null;
   videoFileId: string;
   isSceneReady: boolean;
   transitionStyle?: IntroTransition;
+  onVideoStarted?(): void;
+  onVideoError?(): void;
   onEnterGallery(): void;
 }
 
 export function IntroVideoLoader({
+  title,
+  curatorName,
   videoFileId,
   isSceneReady,
   transitionStyle = 'zoom_in',
+  onVideoStarted,
+  onVideoError,
   onEnterGallery,
 }: IntroVideoLoaderProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [isMuted, setIsMuted] = useState(false);
-  const [showUnmuteHint, setShowUnmuteHint] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const [videoEnded, setVideoEnded] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
@@ -26,40 +33,32 @@ export function IntroVideoLoader({
   const videoUrl = proxyMediaUrl(videoFileId);
   const animPreset = getIntroAnimation(transitionStyle);
 
-  useEffect(() => {
+  const startPlaybackWithSound = () => {
     const video = videoRef.current;
     if (!video) return;
-
-    // Attempt unmuted autoplay first (User Request: Option A without mute)
     video.muted = false;
-    video.playsInline = true;
-
+    video.volume = 1;
     const playPromise = video.play();
     if (playPromise !== undefined) {
       playPromise
         .then(() => {
-          setIsMuted(false);
-          setShowUnmuteHint(false);
+          setHasStarted(true);
+          onVideoStarted?.();
         })
         .catch(() => {
-          // Browser Autoplay Policy blocked unmuted playback
-          // Fallback to muted playback and show sound prompt
+          // Fallback if browser still restricted audio
           video.muted = true;
-          setIsMuted(true);
-          setShowUnmuteHint(true);
-          video.play().catch(() => {
+          video.play().then(() => {
+            setHasStarted(true);
+            onVideoStarted?.();
+          }).catch(() => {
             setVideoError(true);
+            onVideoError?.();
           });
         });
-    }
-  }, [videoUrl]);
-
-  const handleUnmute = () => {
-    const video = videoRef.current;
-    if (video) {
-      video.muted = false;
-      setIsMuted(false);
-      setShowUnmuteHint(false);
+    } else {
+      setHasStarted(true);
+      onVideoStarted?.();
     }
   };
 
@@ -107,9 +106,13 @@ export function IntroVideoLoader({
           src={videoUrl}
           className="intro-video-player"
           playsInline
-          autoPlay
+          preload="auto"
+          style={{ opacity: hasStarted ? 1 : 0.35, transition: 'opacity 0.6s ease', backgroundColor: '#000000' }}
           onEnded={handleVideoEnded}
-          onError={() => setVideoError(true)}
+          onError={() => {
+            setVideoError(true);
+            onVideoError?.();
+          }}
         />
       ) : (
         <div className="intro-video-fallback">
@@ -118,40 +121,59 @@ export function IntroVideoLoader({
         </div>
       )}
 
-      {/* Top Left Branding / Indicator */}
-      <div className="intro-video-header">
-        <span className="intro-video-tag"><Icon name="film" size={13} /> Exhibition Intro</span>
-      </div>
-
-      {/* Unmute Prompt Overlay when browser forced muted autoplay */}
-      {showUnmuteHint && isMuted && (
-        <button
-          type="button"
-          className="intro-unmute-btn"
-          onClick={handleUnmute}
-          title="Click to enable audio"
-        >
-          <Icon name="sound" size={15} /> Enable sound
-        </button>
+      {/* Center Entrance Card (Prompts user to start experience with full sound) */}
+      {!hasStarted && !videoError && (
+        <div className="intro-wordmark" style={{ maxWidth: '600px', width: '90%' }}>
+          <div className="k">Exhibition Intro</div>
+          <h2>{title || 'Virtual Exhibition'}</h2>
+          {curatorName && (
+            <p style={{ color: 'var(--reda-muted-hi)', fontSize: '14px', margin: '8px 0 0', letterSpacing: '0.04em' }}>
+              Curated by {curatorName}
+            </p>
+          )}
+          <div style={{ marginTop: '28px' }}>
+            <button
+              type="button"
+              className="btn btn--primary intro-start-btn"
+              onClick={startPlaybackWithSound}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '14px 32px',
+                fontSize: '15px',
+                letterSpacing: '0.06em',
+                fontWeight: 600,
+                borderRadius: '999px',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.5), 0 0 20px rgba(185,138,60,0.3)',
+                cursor: 'pointer',
+              }}
+            >
+              <Icon name="play" size={16} /> Enter Exhibition
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* Bottom Actions: Skip Button or Preparing Scene status */}
-      <div className="intro-video-footer">
-        {isSceneReady ? (
-          <button
-            type="button"
-            className="intro-skip-btn"
-            onClick={handleEnterGallery}
-          >
-            Enter Exhibition <Icon name="chevronRight" size={15} />
-          </button>
-        ) : (
-          <div className="intro-loading-status">
-            <span className="intro-status-spinner" />
-            <span>Preparing 3D gallery space…</span>
-          </div>
-        )}
-      </div>
+      {/* Bottom Actions: Skip Button or Preparing Scene status once started */}
+      {hasStarted && (
+        <div className="intro-video-footer">
+          {isSceneReady ? (
+            <button
+              type="button"
+              className="intro-skip-btn"
+              onClick={handleEnterGallery}
+            >
+              Enter Exhibition <Icon name="chevronRight" size={15} />
+            </button>
+          ) : (
+            <div className="intro-loading-status">
+              <span className="intro-status-spinner" />
+              <span>Preparing 3D gallery space…</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* If video ended but scene is still loading in background */}
       {videoEnded && !isSceneReady && (

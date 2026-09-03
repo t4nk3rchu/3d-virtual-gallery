@@ -43,10 +43,4 @@ describe('ResolutionScaler', () => {
     scaler.setTier('WALK'); // already WALK — no-op
     expect(engine.setHardwareScalingLevel).not.toHaveBeenCalled();
   });
-
-  it('levelForTier returns correct values', () => {
-    expect(ResolutionScaler.levelForTier('WALK')).toBeCloseTo(1 / 0.75);
-    expect(ResolutionScaler.levelForTier('FOCUS')).toBeCloseTo(1 / 0.9);
-    expect(ResolutionScaler.levelForTier('POPUP')).toBe(1.0);
-  });
 });

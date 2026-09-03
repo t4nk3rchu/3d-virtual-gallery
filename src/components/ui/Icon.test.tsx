@@ -19,11 +19,23 @@ describe('Icon', () => {
     expect(svg).toBeTruthy();
   });
 
-  it('renders multi-path viewer icons with at least one path each', () => {
-    for (const name of ['walk', 'mouse', 'target', 'info', 'search', 'reset', 'minimize', 'maximize', 'list', 'pause', 'chevronUp', 'chevronDown', 'phone'] as const) {
+  it('renders Lucide icons with .reda-icon for all registered IconNames', () => {
+    const iconNames = [
+      'select', 'frame', 'pin', 'cube', 'user', 'users', 'gear', 'close',
+      'sound', 'soundMute', 'map', 'fullscreen', 'play', 'inspect', 'plus',
+      'chevronRight', 'chevronLeft', 'chevronUp', 'chevronDown', 'external',
+      'trash', 'film', 'palette', 'audio', 'walk', 'mouse', 'target', 'info',
+      'search', 'reset', 'refresh', 'minimize', 'maximize', 'list', 'pause',
+      'phone', 'lock', 'shield', 'arrowRight', 'google',
+    ] as const;
+
+    for (const name of iconNames) {
       const { container } = render(<Icon name={name} />);
-      const paths = container.querySelectorAll('path');
-      expect(paths.length).toBeGreaterThan(0);
+      const svg = container.querySelector('svg');
+      expect(svg).toBeTruthy();
+      expect(svg?.classList.contains('reda-icon')).toBe(true);
+      expect(svg?.children.length).toBeGreaterThan(0);
     }
   });
 });
+

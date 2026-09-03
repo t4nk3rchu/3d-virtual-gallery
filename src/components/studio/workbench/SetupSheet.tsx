@@ -308,7 +308,8 @@ export function SetupSheet({
               />
               <DriveFilePicker
                 isTeam={isTeam}
-                mimeTypes="video/*"
+                mimeTypes="video/mp4,video/webm,video/quicktime,video/x-matroska,video/x-msvideo,video/mpeg,video/ogg"
+                buttonLabel="Pick Video"
                 onPicked={(fileId: string) => setIntroVideoFileId(fileId)}
               />
             </div>

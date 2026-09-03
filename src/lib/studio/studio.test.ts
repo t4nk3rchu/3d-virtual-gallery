@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { validateGlbFile } from './validation';
-import { serializeTransform, deserializeTransform, isValidTransform } from './transform';
+import { deserializeTransform, isValidTransform } from './transform';
 import { buildExhibitionPatch } from './exhibition-patch';
 
 // ─── GLB validation tests ─────────────────────────────────────────────────────
@@ -51,14 +51,14 @@ describe('transform serialization', () => {
   };
 
   it('serializes to JSON string', () => {
-    const json = serializeTransform(transform);
+    const json = JSON.stringify(transform);
     expect(typeof json).toBe('string');
     const parsed = JSON.parse(json);
     expect(parsed.position[0]).toBeCloseTo(1.5);
   });
 
   it('round-trips correctly', () => {
-    const json = serializeTransform(transform);
+    const json = JSON.stringify(transform);
     const result = deserializeTransform(json);
     expect(result.position[0]).toBeCloseTo(1.5);
     expect(result.position[1]).toBeCloseTo(1.7);
@@ -72,7 +72,7 @@ describe('transform serialization', () => {
   });
 
   it('isValidTransform: true for valid JSON', () => {
-    expect(isValidTransform(serializeTransform(transform))).toBe(true);
+    expect(isValidTransform(JSON.stringify(transform))).toBe(true);
   });
 
   it('isValidTransform: false for invalid JSON', () => {
@@ -81,7 +81,7 @@ describe('transform serialization', () => {
 
   it('isValidTransform: false for zero scale', () => {
     const zero = { ...transform, scale: [0, 1, 1] as [number, number, number] };
-    expect(isValidTransform(serializeTransform(zero))).toBe(false);
+    expect(isValidTransform(JSON.stringify(zero))).toBe(false);
   });
 });
 

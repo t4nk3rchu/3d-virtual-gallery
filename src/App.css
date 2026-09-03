@@ -114,7 +114,7 @@
   gap: 16px;
 }
 
-.form-row > .form-group {
+.form-row>.form-group {
   flex: 1;
 }
 
@@ -856,9 +856,17 @@
 }
 
 @keyframes pulse {
-  0% { transform: translate(-50%, -50%) scale(1); }
-  50% { transform: translate(-50%, -50%) scale(1.4); }
-  100% { transform: translate(-50%, -50%) scale(1); }
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  50% {
+    transform: translate(-50%, -50%) scale(1.4);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 .hotspot-pin__dot {
@@ -1077,8 +1085,15 @@
 }
 
 @keyframes fadeInTooltip {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .artwork-hover-tooltip__artist {
@@ -1116,8 +1131,15 @@
 }
 
 @keyframes slideInFocusHeader {
-  from { transform: translateY(-16px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .focus-header-bar__exit-btn {
@@ -1186,8 +1208,15 @@
 }
 
 @keyframes popInFocusModal {
-  from { transform: scale(0.96) translateY(-8px); opacity: 0; }
-  to { transform: scale(1) translateY(0); opacity: 1; }
+  from {
+    transform: scale(0.96) translateY(-8px);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
 }
 
 /* Section 1: Fixed Pinned Info (Stays at the top, does not scroll) */
@@ -1308,7 +1337,9 @@
   background: rgba(99, 102, 241, 0.6);
 }
 
-@media (max-width: 768px), (hover: none) and (pointer: coarse), (max-height: 520px) {
+@media (max-width: 768px),
+(hover: none) and (pointer: coarse),
+(max-height: 520px) {
   .viewer-controls-hint {
     display: none !important;
   }
@@ -1318,7 +1349,9 @@
   display: none;
 }
 
-@media (max-width: 768px), (hover: none) and (pointer: coarse), (max-height: 520px) {
+@media (max-width: 768px),
+(hover: none) and (pointer: coarse),
+(max-height: 520px) {
   .btn-mobile-settings {
     position: fixed;
     top: 1rem;
@@ -1352,7 +1385,9 @@
   display: none;
 }
 
-@media (max-width: 1024px), (hover: none) and (pointer: coarse), (max-height: 520px) {
+@media (max-width: 1024px),
+(hover: none) and (pointer: coarse),
+(max-height: 520px) {
   .virtual-joystick {
     display: block;
     position: fixed;
@@ -1507,10 +1542,12 @@
     margin-top: 6px;
     gap: 6px;
   }
+
   .focus-panel__artist-link-btn {
     padding: 6px 10px;
     font-size: 12px;
   }
+
   .focus-info-modal__inspect-btn {
     padding: 7px 10px;
     font-size: 12px;
@@ -1530,8 +1567,15 @@
 }
 
 @keyframes fadeInNavRail {
-  from { opacity: 0; transform: translateX(12px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .focus-nav-btn {
@@ -1850,8 +1894,15 @@
 }
 
 @keyframes pulseRipple {
-  0% { transform: scale(0.6); opacity: 1; }
-  100% { transform: scale(1.6); opacity: 0; }
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
 }
 
 .hotspot-pin__tooltip {
@@ -1922,13 +1973,27 @@
 }
 
 @keyframes popInMinCard {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes popInSidebar {
-  from { transform: translateX(30px) scale(0.98); opacity: 0; }
-  to { transform: translateX(0) scale(1); opacity: 1; }
+  from {
+    transform: translateX(30px) scale(0.98);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
 }
 
 .sidebar-header {
@@ -2185,8 +2250,13 @@
 }
 
 @keyframes fadeInBackdrop {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* Idea 3: Slide-Over Right Drawer for Hotspots Directory */
@@ -2212,8 +2282,13 @@
 }
 
 @keyframes slideInDrawer {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
 
 /* Idea 1: On-Demand Hotspot Info Modal (Toggled via Bottom Bar or 'i' button) */
@@ -2242,8 +2317,15 @@
 }
 
 @keyframes popInModal {
-  from { transform: translate(-50%, -46%) scale(0.96); opacity: 0; }
-  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  from {
+    transform: translate(-50%, -46%) scale(0.96);
+    opacity: 0;
+  }
+
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
 }
 
 /* ─── Bottom Carousel & Detail Navigation moved to reda-viewer.css ─────────── */
@@ -2269,8 +2351,15 @@
 }
 
 @keyframes fadeInHeader {
-  from { opacity: 0; transform: translateY(-2px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .eyebrow--hotspot {
@@ -2364,8 +2453,15 @@
 }
 
 @keyframes slideDownDesc {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .inspect-header-desc-full {
@@ -2429,7 +2525,8 @@
 }
 
 /* ─── Inspect Lightbox Mobile & Compact Viewport Optimization ────────────── */
-@media (max-width: 768px), (max-height: 520px) {
+@media (max-width: 768px),
+(max-height: 520px) {
   .inspect-lightbox__header {
     height: auto;
     min-height: auto;
@@ -2721,8 +2818,13 @@
 }
 
 @keyframes recordingPulse {
-  0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
-  100% { box-shadow: 0 0 0 6px rgba(99, 102, 241, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+  }
+
+  100% {
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0);
+  }
 }
 
 .settings-section {
@@ -2806,8 +2908,13 @@
 }
 
 @keyframes fadeInModal {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .artist-modal-container {
@@ -2821,11 +2928,30 @@
   padding: 44px;
   box-sizing: border-box;
   animation: scaleInContainer 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.artist-modal-content {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 @keyframes scaleInContainer {
-  from { transform: scale(0.96) translateY(12px); opacity: 0; }
-  to { transform: scale(1) translateY(0); opacity: 1; }
+  from {
+    transform: scale(0.96) translateY(12px);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
 }
 
 .artist-modal-close {
@@ -2852,123 +2978,40 @@
   transform: scale(1.08);
 }
 
-.artist-modal-content {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 48px;
-  align-items: start;
-}
-
-@media (max-width: 860px) {
-  .artist-modal-content {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
-}
-
-.artist-modal-portrait-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 18px;
-}
-
-.artist-portrait-wrapper {
-  width: 100%;
-  max-width: 280px;
-  aspect-ratio: 4 / 5;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
-  background: #111827;
-}
-
-.artist-portrait-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.artist-portrait-placeholder {
-  width: 100%;
-  max-width: 280px;
-  aspect-ratio: 4 / 5;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px dashed rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 48px;
-}
-
-.artist-lifedates-badge {
-  background: rgba(99, 102, 241, 0.12);
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  color: #a5b4fc;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 4px 14px;
-  border-radius: 9999px;
-  letter-spacing: 0.04em;
-}
-
-.artist-contact-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #94a3b8;
-}
-
-.artist-modal-info-col {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  text-align: left;
-}
-
-.artist-kicker {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: #818cf8;
-  font-weight: 700;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.artist-name {
-  margin: 0;
-  font-size: 32px;
-  font-weight: 700;
-  color: #f8fafc;
-  line-height: 1.2;
-}
 
 .artist-quote {
   position: relative;
-  margin: 0;
-  padding: 16px 24px;
-  background: rgba(255, 255, 255, 0.03);
-  border-left: 3px solid #6366f1;
-  border-radius: 0 12px 12px 0;
+  margin: 0 0 22px;
+  padding: 14px 20px;
+  background: linear-gradient(90deg, rgba(185, 138, 60, 0.08) 0%, rgba(185, 138, 60, 0.02) 65%, transparent 100%);
+  border-left: 2px solid var(--reda-gold);
+  border-radius: 0 6px 6px 0;
   font-style: italic;
-  font-size: 16px;
-  line-height: 1.6;
-  color: #e2e8f0;
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--reda-cream-hi);
 }
 
 .artist-quote p {
   margin: 0;
+  font-family: var(--reda-text);
+  font-style: italic;
+  letter-spacing: 0.01em;
+  color: var(--reda-cream-hi);
 }
 
 .artist-quote .quote-mark {
-  color: #6366f1;
+  font-family: var(--reda-display);
+  color: var(--reda-gold);
   font-size: 24px;
-  font-weight: bold;
+  line-height: 0;
+  opacity: 0.85;
+  vertical-align: -3px;
+  user-select: none;
+}
+
+.artist-quote .quote-mark.closing {
+  vertical-align: -6px;
 }
 
 .artist-bio-body {
@@ -3000,11 +3043,10 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  animation: fadeInOverlay 0.3s ease;
   transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              filter 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              clip-path 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    clip-path 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   opacity: 1;
   pointer-events: auto;
 }
@@ -3047,8 +3089,13 @@
 }
 
 @keyframes fadeInOverlay {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .intro-video-player {
@@ -3096,8 +3143,13 @@
 }
 
 @keyframes pulseButton {
-  from { transform: scale(1); }
-  to { transform: scale(1.05); }
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.05);
+  }
 }
 
 .intro-unmute-btn:hover {
@@ -3182,8 +3234,11 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
-
-

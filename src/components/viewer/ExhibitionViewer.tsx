@@ -51,6 +51,8 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
   const [isIntroDismissed, setIsIntroDismissed] = useState(false);
   const [isSceneReady, setIsSceneReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
+  const [videoUnavailable, setVideoUnavailable] = useState(false);
+  const [canStartSceneLoad, setCanStartSceneLoad] = useState(false);
   const [settings, setSettings] = useState<ViewerSettings>(getStoredViewerSettings);
   const [controlMode, setControlMode] = useState<CameraControlMode>(() => getStoredViewerSettings().controlMode || 'gallery');
   const [isPointerLocked, setIsPointerLocked] = useState(false);
@@ -87,6 +89,9 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
         registerMediaTokens(data.media_tokens);
         setExhibition(data);
         setLoadState('loaded');
+        if (!data.intro_video_file_id) {
+          setCanStartSceneLoad(true);
+        }
       })
       .catch((err) => {
         if (err.message !== 'Private exhibition' && err.message !== 'Not found') {
@@ -100,9 +105,9 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
     fetchExhibition();
   }, [slug]);
 
-  // Ambient room audio — starts after intro is dismissed
+  // Ambient room audio — create and pre-buffer as soon as scene load is allowed
   useEffect(() => {
-    if (!exhibition || !isIntroDismissed) return;
+    if (!exhibition || !canStartSceneLoad) return;
     let fileId: string | null = null;
     try { fileId = JSON.parse(exhibition.settings_json ?? '{}')?.backgroundAudioFileId ?? null; } catch {}
     if (!fileId) return;
@@ -110,28 +115,30 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
     const audio = new Audio(proxyMediaUrl(fileId));
     audio.loop = true;
     audio.volume = 0.35;
+    audio.preload = 'auto';
     ambientAudioRef.current = audio;
-    let retryCleanup: (() => void) | undefined;
-    audio.play().catch(() => {
-      // Autoplay blocked — retry on first user interaction
-      const resume = () => {
-        audio.play().catch(() => {});
-      };
-      document.addEventListener('click', resume, { once: true });
-      document.addEventListener('keydown', resume, { once: true });
-      retryCleanup = () => {
-        document.removeEventListener('click', resume);
-        document.removeEventListener('keydown', resume);
-      };
-    });
 
     return () => {
-      retryCleanup?.();
       audio.pause();
       audio.src = '';
       ambientAudioRef.current = null;
     };
-  }, [exhibition, isIntroDismissed]);
+  }, [exhibition, canStartSceneLoad]);
+
+  // Start playing once the intro is dismissed (audio is already buffered above)
+  useEffect(() => {
+    if (!isIntroDismissed || !ambientAudioRef.current) return;
+    ambientAudioRef.current.play().catch(() => {
+      // Autoplay blocked — retry on first user interaction
+      const resume = () => { ambientAudioRef.current?.play().catch(() => {}); };
+      document.addEventListener('click', resume, { once: true });
+      document.addEventListener('keydown', resume, { once: true });
+      return () => {
+        document.removeEventListener('click', resume);
+        document.removeEventListener('keydown', resume);
+      };
+    });
+  }, [isIntroDismissed]);
 
   // Duck ambient volume when artwork audio guide is in focus, restore when leaving
   useEffect(() => {
@@ -175,7 +182,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
 
   // Mount Babylon scene once exhibition data is loaded and WebGL is available
   useEffect(() => {
-    if (!exhibition || !webglSupported || !canvasRef.current) return;
+    if (!exhibition || !webglSupported || !canvasRef.current || !canStartSceneLoad) return;
 
     let disposed = false;
     let sceneHandle: import('../../lib/babylon/engine').SceneHandle | null = null;
@@ -210,13 +217,13 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
       const customSpawn = parseSpawnPoint(exhibition.settings_json, exhibition.room.spawn_json);
       cameraController.applySpawn(customSpawn);
 
-      // Load GLB
+      // Load GLB (0% - 80% progress)
       try {
         await loadGlbRoom(
           scene,
           exhibition.room.glb_file_id,
           (p) => {
-            setLoadProgress(Math.round(p.fraction * 100));
+            setLoadProgress(Math.round(p.fraction * 80));
           },
           exhibition.room.created_at
         );
@@ -224,15 +231,26 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
         console.error('[viewer] GLB load failed:', e);
       }
 
-      // Place artworks
-      for (const artwork of exhibition.artworks) {
-        if (isArtworkPlaced(artwork)) {
-          createArtworkMesh(scene, artwork);
-        }
+      setLoadProgress(85);
+
+      // Place artworks and wait for textures to decode before opening curtain
+      const placedArtworks = exhibition.artworks.filter(isArtworkPlaced);
+      if (placedArtworks.length > 0) {
+        const texturePromises = placedArtworks.map((artwork) => {
+          return new Promise<void>((resolve) => {
+            const timer = setTimeout(resolve, 6000); // 6s safeguard against network drop
+            createArtworkMesh(scene, artwork, () => {
+              clearTimeout(timer);
+              resolve();
+            });
+          });
+        });
+        await Promise.all(texturePromises);
       }
 
-    sceneRef.current = scene;
-    setIsSceneReady(true);
+      setLoadProgress(100);
+      sceneRef.current = scene;
+      setIsSceneReady(true);
 
     // Sync control mode and pointer lock changes
     cameraController.updateConfig({ controlMode });
@@ -314,7 +332,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
     sceneHandle?.dispose();
     sceneRef.current = null;
   };
-}, [exhibition, webglSupported]);
+}, [exhibition, webglSupported, canStartSceneLoad]);
 
   // Mode switching & Escape key safety listener
   const toggleControlMode = (targetMode?: CameraControlMode) => {
@@ -414,12 +432,22 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
 
   if (loadState === 'loading' && !exhibition) {
     return (
-      <LoadingCurtain
-        title="Opening Exhibition…"
-        progress={20}
-        isReady={false}
-        onRevealed={() => {}}
-      />
+      <div
+        className="viewer-init-veil"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: '#0a0a0a',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+        role="status"
+        aria-label="Opening exhibition…"
+      >
+        <div className="intro-video-spinner" style={{ width: 28, height: 28, borderWidth: 2 }} />
+      </div>
     );
   }
 
@@ -455,20 +483,29 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
 
   if (!exhibition) return null;
 
+  const hasIntroVideo = Boolean(exhibition.intro_video_file_id && !videoUnavailable);
+
   return (
     <div className="viewer" aria-label={`3D exhibition: ${exhibition.title}`}>
       {/* Intro Video Loader (plays when configured) */}
-      {exhibition.intro_video_file_id && !isIntroDismissed && (
+      {hasIntroVideo && !isIntroDismissed && (
         <IntroVideoLoader
-          videoFileId={exhibition.intro_video_file_id}
+          title={exhibition.title}
+          curatorName={exhibition.curator_name}
+          videoFileId={exhibition.intro_video_file_id!}
           isSceneReady={isSceneReady}
           transitionStyle={configuredTransition}
+          onVideoStarted={() => setCanStartSceneLoad(true)}
+          onVideoError={() => {
+            setVideoUnavailable(true);
+            setCanStartSceneLoad(true);
+          }}
           onEnterGallery={() => setIsIntroDismissed(true)}
         />
       )}
 
-      {/* Loading Curtain (default loading screen when no intro video is configured) */}
-      {!exhibition.intro_video_file_id && !isIntroDismissed && (
+      {/* Loading Curtain (fallback when no intro video is configured or video is unavailable) */}
+      {!hasIntroVideo && !isIntroDismissed && (
         <LoadingCurtain
           title={exhibition.title}
           curatorName={exhibition.curator_name}

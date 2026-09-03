@@ -19,18 +19,7 @@ import type { Artwork } from '../../types/schema';
 import { getImageUrl, proxyMediaUrl } from '../media/gdrive';
 import { getYouTubeThumbnailUrl } from '../media/youtube';
 import { calculateFrameDimensions, createProceduralFrame } from './frame-builder';
-
-function parseTransform(json: string): {
-  position: [number, number, number];
-  rotation: [number, number, number];
-  scale: [number, number, number];
-} {
-  try {
-    return JSON.parse(json);
-  } catch {
-    return { position: [0, 1.5, 0], rotation: [0, 0, 0], scale: [1, 1, 1] };
-  }
-}
+import { deserializeTransform } from '../studio/transform';
 
 function parseFrameConfig(json: string) {
   try {
@@ -106,8 +95,8 @@ function attachSpotlight(scene: Scene, position: Vector3, name: string) {
 
 // ─── IMAGE_2D ─────────────────────────────────────────────────────────────────
 
-function createImage2DArtwork(scene: Scene, artwork: Artwork) {
-  const transform = parseTransform(artwork.transform_json);
+function createImage2DArtwork(scene: Scene, artwork: Artwork, onTextureLoaded?: () => void) {
+  const transform = deserializeTransform(artwork.transform_json);
   const frameConfig = parseFrameConfig(artwork.frame_config_json);
 
   // Default artwork plane size (1.0 × 0.75 m); scale applied via transform
@@ -128,24 +117,44 @@ function createImage2DArtwork(scene: Scene, artwork: Artwork) {
   if (mediaFileId) {
     const mat = new StandardMaterial(`${artwork.id}_mat`, scene);
     const textureUrl = proxyMediaUrl(mediaFileId, artwork.updated_at);
+    let notified = false;
+    const notifyOnce = () => {
+      if (!notified) {
+        notified = true;
+        onTextureLoaded?.();
+      }
+    };
+
     const tex = new Texture(
       textureUrl,
       scene,
       false, // noMipmap
       true,  // invertY
       Texture.TRILINEAR_SAMPLINGMODE,
-      undefined, // onLoad
+      notifyOnce, // onLoad
       () => {
         // Fallback to direct image CDN if proxy fails
         const fallbackUrl = getImageUrl(mediaFileId, 'gallery');
         if (fallbackUrl && fallbackUrl !== textureUrl) {
-          mat.diffuseTexture = new Texture(fallbackUrl, scene);
+          mat.diffuseTexture = new Texture(
+            fallbackUrl,
+            scene,
+            false,
+            true,
+            Texture.TRILINEAR_SAMPLINGMODE,
+            notifyOnce,
+            notifyOnce
+          );
+        } else {
+          notifyOnce();
         }
       }
     );
     mat.diffuseTexture = tex;
     mat.emissiveColor = new Color3(0.1, 0.1, 0.1);
     plane.material = mat;
+  } else {
+    onTextureLoaded?.();
   }
 
   // Procedural frame
@@ -171,8 +180,8 @@ function createImage2DArtwork(scene: Scene, artwork: Artwork) {
 
 // ─── VIDEO (YouTube) ──────────────────────────────────────────────────────────
 
-function createVideoArtwork(scene: Scene, artwork: Artwork) {
-  const transform = parseTransform(artwork.transform_json);
+function createVideoArtwork(scene: Scene, artwork: Artwork, onTextureLoaded?: () => void) {
+  const transform = deserializeTransform(artwork.transform_json);
   const frameConfig = parseFrameConfig(artwork.frame_config_json);
 
   const artW = 1.6;
@@ -202,10 +211,19 @@ function createVideoArtwork(scene: Scene, artwork: Artwork) {
   const textureUrl = ytThumb || customCover;
 
   if (textureUrl) {
-    mat.diffuseTexture = new Texture(textureUrl, scene);
+    mat.diffuseTexture = new Texture(
+      textureUrl,
+      scene,
+      false,
+      true,
+      Texture.TRILINEAR_SAMPLINGMODE,
+      onTextureLoaded,
+      onTextureLoaded
+    );
     mat.emissiveColor = new Color3(0.15, 0.15, 0.15);
   } else {
     mat.emissiveColor = new Color3(0.04, 0.04, 0.04);
+    onTextureLoaded?.();
   }
   screen.material = mat;
 
@@ -232,14 +250,15 @@ function createVideoArtwork(scene: Scene, artwork: Artwork) {
 
 // ─── Factory ──────────────────────────────────────────────────────────────────
 
-export function createArtworkMesh(scene: Scene, artwork: Artwork) {
+export function createArtworkMesh(scene: Scene, artwork: Artwork, onTextureLoaded?: () => void) {
   switch (artwork.artwork_type) {
     case 'IMAGE_2D':
-      return createImage2DArtwork(scene, artwork);
+      return createImage2DArtwork(scene, artwork, onTextureLoaded);
     case 'VIDEO':
-      return createVideoArtwork(scene, artwork);
+      return createVideoArtwork(scene, artwork, onTextureLoaded);
     default:
       console.warn(`[artwork-factory] Unknown artwork type: ${(artwork as Artwork).artwork_type}`);
+      onTextureLoaded?.();
       return null;
   }
 }

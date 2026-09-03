@@ -60,17 +60,41 @@ export interface OpenDrivePickerOptions {
   onError?: (error: any) => void;
 }
 
+function normalizeMimeTypes(types: string): string {
+  let normalized = types;
+  if (normalized.includes('video/*')) {
+    normalized = normalized.replace(
+      'video/*',
+      'video/mp4,video/webm,video/quicktime,video/x-matroska,video/x-msvideo,video/mpeg,video/ogg'
+    );
+  }
+  if (normalized.includes('audio/*')) {
+    normalized = normalized.replace(
+      'audio/*',
+      'audio/mp3,audio/mpeg,audio/wav,audio/ogg'
+    );
+  }
+  if (normalized.includes('image/*')) {
+    normalized = normalized.replace(
+      'image/*',
+      'image/png,image/jpeg,image/webp,image/gif'
+    );
+  }
+  return normalized;
+}
+
 export async function openGoogleDrivePicker(options: OpenDrivePickerOptions): Promise<void> {
   const {
     clientId,
     appId,
     developerKey,
-    mimeTypes,
+    mimeTypes: rawMimeTypes,
     isTeam = false,
     onPicked,
     onCancel,
     onError,
   } = options;
+  const mimeTypes = normalizeMimeTypes(rawMimeTypes);
 
   try {
     await ensureGooglePickerLoaded();

@@ -4,7 +4,7 @@ import { getImageUrl, proxyMediaUrl } from '../../lib/media/gdrive';
 import { HOTSPOT_TRANSITIONS, getHotspotAnimation } from '../../lib/viewer/hotspot-animations';
 import { HotspotTransitionPreview } from './HotspotTransitionPreview';
 import { DriveFilePicker } from './DriveFilePicker';
-import { Button } from '../ui';
+import { Button, Icon } from '../ui';
 
 interface HotspotEditorProps {
   artwork: Artwork;
@@ -233,8 +233,8 @@ export function HotspotEditor({
             <h2>Interactive Hotspot Editor</h2>
             <p className="subtitle">Artwork: {artwork.title}</p>
           </div>
-          <button className="btn btn--ghost" onClick={onClose} aria-label="Close">
-            ×
+          <button className="btn btn--ghost" onClick={onClose} aria-label="Close" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '6px' }}>
+            <Icon name="close" size={16} />
           </button>
         </div>
 

@@ -41,9 +41,4 @@ export class ResolutionScaler {
     this._currentTier = tier;
     this.engine.setHardwareScalingLevel(TIER_LEVELS[tier]);
   }
-
-  /** Convenience: return the hardware scaling level for a given tier */
-  static levelForTier(tier: ResolutionTier): number {
-    return TIER_LEVELS[tier];
-  }
 }

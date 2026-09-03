@@ -117,7 +117,6 @@ export function Workbench({
           <ArtworksPane
             artworks={exhibition.artworks ?? []}
             artists={exhibition.artists ?? []}
-            rooms={rooms}
             selectedId={selectedArtworkId}
             onSelect={setSelectedArtworkId}
             onAdd={() => setSelectedArtworkId('new')}

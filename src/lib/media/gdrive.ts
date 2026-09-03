@@ -83,12 +83,3 @@ export function proxyMediaUrl(fileIdOrUrl: string, version?: string | number): s
 
   return trimmed;
 }
-
-/**
- * Canonical helper for resolving playable audio URLs from a file ID, sharing link, or direct URL.
- */
-export function resolveAudioUrl(fileIdOrUrl?: string | null, version?: string | number): string | null {
-  if (!fileIdOrUrl) return null;
-  const resolved = proxyMediaUrl(fileIdOrUrl, version);
-  return resolved || null;
-}

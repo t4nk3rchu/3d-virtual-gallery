@@ -188,11 +188,13 @@ export function ArtistInspector({
             cursor: 'pointer',
             padding: '4px',
             borderRadius: '4px',
-            fontSize: '18px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             lineHeight: 1,
           }}
         >
-          ×
+          <Icon name="close" size={16} />
         </button>
       </div>
       <div className="body">
@@ -351,7 +353,7 @@ export function ArtistInspector({
                           </div>
                         </div>
                         <span style={{ color: 'var(--reda-oxblood)', display: 'inline-flex', flexShrink: 0 }}>
-                          <Icon name="arrow-right" size={12} />
+                          <Icon name="arrowRight" size={12} />
                         </span>
                       </button>
                     );

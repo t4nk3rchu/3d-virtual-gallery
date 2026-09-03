@@ -33,7 +33,6 @@ describe('ArtworksPane', () => {
     render(
       <ArtworksPane
         artworks={AW}
-        rooms={[]}
         selectedId={null}
         onSelect={onSelect}
         onAdd={() => {}}
@@ -54,7 +53,6 @@ describe('ArtworksPane', () => {
     render(
       <ArtworksPane
         artworks={[...AW, storedWork]}
-        rooms={[]}
         selectedId={null}
         onSelect={() => {}}
         onAdd={() => {}}

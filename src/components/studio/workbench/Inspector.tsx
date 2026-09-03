@@ -1,4 +1,5 @@
 import { ArtworkForm } from '../ArtworkForm';
+import { Icon } from '../../ui';
 import type { Artwork, Artist } from '../../../types/schema';
 
 interface InspectorProps {
@@ -60,11 +61,13 @@ export function Inspector({
             cursor: 'pointer',
             padding: '4px',
             borderRadius: '4px',
-            fontSize: '18px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             lineHeight: 1,
           }}
         >
-          ×
+          <Icon name="close" size={16} />
         </button>
       </div>
       <div className="body">

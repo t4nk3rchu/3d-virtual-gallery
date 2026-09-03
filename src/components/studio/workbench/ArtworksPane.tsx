@@ -1,25 +1,22 @@
 import { useState } from 'react';
 import { Icon } from '../../ui';
-import type { Artwork, Room, Artist } from '../../../types/schema';
+import type { Artwork, Artist } from '../../../types/schema';
 import { getImageUrl } from '../../../lib/media/gdrive';
 import { isArtworkPlaced } from '../../../lib/studio/artwork-placement';
 
 export function ArtworksPane({
   artworks,
   artists = [],
-  rooms,
   selectedId,
   onSelect,
   onAdd,
 }: {
   artworks: Artwork[];
   artists?: Artist[];
-  rooms: Room[];
   selectedId: string | null;
   onSelect(id: string): void;
   onAdd(): void;
 }) {
-  void rooms;
   const [tab, setTab] = useState<'in_room' | 'storage'>('in_room');
   const [selectedArtistFilter, setSelectedArtistFilter] = useState<string>('all');
 

@@ -1,5 +1,5 @@
 export { Icon } from './Icon';
-export type { IconName } from './Icon';
+export type { IconName, IconProps } from './Icon';
 export { Button } from './Button';
 export { TextField } from './fields/TextField';
 export { TextArea } from './fields/TextArea';

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, type PointerEvent as ReactPointerEvent } from 'react';
 import type { ArtworkHotspot } from '../../types/schema';
-import { resolveAudioUrl } from '../../lib/media/gdrive';
+import { proxyMediaUrl } from '../../lib/media/gdrive';
 import { Icon } from '../ui';
 
 interface InspectDesktopSidebarProps {
@@ -140,7 +140,7 @@ export function InspectDesktopSidebar({
             <audio
               ref={audioRef}
               controls
-              src={resolveAudioUrl(activeHotspot.audio_file_id)!}
+              src={proxyMediaUrl(activeHotspot.audio_file_id!) || ''}
               className="hotspot-audio-element"
             />
           </div>

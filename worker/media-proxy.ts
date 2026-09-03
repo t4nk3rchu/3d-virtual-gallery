@@ -191,8 +191,26 @@ export async function handleMediaProxy(
       return new Response(`Upstream error ${upstream.status}: ${detail.slice(0, 300)}`, { status: 502 });
     }
 
-    const toCache = new Response(upstream.clone().body, upstream);
     const contentType = inferContentType(upstream.headers);
+    const headers = new Headers(upstream.headers);
+    headers.set('Content-Type', contentType);
+    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+    headers.set('Access-Control-Allow-Origin', '*');
+    headers.set('Accept-Ranges', 'bytes');
+
+    const rangeHeader = req.headers.get('Range');
+    if (!rangeHeader && upstream.body) {
+      const [bodyForCache, bodyForClient] = upstream.body.tee();
+      const toCache = new Response(bodyForCache, { status: 200, headers });
+      ctx.waitUntil(cache.put(key, toCache));
+
+      if (req.method === 'HEAD') {
+        return withCors(new Response(null, { status: 200, headers }));
+      }
+      return withCors(new Response(bodyForClient, { status: 200, headers }));
+    }
+
+    const toCache = new Response(upstream.clone().body, upstream);
     toCache.headers.set('Content-Type', contentType);
     toCache.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
     toCache.headers.set('Access-Control-Allow-Origin', '*');

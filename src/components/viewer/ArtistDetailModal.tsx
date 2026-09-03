@@ -56,23 +56,38 @@ export function ArtistDetailModal({ artist, onClose }: ArtistDetailModalProps) {
                     (e.target as HTMLElement).style.display = 'none';
                   }}
                 />
+                {(artist.life_dates || artist.contact_info) && (
+                  <div className="artist-portrait-bottom-overlay">
+                    {artist.life_dates && (
+                      <div className="artist-lifedates-badge">
+                        {artist.life_dates}
+                      </div>
+                    )}
+                    {artist.contact_info && (
+                      <div className="artist-contact-box">
+                        <span className="artist-contact-icon"><Icon name="pin" size={13} /></span>
+                        <span className="artist-contact-text">{artist.contact_info}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="artist-portrait-placeholder">
-                <Icon name="user" size={52} />
-              </div>
-            )}
-
-            {artist.life_dates && (
-              <div className="artist-lifedates-badge">
-                {artist.life_dates}
-              </div>
-            )}
-
-            {artist.contact_info && (
-              <div className="artist-contact-box">
-                <span className="artist-contact-icon"><Icon name="pin" size={13} /></span>
-                <span className="artist-contact-text">{artist.contact_info}</span>
+                <div className="artist-portrait-circle">
+                  <Icon name="user" size={52} />
+                </div>
+                {artist.life_dates && (
+                  <div className="artist-lifedates-badge">
+                    {artist.life_dates}
+                  </div>
+                )}
+                {artist.contact_info && (
+                  <div className="artist-contact-box">
+                    <span className="artist-contact-icon"><Icon name="pin" size={13} /></span>
+                    <span className="artist-contact-text">{artist.contact_info}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
