@@ -27,6 +27,8 @@ export interface InteractionHandlers {
   onArtworkInspect(artworkId: string): void;
   onArtworkHover?(artworkId: string | null, screenPos: { x: number; y: number } | null): void;
   onStateChange(state: ViewerState): void;
+  /** Ask the render-on-demand loop to draw a frame (e.g. after a resolution-tier swap). */
+  requestRender?(): void;
 }
 
 export interface InteractionController {
@@ -51,19 +53,21 @@ export function wireInteraction(
     if (state === next) return;
     state = next;
     handlers.onStateChange(next);
+    // A transition swaps the resolution tier; force a repaint even if the camera is idle.
+    handlers.requestRender?.();
   }
 
   function handleLeave() {
     setState('ROAM');
     cameraController.clearFocus();
     scaler.setTier('WALK');
-    handlers.onArtworkHover?.(null, null);
+    updateHover(null, null);
   }
 
   function leaveInspect(onRestoreRoam?: () => void) {
     scaler.setTier('FOCUS');
     setState('FOCUS');
-    handlers.onArtworkHover?.(null, null);
+    updateHover(null, null);
     // Return to focus UI; the caller handles restoring FPS once back in ROAM
     onRestoreRoam?.();
   }
@@ -77,19 +81,42 @@ export function wireInteraction(
     cameraController.focusOnArtwork(mesh);
     scaler.setTier('FOCUS');
     setState('FOCUS');
-    handlers.onArtworkHover?.(null, null);
+    updateHover(null, null);
     handlers.onArtworkFocus(artworkId, mesh);
   }
 
   function inspectArtwork(artworkId: string) {
     scaler.setTier('POPUP');
     setState('INSPECT');
-    handlers.onArtworkHover?.(null, null);
+    updateHover(null, null);
     // Release pointer lock so cursor is free inside the inspect lightbox
     if (cameraController.isPointerLocked) {
       cameraController.exitPointerLock();
     }
     handlers.onArtworkInspect(artworkId);
+  }
+
+  // ── Hover Tracking (deduplicated to prevent excess re-renders) ─────────
+  let lastHoveredId: string | null = null;
+  let lastHoverPos = { x: -999, y: -999 };
+
+  function updateHover(artId: string | null, pos: { x: number; y: number } | null) {
+    if (!artId || !pos) {
+      if (lastHoveredId !== null) {
+        lastHoveredId = null;
+        lastHoverPos = { x: -999, y: -999 };
+        handlers.onArtworkHover?.(null, null);
+      }
+      return;
+    }
+
+    const idChanged = artId !== lastHoveredId;
+    const posChanged = Math.hypot(pos.x - lastHoverPos.x, pos.y - lastHoverPos.y) > 3;
+    if (idChanged || posChanged) {
+      lastHoveredId = artId;
+      lastHoverPos = pos;
+      handlers.onArtworkHover?.(artId, pos);
+    }
   }
 
   // ── FPS Center Crosshair Hover Tracking ────────────────────────────────
@@ -101,9 +128,9 @@ export function wireInteraction(
       if (hoveredArtId) {
         const cx = typeof window !== 'undefined' ? window.innerWidth / 2 : 0;
         const cy = typeof window !== 'undefined' ? window.innerHeight / 2 : 0;
-        handlers.onArtworkHover?.(hoveredArtId, { x: cx, y: cy });
+        updateHover(hoveredArtId, { x: cx, y: cy });
       } else {
-        handlers.onArtworkHover?.(null, null);
+        updateHover(null, null);
       }
     }
   });
@@ -117,12 +144,12 @@ export function wireInteraction(
         if (hoveredArtId) {
           const clientX = pointerInfo.event.clientX ?? scene.pointerX;
           const clientY = pointerInfo.event.clientY ?? scene.pointerY;
-          handlers.onArtworkHover?.(hoveredArtId, { x: clientX, y: clientY });
+          updateHover(hoveredArtId, { x: clientX, y: clientY });
         } else {
-          handlers.onArtworkHover?.(null, null);
+          updateHover(null, null);
         }
       } else if (!cameraController.isPointerLocked) {
-        handlers.onArtworkHover?.(null, null);
+        updateHover(null, null);
       }
       return;
     }

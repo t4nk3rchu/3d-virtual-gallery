@@ -202,6 +202,30 @@ The gallery supports three independent audio layers that interact cleanly:
 - **Synchronized Across Studio & Public Viewer**:
   - Synchronized `ArtistViewerPreview.tsx` (Curator Workbench Preview) and `ArtistDetailModal.tsx` (Public Visitor Modal) with matching layout rules and tokens.
 
+### 7.5 Systematic Debugging: WebGL Context Loss in Chrome & Firefox Hover Seam Lines
+- **Issue 1: Firefox Hover Bounding Box Lines in Inspect Mode**:
+  - **Root Cause**: Firefox's WebRender graphics engine has a subpixel clipping and coordinate snapping bug when rendering `backdrop-filter: blur(...)` inside transformed contexts (`translateX(-50%)`, child button `:hover { transform: translateY(-1px) }`, or 3D projective stages with `preserve-3d`). WebRender draws 1px dark/grey seam lines and bounding box outlines at the tile boundaries of `.inspect-lightbox__controls`, `.inspect-lightbox__hint`, `.inspect-lightbox__sidebar`, and `.hotspot-pin__tooltip`.
+  - **Fix**: Applied a targeted Firefox workaround using `@supports (-moz-appearance: none)` in `src/styles/reda-viewer.css` that disables `backdrop-filter` in Firefox and replaces it with rich, opaque dark glass backgrounds (`rgba(26, 24, 20, 0.96)`, etc.), preserving the full glassmorphism blur in Chrome/Safari while completely eliminating all seam lines in Firefox. Added `outline: none` and `::-moz-focus-inner { border: 0; padding: 0; }` on hotspot pins and buttons.
+- **Issue 2: Chrome WebGL Context Loss on Artwork Hover**:
+  - **Root Cause**: In `ExhibitionViewer.tsx`, `isWebGLSupported()` was called in the component render body. Inside `FallbackCatalog.tsx`, `isWebGLSupported()` created a new `<canvas>` and acquired a `webgl2` context on every invocation without caching or releasing context. Additionally, hovering an artwork in roam mode dispatched `onArtworkHover` on every pointer move event (60-120 times/sec). This re-rendered `ExhibitionViewer` continuously, creating 16+ WebGL2 contexts in ~0.2s. Chrome hit its hard origin limit of 16 active contexts, emitted `WARNING: Too many active WebGL contexts. Oldest context will be lost.`, and destroyed Babylon's canvas context (`WebGL context lost`), causing screen flashing and blackouts.
+  - **Fix**:
+    1. Cached `isWebGLSupported()` at the module level in `FallbackCatalog.tsx` and explicitly called `ctx?.getExtension('WEBGL_lose_context')?.loseContext()` so test probes never consume an active context slot.
+    2. Memoized `webglSupported` with `useMemo` in `ExhibitionViewer.tsx`.
+    3. Added `updateHover` deduplication in `src/lib/babylon/interaction.ts` so hover updates are only dispatched when the hovered artwork ID actually changes (or cursor moves significantly), avoiding spamming state dispatches on consecutive animation frames in FPS mode and standard roam mode.
+
+### 7.6 Firefox WebRender 3D Transform Tile Seams & Hover Bounding-Box Elimination
+- **Issue**: In Firefox on Windows, hovering on `.hotspot-pin` or any button in Inspect Mode displayed 1px dark/grey seam lines, vertical lines through the artwork, and bounding-box outlines matching 256px/512px tile boundaries (e.g. at `x=512`, `y=256`, `x=308`).
+- **Deep Root Cause Diagnosis (via `/debugging-and-error-recovery`)**:
+  1. **WebRender 3D Picture-Cache Tile Seams**: In Firefox, nesting elements inside `perspective: 1200px` and `transform-style: preserve-3d` causes WebRender to create 3D picture cache slices divided into 256x256 / 512x512 tiles. Because the 3D plane is projected, floating-point coordinates at tile borders suffer from scissor rect rounding errors in WebRender, leaving 1px unpainted gaps (dark seam lines) whenever a dirty rect is re-rasterized.
+  2. **Unbounded RAF Tick Loop**: In `InspectLightbox.tsx`, `tick()` updated `stage.style.transform` and `tilt.style.transform` every single frame without a resting deadzone, thrashing the DOM with 14-digit floating-point coordinates 60-144 times/sec and preventing the compositor from settling.
+  3. **Button Hover Layer Shift**: `.btn:hover { transform: translateY(-1px); }` moved buttons in `.inspect-lightbox__controls` by 1px, invalidating the parent glass slice over the 3D canvas and producing vertical/horizontal seam lines across the viewport.
+  4. **Hotspot Pin Collision & Button Content Clipping**: In `reda-viewer.css`, `.hotspot-pin` defined `border: 2px solid var(--reda-gold)` and `::after` (`ping` animation), clashing with `App.css`'s `.hotspot-pin__ripple` (`pulseRipple` animation) and `.hotspot-pin__dot`. Furthermore, `<button>` in Firefox lacked `overflow: visible`, causing the tooltip `span.hotspot-pin__tooltip` to be clipped at its bottom edge into a 1px horizontal line.
+- **Systematic Fix**:
+  1. **Flatten 3D Transform Hierarchy in Firefox**: Added a targeted `@supports (-moz-appearance: none)` block in `src/styles/reda-viewer.css` setting `perspective: none`, `transform-style: flat`, and `will-change: auto` on `.inspect-lightbox__viewport`, `.inspect-lightbox__stage`, `.inspect-lightbox__tilt`, and `.inspect-lightbox__slab`. Hid `.inspect-lightbox__shadow` (`display: none !important`) so its radial gradient does not vignette the image without 3D `translateZ`, moving the clean 2D drop-shadow (`box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7)`) directly onto `.inspect-lightbox__image`. Hid edge-on 90deg bevel strips in Firefox. Chrome/Safari/Edge retain full 3D tilt and bevels.
+  2. **RAF Tick Snapping & Deduplication**: Added a resting threshold in `InspectLightbox.tsx` (`ds < 0.0005`, `dx < 0.02`, `dy < 0.02`) to snap resting coordinates and skip redundant DOM updates. Formatted transforms with clean fixed precision (`toFixed(2)`).
+  3. **Hover Stabilization in Firefox**: Disabled `transform: translateY(-1px)` on `.btn:hover` and inspect controls in Firefox via `reda-ui.css` and `reda-viewer.css`, relying on color, border, and background transitions instead of geometry displacement.
+  4. **Hotspot Pin Clean-up**: Added `overflow: visible` to `.hotspot-pin` in `App.css` and `reda-viewer.css`, disabled duplicate `::before`/`::after` pseudo-elements in Firefox, and gave `.hotspot-pin__tooltip` a solid opaque glass background (`rgba(15, 23, 42, 0.98)`).
+
 ---
 
 ## 8. Current Status & Next Steps
@@ -212,7 +236,9 @@ The gallery supports three independent audio layers that interact cleanly:
 - [x] Gallery-grade editorial quote redesign (`design-taste-frontend`).
 - [x] Artist profile modal: 1:2 grid ratio (`1fr 2fr`) and equal-height portrait presentation.
 - [x] Portrait placeholder true horizontal and vertical centering with edge-to-edge column presentation.
-- [x] Complete test suite passing (**48 test files, 220 tests passed**) and zero TypeScript errors (`tsc -b --noEmit`).
+- [x] Chrome WebGL context lost on artwork hover resolved (cached WebGL detection + deduplicated hover tracking).
+- [x] Firefox inspect mode hover bounding box lines and tile seams eliminated (flattened 3D context, RAF resting deadzone, hover stabilization, and button overflow clipping fix).
+- [x] Complete test suite passing (**48 test files, 221 tests passed**) and production build passing cleanly (`pnpm build`).
 
 ### Future Enhancements (Backlog)
 - [ ] **Multi-Waypoint Guided Tour**: Extend the single Start Point beacon into an ordered sequence of tour waypoints with camera path interpolation.

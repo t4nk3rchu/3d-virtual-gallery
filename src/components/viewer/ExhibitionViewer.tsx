@@ -5,7 +5,7 @@
  * renders FocusPanel and InspectLightbox. Falls back to FallbackCatalog when
  * WebGL2 is unavailable.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ExhibitionDetail, ArtworkHotspot, Artist } from '../../types/schema';
 import type { AbstractMesh } from '@babylonjs/core';
 import type { InteractionController } from '../../lib/babylon/interaction';
@@ -68,7 +68,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
   /** Remembers if we were in FPS mode before entering focus/inspect, so we can restore it on return to ROAM */
   const wasFpsModeRef = useRef<boolean>(false);
 
-  const webglSupported = isWebGLSupported();
+  const webglSupported = useMemo(() => isWebGLSupported(), []);
 
   // Fetch exhibition data
   const fetchExhibition = () => {
@@ -197,9 +197,11 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
 
       if (disposed || !canvasRef.current) return;
 
-      sceneHandle = initScene(canvasRef.current);
+      sceneHandle = initScene(canvasRef.current, { renderOnDemand: true });
       const { scene, scaler } = sceneHandle;
       const cameraController = new CameraController(scene, canvasRef.current);
+      // Keep drawing while the camera is moving / animating (render-on-demand).
+      sceneHandle.addActivityCheck(() => cameraController.isActive());
       cameraController.updateConfig(settings);
       cameraControllerRef.current = cameraController;
 
@@ -251,6 +253,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
       setLoadProgress(100);
       sceneRef.current = scene;
       setIsSceneReady(true);
+      sceneHandle.requestRender(); // draw the finished scene once load + spawn settle
 
     // Sync control mode and pointer lock changes
     cameraController.updateConfig({ controlMode });
@@ -260,6 +263,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
 
     // Wire interaction controller
     interactionRef.current = wireInteraction(scene, cameraController, scaler, {
+      requestRender: () => sceneHandle?.requestRender(),
       onArtworkFocus: (artworkId, _mesh: AbstractMesh) => {
         flushDwell();
         // Remember if FPS was active before entering focus, so we can restore it on return to ROAM

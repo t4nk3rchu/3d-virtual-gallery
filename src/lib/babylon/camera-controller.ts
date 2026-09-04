@@ -121,6 +121,16 @@ export class CameraController {
     return this._focusedMesh;
   }
 
+  /**
+   * True while the camera still needs frames drawn: a key is held, a focus/
+   * teleport animation is running, or inertia is still settling. Used by the
+   * render-on-demand loop so movement is never frozen mid-motion.
+   */
+  isActive(): boolean {
+    if (this._keysDown.size > 0 || this._animating) return true;
+    return this.camera.cameraDirection.lengthSquared() > 1e-6;
+  }
+
   get isPointerLocked(): boolean {
     return this._isPointerLocked;
   }

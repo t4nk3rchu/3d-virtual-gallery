@@ -2657,4 +2657,116 @@
   border-width: 1px;
 }
 
+/* ─── Firefox WebRender 3D & Sub-Pixel Compositing Artifacts Workaround ─────
+   Firefox's WebRender engine has a known sub-pixel clipping bug where
+   3D perspective/preserve-3d contexts combined with blur filters,
+   will-change, backdrop-filters, and button hover transforms draw 1px seam
+   lines at 256px/512px tile boundaries and bounding-box outlines on hover.
+   In Firefox, we:
+   1. Flatten 3D transform hierarchy on the lightbox stage/slab/viewport
+   2. Replace the 3D translateZ blur shadow with a clean 2D box-shadow
+   3. Hide edge-on 90deg bevel strips (.inspect-lightbox__frame-*)
+   4. Disable backdrop-filter with opaque glass fallbacks
+   5. Prevent button hover translateY from shifting subpixel layer bounds
+   6. Remove duplicate pseudo-elements on .hotspot-pin and ensure overflow: visible */
+@supports (-moz-appearance: none) {
+  /* Keep `perspective` on the viewport so the tilt still projects with depth.
+     The WebRender tile seams come from `transform-style: preserve-3d` building a
+     tiled 3D picture cache — NOT from perspective. Flattening the subtree below
+     removes that cache, so the tilt renders as one perspective-projected layer:
+     3D tilt preserved, seams gone. (The 3D-extruded bevels/shadow still need
+     preserve-3d, so they stay hidden on Firefox — see below — leaving a flat
+     image that tilts. The tilt interaction itself is identical to Chrome.) */
+  .inspect-lightbox__tilt,
+  .inspect-lightbox__stage,
+  .inspect-lightbox__slab {
+    transform-style: flat !important;
+  }
+
+  .inspect-lightbox__stage {
+    will-change: auto !important;
+  }
+
+  .inspect-lightbox__shadow {
+    display: none !important;
+  }
+
+  .inspect-lightbox__image {
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7) !important;
+  }
+
+  .inspect-lightbox__frame-top,
+  .inspect-lightbox__frame-bottom,
+  .inspect-lightbox__frame-left,
+  .inspect-lightbox__frame-right {
+    display: none !important;
+  }
+
+  .inspect-lightbox__controls,
+  .inspect-lightbox__hint,
+  .inspect-lightbox__sidebar,
+  .inspect-lightbox__drawer,
+  .inspect-lightbox__header,
+  .hotspot-pin__tooltip,
+  .hotspot-card,
+  .artwork-hover-tooltip {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .inspect-lightbox__controls {
+    background: rgba(26, 24, 20, 0.96) !important;
+  }
+
+  .inspect-lightbox__hint {
+    background: rgba(16, 15, 12, 0.94) !important;
+  }
+
+  .inspect-lightbox__sidebar,
+  .inspect-lightbox__drawer {
+    background: rgba(26, 24, 20, 0.97) !important;
+  }
+
+  .inspect-lightbox__controls .btn:hover,
+  .inspect-lightbox__sidebar .btn:hover,
+  .inspect-lightbox__drawer .btn:hover,
+  .carousel-counter-btn:hover,
+  .inspect-btn-reset:hover,
+  .inspect-nav-btn:hover {
+    transform: none !important;
+  }
+
+  .hotspot-pin {
+    overflow: visible !important;
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .hotspot-pin::before,
+  .hotspot-pin::after {
+    display: none !important;
+  }
+
+  .hotspot-pin::-moz-focus-inner {
+    border: 0 !important;
+    padding: 0 !important;
+  }
+
+  .hotspot-pin__tooltip {
+    background: rgba(15, 23, 42, 0.98) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6) !important;
+    will-change: opacity !important;
+  }
+
+  .hotspot-card {
+    background: rgba(26, 24, 20, 0.97) !important;
+  }
+
+  .artwork-hover-tooltip {
+    background: rgba(15, 23, 42, 0.96) !important;
+  }
+}
+
+
 

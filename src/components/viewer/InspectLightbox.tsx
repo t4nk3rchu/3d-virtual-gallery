@@ -207,11 +207,39 @@ export function InspectLightbox({
       cur.current.rx += (tgt.current.rx - cur.current.rx) * tiltEase;
       cur.current.ry += (tgt.current.ry - cur.current.ry) * tiltEase;
 
+      if (!anim.current) {
+        const ds = Math.abs(tgt.current.s - cur.current.s);
+        const dx = Math.abs(tgt.current.x - cur.current.x);
+        const dy = Math.abs(tgt.current.y - cur.current.y);
+        const drx = Math.abs(tgt.current.rx - cur.current.rx);
+        const dry = Math.abs(tgt.current.ry - cur.current.ry);
+
+        if (ds < 0.0005 && dx < 0.02 && dy < 0.02 && drx < 0.02 && dry < 0.02) {
+          cur.current.s = tgt.current.s;
+          cur.current.x = tgt.current.x;
+          cur.current.y = tgt.current.y;
+          cur.current.rx = tgt.current.rx;
+          cur.current.ry = tgt.current.ry;
+        }
+      }
+
+      const sx = Number(cur.current.x.toFixed(2));
+      const sy = Number(cur.current.y.toFixed(2));
+      const ss = Number(cur.current.s.toFixed(4));
+      const srx = Number(cur.current.rx.toFixed(2));
+      const sry = Number(cur.current.ry.toFixed(2));
+
       if (stage) {
-        stage.style.transform = `translate(${cur.current.x}px, ${cur.current.y}px) scale(${cur.current.s})`;
+        const nextTransform = `translate(${sx}px, ${sy}px) scale(${ss})`;
+        if (stage.style.transform !== nextTransform) {
+          stage.style.transform = nextTransform;
+        }
       }
       if (tilt) {
-        tilt.style.transform = `rotateX(${cur.current.rx}deg) rotateY(${cur.current.ry}deg)`;
+        const nextTilt = `rotateX(${srx}deg) rotateY(${sry}deg)`;
+        if (tilt.style.transform !== nextTilt) {
+          tilt.style.transform = nextTilt;
+        }
       }
 
       reqId = requestAnimationFrame(tick);

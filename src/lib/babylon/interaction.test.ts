@@ -72,14 +72,15 @@ describe('Interaction State Machine & Resolution Scaler', () => {
       })),
     } as unknown as CameraController;
 
+    let renderCb: (() => void) | undefined;
     const fakeScene = {
       onPointerObservable: {
         add: vi.fn(() => ({})),
         remove: vi.fn(),
       },
       onBeforeRenderObservable: {
-        add: vi.fn((cb) => {
-          // Trigger once for render test
+        add: vi.fn((cb: () => void) => {
+          renderCb = cb;
           cb();
           return {};
         }),
@@ -98,6 +99,13 @@ describe('Interaction State Machine & Resolution Scaler', () => {
     });
 
     expect(controller.getState()).toBe('ROAM');
+    expect(onArtworkHover).toHaveBeenCalledTimes(1);
     expect(onArtworkHover).toHaveBeenCalledWith('art1', expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) }));
+
+    // Subsequent frames hovering the same artwork MUST NOT fire redundant updates
+    const triggerRender = renderCb as (() => void) | undefined;
+    triggerRender?.();
+    triggerRender?.();
+    expect(onArtworkHover).toHaveBeenCalledTimes(1);
   });
 });

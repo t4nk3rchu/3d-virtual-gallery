@@ -115,3 +115,10 @@ textarea.reda-field__control { resize: vertical; min-height: 60px; line-height: 
 .reda-panel { background: var(--reda-char-2); border: 1px solid var(--reda-line); border-radius: var(--reda-radius); }
 .reda-panel--parch { background: var(--reda-parch); border-color: #d3c6a8; color: var(--reda-ink); }
 .reda-icon { display: inline-block; vertical-align: middle; }
+
+/* In Firefox, disable subpixel hover translation to avoid WebRender picture-cache tile seams */
+@supports (-moz-appearance: none) {
+  .btn:hover {
+    transform: none !important;
+  }
+}

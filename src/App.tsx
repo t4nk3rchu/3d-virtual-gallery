@@ -1,6 +1,14 @@
-import { ExhibitionViewer } from './components/viewer/ExhibitionViewer';
-import { StudioApp } from './components/studio/StudioApp';
+import { lazy, Suspense } from 'react';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+
+// Route-level code splitting: a public viewer must not download the Studio bundle,
+// and vice versa. Each route becomes its own chunk (Babylon is shared between them).
+const ExhibitionViewer = lazy(() =>
+  import('./components/viewer/ExhibitionViewer').then((m) => ({ default: m.ExhibitionViewer }))
+);
+const StudioApp = lazy(() =>
+  import('./components/studio/StudioApp').then((m) => ({ default: m.StudioApp }))
+);
 
 /**
  * Simple client-side router:
@@ -21,12 +29,14 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      {route.type === 'viewer' && <ExhibitionViewer slug={route.slug} />}
-      {route.type === 'studio' && <StudioApp />}
-      {route.type === 'home' && (() => {
-        window.location.replace('/studio');
-        return null;
-      })()}
+      <Suspense fallback={null}>
+        {route.type === 'viewer' && <ExhibitionViewer slug={route.slug} />}
+        {route.type === 'studio' && <StudioApp />}
+        {route.type === 'home' && (() => {
+          window.location.replace('/studio');
+          return null;
+        })()}
+      </Suspense>
     </ErrorBoundary>
   );
 }

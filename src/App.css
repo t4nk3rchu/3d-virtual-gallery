@@ -1860,6 +1860,7 @@
   height: 28px;
   background: transparent;
   border: none;
+  outline: none;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1867,6 +1868,12 @@
   pointer-events: auto;
   z-index: 10;
   position: relative;
+  overflow: visible;
+}
+
+.hotspot-pin:focus,
+.hotspot-pin:focus-visible {
+  outline: none;
 }
 
 .hotspot-pin__dot {

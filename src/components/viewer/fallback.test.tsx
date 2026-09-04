@@ -1,7 +1,7 @@
 /**
  * Task 10: FallbackCatalog test + isWebGLSupported
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { FallbackCatalog, isWebGLSupported } from './FallbackCatalog';
 import type { Artwork } from '../../types/schema';
@@ -13,6 +13,20 @@ describe('isWebGLSupported', () => {
     const result = isWebGLSupported();
     // In jsdom environment, WebGL is not available
     expect(typeof result).toBe('boolean');
+  });
+
+  it('caches the result on subsequent calls to prevent WebGL context exhaustion', () => {
+    const createSpy = vi.spyOn(document, 'createElement');
+    // First call uses cached result or sets it
+    const res1 = isWebGLSupported();
+    const callCountAfterFirst = createSpy.mock.calls.length;
+    // Second and third calls MUST NOT create new canvases
+    const res2 = isWebGLSupported();
+    const res3 = isWebGLSupported();
+    expect(res2).toBe(res1);
+    expect(res3).toBe(res1);
+    expect(createSpy.mock.calls.length).toBe(callCountAfterFirst);
+    createSpy.mockRestore();
   });
 });
 

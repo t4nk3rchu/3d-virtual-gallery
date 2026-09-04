@@ -8,18 +8,32 @@
 import type { Artwork } from '../../types/schema';
 import { getImageUrl, proxyMediaUrl } from '../../lib/media/gdrive';
 
+let _cachedWebGLSupported: boolean | null = null;
+
 /**
  * Detect WebGL2 support.
+ * Cached at module-level to avoid creating redundant WebGL contexts on re-render.
  * Returns false on old hardware, low-end mobile, and locked-down environments.
  */
 export function isWebGLSupported(): boolean {
+  if (_cachedWebGLSupported !== null) {
+    return _cachedWebGLSupported;
+  }
   try {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('webgl2');
-    return ctx !== null;
+    _cachedWebGLSupported = ctx !== null;
+    // Explicitly release the test context so it doesn't count against the browser's context limit
+    ctx?.getExtension('WEBGL_lose_context')?.loseContext();
   } catch {
-    return false;
+    _cachedWebGLSupported = false;
   }
+  return _cachedWebGLSupported;
+}
+
+/** Reset cache for unit testing purposes */
+export function _resetWebGLSupportCacheForTesting(): void {
+  _cachedWebGLSupported = null;
 }
 
 interface FallbackCatalogProps {
