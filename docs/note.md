@@ -226,6 +226,30 @@ The gallery supports three independent audio layers that interact cleanly:
   3. **Hover Stabilization in Firefox**: Disabled `transform: translateY(-1px)` on `.btn:hover` and inspect controls in Firefox via `reda-ui.css` and `reda-viewer.css`, relying on color, border, and background transitions instead of geometry displacement.
   4. **Hotspot Pin Clean-up**: Added `overflow: visible` to `.hotspot-pin` in `App.css` and `reda-viewer.css`, disabled duplicate `::before`/`::after` pseudo-elements in Firefox, and gave `.hotspot-pin__tooltip` a solid opaque glass background (`rgba(15, 23, 42, 0.98)`).
 
+### 7.7 Mobile Inspection Mode: Native Pinch-to-Zoom & 3D Tilt Experience
+- **Issue**: On mobile touchscreens in Inspection Mode (`InspectLightbox.tsx`):
+  1. Two-finger pinch-to-zoom triggered the mobile browser's native viewport zoom (magnifying the entire web page/HTML shell rather than zooming into the artwork image).
+  2. Mobile users could not tilt the image in 3D perspective because tilt was bound exclusively to mouse right-click (`e.button === 2`), which does not exist on touchscreens.
+- **Root Cause Analysis**:
+  1. **Missing `touch-action: none`**: Mobile WebKit and Blink intercept multi-touch pinch gestures at the compositor thread to handle native page zooming unless `touch-action: none` is explicitly declared on the viewport container and interactive layers.
+  2. **Runaway Pinch Math**: In `InspectLightbox.tsx`, pinch zooming previously subtracted an offset on every `pointermove` relative to an easing lag accumulator (`tgt.current.x -= (pinchStart.current.mid.x - cur.current.x) * (ds / cur.current.s);`), which caused coordinates to compound and fly off-screen during multi-touch dragging.
+  3. **No Touch Access for 3D Tilt**: 3D tilt was hardcoded to `e.button === 2`.
+- **Systematic Fix**:
+  1. **Touch-Action & Gesture Isolation**: Added `touch-action: none; user-select: none; -webkit-user-select: none;` to `.inspect-lightbox`, `.inspect-lightbox__main-area`, and `.inspect-lightbox__viewport` in both `src/App.css` and `src/styles/reda-viewer.css`. Added inline `style={{ touchAction: 'none' }}` to `viewportRef` and `e.preventDefault()` on cancelable pointerdown events when tapping outside interactive buttons.
+  2. **Non-Compounding Anchor-Based Pinch Zoom**: Replaced incremental offset subtraction with exact mathematical zoom-to-point relative to the initial pinch start midpoint:
+     - Stored `startX`, `startY`, `startScale`, and `startMid` at `pinchStart`.
+     - Derived image-space anchor coordinates: `imgPointX = (startMid.x - startX) / startScale; imgPointY = (startMid.y - startY) / startScale;`
+     - Clamped new scale `[0.1, 8]` and calculated exact target positions: `tgt.current.x = curMidX - imgPointX * newScale; tgt.current.y = curMidY - imgPointY * newScale;`
+  3. **Dedicated "3D Tilt" Toggle Button**:
+     - Added an interactive `[3D Tilt]` button in the bottom control bar (`.inspect-btn-tilt`) when 3D tilt is supported.
+     - Tapping toggles `mobileMode` between `'pan'` and `'tilt'` with active styling.
+     - In tilt mode, single-finger drag on mobile tilts the artwork in 3D perspective (`rotateX` / `rotateY`).
+     - Tapping `[Reset View]` resets pan, zoom, 3D tilt angles to 0, and restores pan mode.
+  4. **Dynamic Context Hints**: Updated the bottom hint text to provide responsive, accurate guidance:
+     - Mobile (Pan): *"Drag to Pan · Pinch to Zoom · Tap '3D Tilt' to angle"*
+     - Mobile (Tilt active): *"Drag to Tilt in 3D · Pinch to Zoom · Tap 'Tilt Active' to return to Pan"*
+     - Desktop: *"Left-drag to Pan · Right-drag or '3D Tilt' to Angle · Scroll to Zoom"*
+
 ---
 
 ## 8. Current Status & Next Steps
@@ -238,6 +262,7 @@ The gallery supports three independent audio layers that interact cleanly:
 - [x] Portrait placeholder true horizontal and vertical centering with edge-to-edge column presentation.
 - [x] Chrome WebGL context lost on artwork hover resolved (cached WebGL detection + deduplicated hover tracking).
 - [x] Firefox inspect mode hover bounding box lines and tile seams eliminated (flattened 3D context, RAF resting deadzone, hover stabilization, and button overflow clipping fix).
+- [x] Mobile inspect mode two-finger pinch-to-zoom and 3D tilt controls fully implemented and verified.
 - [x] Complete test suite passing (**48 test files, 221 tests passed**) and production build passing cleanly (`pnpm build`).
 
 ### Future Enhancements (Backlog)

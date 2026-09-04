@@ -1152,6 +1152,9 @@
   z-index: 2000;
   background: var(--reda-wall-deepest);
   overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .inspect-demo {
   position: relative;
@@ -1255,6 +1258,9 @@
   padding: 0;
   margin: 0;
   overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .inspect-plate {
   position: relative;
@@ -1304,6 +1310,34 @@
   background: rgba(255, 255, 255, 0.1);
   border-color: var(--reda-gold);
   color: var(--reda-cream-hi);
+}
+.inspect-btn-tilt {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--reda-ui);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--reda-cream);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(185, 138, 60, 0.22);
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+  min-height: 28px;
+  transition: all 0.15s ease;
+}
+.inspect-btn-tilt:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--reda-gold);
+  color: var(--reda-cream-hi);
+}
+.inspect-btn-tilt.is-active {
+  background: var(--reda-gold);
+  border-color: var(--reda-gold-hi);
+  color: var(--reda-char-1);
 }
 .inspect-lightbox__carousel {
   display: inline-flex;
@@ -2768,5 +2802,40 @@
   }
 }
 
+/* ── Mobile: flatten the inspect 3D tilt ──────────────────────────────────────
+   Same mechanism as the Firefox @supports block above, extended to all mobile
+   GPUs. transform-style: preserve-3d makes phones rasterize the tilted image into
+   a tiled GPU picture cache they can't fully fill (missing tiles / black chunks)
+   and re-raster it every frame (severe stutter + the control bar dropping during
+   tilt). Keeping `perspective` but flattening the subtree renders the tilt as one
+   perspective-projected layer: the 3D tilt still works, cheaply, and renders in
+   full. The extruded bevels + volumetric shadow need preserve-3d, so they're
+   hidden (flat box-shadow on the image instead) — same trade as the Firefox path,
+   which was already confirmed to keep the tilt working. */
+@media (max-width: 768px), (max-height: 540px) {
+  .inspect-lightbox__tilt,
+  .inspect-lightbox__stage,
+  .inspect-lightbox__slab {
+    transform-style: flat !important;
+  }
 
+  .inspect-lightbox__stage {
+    will-change: auto !important;
+  }
+
+  .inspect-lightbox__shadow {
+    display: none !important;
+  }
+
+  .inspect-lightbox__image {
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7) !important;
+  }
+
+  .inspect-lightbox__frame-top,
+  .inspect-lightbox__frame-bottom,
+  .inspect-lightbox__frame-left,
+  .inspect-lightbox__frame-right {
+    display: none !important;
+  }
+}
 

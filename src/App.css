@@ -1706,6 +1706,9 @@
   z-index: 10;
   display: flex;
   overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .inspect-lightbox__viewport {
@@ -1720,6 +1723,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .inspect-lightbox__viewport:active {

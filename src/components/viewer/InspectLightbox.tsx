@@ -111,11 +111,19 @@ export function InspectLightbox({
   const tgt = useRef<TransformState>({ s: 1, x: 0, y: 0, rx: 0, ry: 0 });
   const anim = useRef<ActiveHotspotFlight | null>(null);
 
+  const [mobileMode, setMobileMode] = useState<'pan' | 'tilt'>('pan');
+
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   const mode = useRef<'pan' | 'tilt' | 'pinch' | null>(null);
   const panStart = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
   const tiltStart = useRef<{ x: number; y: number; rx: number; ry: number } | null>(null);
-  const pinchStart = useRef<{ dist: number; scale: number; mid: { x: number; y: number } } | null>(null);
+  const pinchStart = useRef<{
+    dist: number;
+    scale: number;
+    startX: number;
+    startY: number;
+    mid: { x: number; y: number };
+  } | null>(null);
 
   const primaryUrl = artwork.media_file_id
     ? proxyMediaUrl(artwork.media_file_id, artwork.updated_at)
@@ -329,15 +337,21 @@ export function InspectLightbox({
       const vp = viewportRef.current;
       if (!vp) return;
 
-      // Ignore clicks on hotspot pins, cards, controls, sidebars, or headers
+      // Ignore clicks on hotspot pins, cards, controls, sidebars, headers, or buttons
       if (
         (e.target as HTMLElement).closest('.hotspot-pin') ||
         (e.target as HTMLElement).closest('.inspect-hotspot-info-modal') ||
         (e.target as HTMLElement).closest('.inspect-lightbox__drawer') ||
         (e.target as HTMLElement).closest('.inspect-lightbox__controls') ||
-        (e.target as HTMLElement).closest('.inspect-lightbox__header')
+        (e.target as HTMLElement).closest('.inspect-lightbox__header') ||
+        (e.target as HTMLElement).closest('button')
       ) {
         return;
+      }
+
+      // Prevent native browser viewport pinch-to-zoom and page scroll gestures
+      if (e.cancelable) {
+        e.preventDefault();
       }
 
       try {
@@ -354,6 +368,8 @@ export function InspectLightbox({
         pinchStart.current = {
           dist: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y),
           scale: cur.current.s,
+          startX: cur.current.x,
+          startY: cur.current.y,
           mid: {
             x: (p[0].x + p[1].x) / 2 - rect.left,
             y: (p[0].y + p[1].y) / 2 - rect.top,
@@ -361,8 +377,11 @@ export function InspectLightbox({
         };
         panStart.current = null;
         tiltStart.current = null;
-      } else if (e.button === 2 && isTiltEnabled) {
-        // Right-click drag: 3D perspective tilt
+      } else if (
+        (e.button === 2 || (mobileMode === 'tilt' && (e.button === 0 || e.pointerType === 'touch'))) &&
+        isTiltEnabled
+      ) {
+        // Right-click drag or mobile tilt mode: 3D perspective tilt
         mode.current = 'tilt';
         tiltStart.current = {
           x: e.clientX,
@@ -383,7 +402,7 @@ export function InspectLightbox({
         tiltStart.current = null;
       }
     },
-    [isTiltEnabled]
+    [isTiltEnabled, mobileMode]
   );
 
   const onPointerMove = useCallback((e: ReactPointerEvent) => {
@@ -399,9 +418,19 @@ export function InspectLightbox({
       if (pinchStart.current.dist > 0) {
         const factor = currentDist / pinchStart.current.dist;
         const newScale = Math.max(0.1, Math.min(8, pinchStart.current.scale * factor));
-        const ds = newScale - cur.current.s;
-        tgt.current.x -= (pinchStart.current.mid.x - cur.current.x) * (ds / cur.current.s);
-        tgt.current.y -= (pinchStart.current.mid.y - cur.current.y) * (ds / cur.current.s);
+
+        // Midpoint of current fingers relative to viewport
+        const rect = vp.getBoundingClientRect();
+        const curMidX = (p[0].x + p[1].x) / 2 - rect.left;
+        const curMidY = (p[0].y + p[1].y) / 2 - rect.top;
+
+        // Anchor scale directly to the image coordinates under initial pinch center
+        const { scale: startScale, startX, startY, mid: startMid } = pinchStart.current;
+        const imgPointX = (startMid.x - startX) / startScale;
+        const imgPointY = (startMid.y - startY) / startScale;
+
+        tgt.current.x = curMidX - imgPointX * newScale;
+        tgt.current.y = curMidY - imgPointY * newScale;
         tgt.current.s = newScale;
       }
     } else if (mode.current === 'pan' && panStart.current) {
@@ -418,34 +447,48 @@ export function InspectLightbox({
     }
   }, []);
 
-  const endPointer = useCallback((e: ReactPointerEvent) => {
-    pointers.current.delete(e.pointerId);
-    const vp = viewportRef.current;
-    if (vp) {
-      try {
-        vp.releasePointerCapture(e.pointerId);
-      } catch {}
-    }
+  const endPointer = useCallback(
+    (e: ReactPointerEvent) => {
+      pointers.current.delete(e.pointerId);
+      const vp = viewportRef.current;
+      if (vp) {
+        try {
+          vp.releasePointerCapture(e.pointerId);
+        } catch {}
+      }
 
-    if (pointers.current.size === 0) {
-      mode.current = null;
-      panStart.current = null;
-      tiltStart.current = null;
-      pinchStart.current = null;
-    } else if (pointers.current.size === 1) {
-      // Revert to panning with remaining pointer
-      mode.current = 'pan';
-      const [remaining] = Array.from(pointers.current.values());
-      panStart.current = {
-        x: remaining.x,
-        y: remaining.y,
-        tx: cur.current.x,
-        ty: cur.current.y,
-      };
-      pinchStart.current = null;
-      tiltStart.current = null;
-    }
-  }, []);
+      if (pointers.current.size === 0) {
+        mode.current = null;
+        panStart.current = null;
+        tiltStart.current = null;
+        pinchStart.current = null;
+      } else if (pointers.current.size === 1) {
+        // Revert to panning or tilting with remaining pointer
+        const [remaining] = Array.from(pointers.current.values());
+        if (mobileMode === 'tilt' && isTiltEnabled) {
+          mode.current = 'tilt';
+          tiltStart.current = {
+            x: remaining.x,
+            y: remaining.y,
+            rx: cur.current.rx,
+            ry: cur.current.ry,
+          };
+          panStart.current = null;
+        } else {
+          mode.current = 'pan';
+          panStart.current = {
+            x: remaining.x,
+            y: remaining.y,
+            tx: cur.current.x,
+            ty: cur.current.y,
+          };
+          tiltStart.current = null;
+        }
+        pinchStart.current = null;
+      }
+    },
+    [isTiltEnabled, mobileMode]
+  );
 
   // Mouse wheel zoom to cursor
   const onWheel = useCallback((e: ReactWheelEvent) => {
@@ -645,6 +688,7 @@ export function InspectLightbox({
         <div
           ref={viewportRef}
           className="inspect-lightbox__viewport"
+          style={{ touchAction: 'none' }}
           onPointerDown={artwork.artwork_type === 'VIDEO' ? undefined : onPointerDown}
           onPointerMove={artwork.artwork_type === 'VIDEO' ? undefined : onPointerMove}
           onPointerUp={artwork.artwork_type === 'VIDEO' ? undefined : endPointer}
@@ -791,13 +835,25 @@ export function InspectLightbox({
           onClick={() => {
             tgt.current.rx = 0;
             tgt.current.ry = 0;
+            setMobileMode('pan');
             setActiveHotspotIndex(-1);
             fitToScreen(false);
           }}
-          title="Reset zoom and framing"
+          title="Reset zoom, tilt, and framing"
         >
           <Icon name="reset" size={14} /> Reset View
         </button>
+
+        {isTiltEnabled && (
+          <button
+            type="button"
+            className={`btn btn--sm inspect-btn-tilt ${mobileMode === 'tilt' ? 'btn--primary is-active' : 'btn--ghost'}`}
+            onClick={() => setMobileMode((prev) => (prev === 'tilt' ? 'pan' : 'tilt'))}
+            title={mobileMode === 'tilt' ? 'Tilt active: drag to angle in 3D. Click to switch to pan.' : 'Toggle 3D perspective tilt'}
+          >
+            <Icon name="cube" size={13} /> {mobileMode === 'tilt' ? 'Tilt Active' : '3D Tilt'}
+          </button>
+        )}
 
         {hotspots.length > 0 && (
           <div className="inspect-lightbox__carousel">
@@ -896,8 +952,14 @@ export function InspectLightbox({
         <span className="inspect-lightbox__hint">
           {artwork.artwork_type === 'VIDEO'
             ? 'Cinema Mode · Press Esc or click to return to gallery'
+            : isMobile
+            ? isTiltEnabled
+              ? mobileMode === 'tilt'
+                ? 'Drag to Tilt in 3D · Pinch to Zoom · Tap "Tilt Active" to return to Pan'
+                : 'Drag to Pan · Pinch to Zoom · Tap "3D Tilt" to angle'
+              : 'Drag to Pan · Pinch to Zoom'
             : isTiltEnabled
-            ? 'Left-drag to Pan · Right-drag to Tilt in 3D · Scroll to Zoom'
+            ? 'Left-drag to Pan · Right-drag or "3D Tilt" to Angle · Scroll to Zoom'
             : 'Left-drag to Pan · Scroll to Zoom'}
         </span>
       </footer>
