@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-06T00:00:00Z",
+  "title": "Design System: REDA — Tranh Việt",
+  "extensions": {
+    "colorMeta": {
+      "lacquer":   { "role": "primary", "displayName": "Sơn-mài Black", "canonical": "#0E0D0A", "tonalRamp": ["#0A0906","#0E0D0A","#141109","#1A140D","#241A10","#31260F","#4A3A1C","#6B5636"] },
+      "gold":      { "role": "primary", "displayName": "Vàng thếp (Gold Leaf)", "canonical": "#C9A35B", "tonalRamp": ["#4A3A1C","#6B5225","#8A6A31","#A9863F","#C9A35B","#D9BB6E","#E6CE8E","#F1E3BE"] },
+      "son":       { "role": "secondary", "displayName": "Son (Cinnabar)", "canonical": "#B23A22", "tonalRamp": ["#3E140B","#5C1F11","#7A2A18","#96311E","#B23A22","#C4442A","#D66A52","#EAA795"] },
+      "cham":      { "role": "secondary", "displayName": "Chàm (Indigo)", "canonical": "#2E4A5A", "tonalRamp": ["#141F26","#1E313B","#2E4A5A","#3E627A","#557E96","#79A0B4","#A6C4D2","#D2E2E9"] },
+      "diep":      { "role": "neutral", "displayName": "Giấy Điệp", "canonical": "#EDE4CC", "tonalRamp": ["#6B5220","#8A6A30","#B49A66","#D3C199","#E1D5B4","#EDE4CC","#F4ECD6","#FBF6EA"] },
+      "bone":      { "role": "neutral", "displayName": "Bone", "canonical": "#ECE6DA", "tonalRamp": ["#5A5344","#7C7563","#948D7C","#B0A78F","#CDBF9E","#ECE6DA","#F5EFE1","#FBF8EF"] },
+      "ink":       { "role": "neutral", "displayName": "Ink on Điệp", "canonical": "#241A10", "tonalRamp": ["#160F08","#241A10","#3A2C1C","#5A4A32","#6B5220","#8A6A30","#B49A66","#D3C199"] }
+    },
+    "typographyMeta": {
+      "display":  { "displayName": "Display — UTM Dragon Fire", "purpose": "Large Vietnamese titles only: wordmark and exhibition names." },
+      "headline": { "displayName": "Headline — MJ Modern", "purpose": "Section and card titles; keeps the display face special." },
+      "title": { "displayName": "Title — MJ Modern", "purpose": "Sub-headings and secondary card titles (base h2)." },
+      "body":     { "displayName": "Reading — MJ Modern / Merriweather", "purpose": "Wall text, descriptions, biographies (~62ch)." },
+      "ui":       { "displayName": "UI — Be Vietnam Pro", "purpose": "Buttons, labels, navigation." },
+      "label":    { "displayName": "Technical — JetBrains Mono", "purpose": "Loading/status/measurement readouts only." }
+    },
+    "shadows": [
+      { "name": "panel-lift", "value": "0 16px 44px rgba(0,0,0,0.5)", "purpose": "Dark cards floating over the lacquer hall." },
+      { "name": "soft-lift", "value": "0 12px 34px rgba(0,0,0,0.35)", "purpose": "Light điệp panels in the workshop." },
+      { "name": "action-lift", "value": "0 12px 36px rgba(178,58,34,0.34)", "purpose": "The son enter-seal, warmed by its own hue." },
+      { "name": "focus-ring", "value": "0 0 0 2px rgba(201,163,91,0.5)", "purpose": "Gold focus ring on interactive elements." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.2, 0, 0, 1)", "purpose": "Exponential ease-out for state transitions and reveals." },
+      { "name": "dur-quick", "value": "160ms", "purpose": "Hover/press feedback." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "760px" },
+      { "name": "compact", "value": "540px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Enter Seal (primary)",
+      "kind": "button",
+      "refersTo": "button-enter",
+      "description": "The 'Vào phòng tranh' entrance action — son ground with a triện seal mark.",
+      "html": "<button class=\"ds-enter\"><span class=\"ds-trien\">莊</span> Vào phòng tranh</button>",
+      "css": ".ds-enter{display:inline-flex;align-items:center;gap:13px;font-family:'Be Vietnam Pro',system-ui,sans-serif;font-weight:600;font-size:14.5px;letter-spacing:.05em;color:#FFF4EC;padding:15px 30px 15px 15px;border-radius:999px;border:1px solid rgba(255,214,196,.22);background:linear-gradient(180deg,#C4442A,#B23A22);box-shadow:0 12px 36px rgba(178,58,34,.34),inset 0 1px 0 rgba(255,255,255,.16);cursor:pointer;transition:transform .16s cubic-bezier(.2,0,0,1),box-shadow .16s}.ds-enter:hover{transform:translateY(-1px);box-shadow:0 18px 46px rgba(178,58,34,.46)}.ds-enter:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(201,163,91,.5),0 12px 36px rgba(178,58,34,.34)}.ds-trien{width:34px;height:34px;border-radius:7px;display:grid;place-items:center;background:rgba(0,0,0,.22);border:1.5px solid rgba(255,225,210,.55);font-family:'UTM Dragon Fire',Georgia,serif;font-size:20px}"
+    },
+    {
+      "name": "Gold Pill (in-context action)",
+      "kind": "chip",
+      "refersTo": "pill-gold",
+      "description": "Primary in-context action, e.g. 'Nghe thuyết minh'. Ink on gold for AA.",
+      "html": "<button class=\"ds-pill-gold\">Nghe thuyết minh</button>",
+      "css": ".ds-pill-gold{font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:12px;font-weight:600;color:#241A10;background:#C9A35B;border:1px solid #D9BB6E;border-radius:999px;padding:8px 14px;cursor:pointer;transition:background .16s cubic-bezier(.2,0,0,1)}.ds-pill-gold:hover{background:#D9BB6E}.ds-pill-gold:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(201,163,91,.5)}"
+    },
+    {
+      "name": "Chàm Pill (detail / inspect)",
+      "kind": "chip",
+      "refersTo": "pill-cham",
+      "description": "The detail/inspect action ('Xem chi tiết') — indigo means 'look closer'.",
+      "html": "<button class=\"ds-pill-cham\">Xem chi tiết</button>",
+      "css": ".ds-pill-cham{font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:12px;font-weight:500;color:#4E7286;background:rgba(78,114,134,.18);border:1px solid rgba(78,114,134,.5);border-radius:999px;padding:8px 14px;cursor:pointer;transition:background .16s cubic-bezier(.2,0,0,1)}.ds-pill-cham:hover{background:rgba(78,114,134,.28)}"
+    },
+    {
+      "name": "Viewer Card (dark)",
+      "kind": "card",
+      "refersTo": "card-dark",
+      "description": "Artwork info card floating over the lacquer hall.",
+      "html": "<div class=\"ds-card-dark\"><div class=\"ds-card-t\">Thiếu nữ bên hoa huệ</div><div class=\"ds-card-a\">Tô Ngọc Vân · 1943</div></div>",
+      "css": ".ds-card-dark{background:#1A140D;border:1px solid rgba(201,163,91,.22);border-radius:14px;padding:22px;box-shadow:0 16px 44px rgba(0,0,0,.5)}.ds-card-t{font-family:'MJ Modern',Merriweather,serif;font-style:italic;font-size:20px;color:#F5EFE1}.ds-card-a{font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:12.5px;color:#B0A78F;margin-top:2px}"
+    },
+    {
+      "name": "Studio Card (điệp)",
+      "kind": "card",
+      "refersTo": "card-diep",
+      "description": "Workshop panel on flat giấy-điệp — light register, ink title.",
+      "html": "<div class=\"ds-card-diep\"><div class=\"ds-lb\">Xưởng · Studio</div><div class=\"ds-card-t2\">Sắp đặt tác phẩm</div></div>",
+      "css": ".ds-card-diep{background:#EDE4CC;border:1px solid #D9C9A6;border-radius:14px;padding:22px;box-shadow:0 12px 34px rgba(0,0,0,.35)}.ds-lb{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#6B5220}.ds-card-t2{font-family:'UTM Dragon Fire',Georgia,serif;font-size:26px;color:#231A10;margin-top:6px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Lacquer Hall & the Điệp Workshop",
+    "overview": "REDA is a Vietnamese gallery of Vietnamese painting, built from three native media — sơn mài (lacquer), tranh Đông Hồ (folk woodblock on giấy điệp), and sơn dầu (oil) — rather than any European tradition. Two rooms: a deep sơn-mài dark viewing hall where the lit artwork leads and chrome recedes, and a bright giấy-điệp workshop carrying the folk-print palette where the curator works. One palette, one Vietnamese-first type system, two registers. Warm, hand-made, and material in reference — but rendered flat and clean, with real material texture entering only as scanned assets, never as CSS. This retires the prior Renaissance-Codex identity that read as non-Vietnamese.",
+    "keyCharacteristics": [
+      "Two registers: dark sơn-mài hall (Experience) · light điệp workshop (Operate).",
+      "One gold accent; son (red) = action; chàm (indigo) = detail/inspect.",
+      "Vietnamese-capable, Vietnamese-first type; the display face performs on Vietnamese letterforms.",
+      "Flat color and light — no faked material texture.",
+      "The art leads; chrome recedes until called."
+    ],
+    "rules": [
+      { "name": "The One Gold Rule", "body": "A single gold carries the brand as accent, not area. If gold is filling regions, the register is wrong.", "section": "colors" },
+      { "name": "The Meaningful Red Rule", "body": "Son (cinnabar) means action — the enter seal, the primary do-this. If red isn't an action, it shouldn't be red.", "section": "colors" },
+      { "name": "The Vietnamese Display Rule", "body": "UTM Dragon Fire renders only large Vietnamese titles. Never English strings, never body, never a section heading.", "section": "typography" },
+      { "name": "The No-Kicker Rule", "body": "No mono eyebrow/kicker above a heading. The title carries its own weight.", "section": "typography" },
+      { "name": "The Flat-Material Rule", "body": "Never fake a material in CSS. Sơn-mài, giấy điệp, oil canvas, and Đông Hồ prints are scanned assets or nothing; flat color plus light otherwise.", "section": "elevation" },
+      { "name": "The Lit-Room Rule", "body": "Every shadow carries an offset and a soft blur; depth reads as lighting, not decoration.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the two registers honest: dark sơn-mài for experience, light giấy điệp for operate — same accent, same type.",
+      "Do reserve UTM Dragon Fire for large Vietnamese titles; set smaller headings in MJ Modern.",
+      "Do make son mean action and chàm mean detail/inspect, consistently.",
+      "Do prove every layout with real Vietnamese copy at every breakpoint.",
+      "Do theme text selection, caret, scrollbar, and focus ring from the palette."
+    ],
+    "donts": [
+      "Don't fake material texture in CSS (no paper grain, canvas weave, lacquer noise, or điệp streaks).",
+      "Don't put a mono kicker/eyebrow above a heading.",
+      "Don't let gold fill regions — it is an accent, not an area.",
+      "Don't reach back for the Renaissance/Didone/da-Vinci mood; that identity is retired.",
+      "Don't use gradient text, dark colored glows, or thick colored side-borders."
+    ]
+  }
+}

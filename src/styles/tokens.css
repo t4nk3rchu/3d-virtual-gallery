@@ -1,42 +1,60 @@
-/* REDA design tokens — primitives → semantic. Source: 2026-08-30-reda-design-system-foundation.md */
+/* REDA design tokens — "Tranh Việt" world. Source of truth: DESIGN.md.
+   Sơn-mài dark viewing hall + giấy-điệp light workshop; one gold accent,
+   son (red) = action, chàm (indigo) = detail/inspect. Vietnamese-first type.
+   Variable names kept stable so the component cascade reaches them. */
 :root {
-  /* grounds */
-  --reda-char: #1B1A17;        /* app/dark ground */
-  --reda-char-2: #232019;      /* panels, bars */
-  --reda-char-3: #2B271F;      /* insets, hovered chrome */
-  --reda-wall: #2C2C31;        /* NEUTRAL art stage — distinct from brand charcoal */
-  --reda-wall-deep: #181820;   /* viewer gallery */
-  --reda-wall-deepest: #101015;
-  /* paper */
-  --reda-parch: #E7DDC6;
-  --reda-parch-2: #F0E8D4;
-  --reda-parch-border: #D3C6A8;
+  /* ── grounds (dark / sơn mài) ────────────────────────────────────────────── */
+  --reda-char: #0E0D0A;        /* deepest hall ground */
+  --reda-char-2: #1A140D;      /* panels, bars */
+  --reda-char-3: #241A10;      /* insets, hovered chrome */
+  --reda-char-hi: #1B1913;
+  --reda-wall: #1A140D;        /* UI art-stage backdrop */
+  --reda-wall-deep: #131109;   /* viewer gallery ground */
+  --reda-wall-deepest: #0A0906;
+  /* ── light (giấy điệp / workshop) ────────────────────────────────────────── */
+  --reda-parch: #EDE4CC;       /* điệp ground */
+  --reda-parch-2: #F2E9D2;
+  --reda-parch-border: #D9C9A6;
   --reda-parch-border-subtle: #E6DCBF;
-  --reda-parch-field: #FCF8F0;
-  --reda-parch-card: #FAF7EE;
-  --reda-field: #FBF6EA;
-  --reda-border: #D3C6A8;
-  /* viewer glass (dark register chrome) */
-  --reda-glass: rgba(20, 18, 15, 0.68);
-  --reda-glass-2: rgba(28, 25, 20, 0.82);
-  /* text */
-  --reda-cream: #ECE3CE;       /* body on dark */
-  --reda-cream-hi: #F3EBD8;    /* headlines on dark */
-  --reda-ink: #2A2018;         /* text on parchment */
-  --reda-ink-2: #5A4A32;
-  --reda-label: #7A5A34;
-  --reda-muted-hi: #CDBF9E;    /* brightest muted on dark (spec §3.1) */
-  --reda-muted: #A79A7C;       /* de-emphasized on dark */
-  --reda-muted-2: #8B7E62;
-  /* brand accents */
-  --reda-oxblood: #8A322A;
-  --reda-oxblood-hi: #9A392E;
-  --reda-gold: #B98A3C;
-  --reda-gold-hi: #C79A48;
-  --reda-sage: #6E7358;
-  --reda-terra: #C0703F;
-  --reda-link: #D2823E;        /* warm link on dark, AA */
-  /* semantic status */
+  --reda-parch-field: #F6EFDC;
+  --reda-parch-card: #EDE4CC;
+  --reda-field: #F6EFDC;
+  --reda-border: #D9C9A6;
+  --reda-eggshell: #F6EFDC;    /* vỏ trứng highlight */
+  /* ── glass (dark chrome) ─────────────────────────────────────────────────── */
+  --reda-glass: rgba(20, 18, 14, 0.72);
+  --reda-glass-2: rgba(26, 24, 18, 0.86);
+  --reda-panel-bg: rgba(20, 18, 14, 0.93);
+  /* ── text ────────────────────────────────────────────────────────────────── */
+  --reda-cream: #ECE6DA;       /* bone — body on dark */
+  --reda-cream-hi: #F5EFE1;    /* headlines on dark */
+  --reda-ink: #241A10;         /* text on điệp */
+  --reda-ink-2: #3A2C1C;
+  --reda-label: #6B5220;       /* label on điệp */
+  --reda-muted-hi: #CDBF9E;
+  --reda-muted: #B0A78F;       /* stone — de-emphasized on dark (warm, ≥13px) */
+  --reda-muted-2: #7C7563;
+  /* ── brand accent: a single gold ─────────────────────────────────────────── */
+  --reda-gold: #C9A35B;
+  --reda-gold-hi: #D9BB6E;
+  --reda-gold-deep: #A9863F;
+  --reda-muc-nen: #241A10;     /* ink placed ON gold fills */
+  /* ── son (action red) & chàm (detail/inspect) ────────────────────────────── */
+  --reda-son: #B23A22;
+  --reda-son-hi: #C4442A;
+  --reda-oxblood: #B23A22;     /* alias → son (compat with existing components) */
+  --reda-oxblood-hi: #C4442A;
+  --reda-cham: #2E4A5A;
+  --reda-cham-hi: #4E7286;
+  --reda-sage: #5E6B3B;        /* lục lá — rare folk green */
+  --reda-terra: #A6482E;       /* son nâu — folk terracotta */
+  --reda-link: #D2A34E;        /* warm gold-link on dark, AA */
+  /* ── Đông Hồ folk palette (light register only) ──────────────────────────── */
+  --reda-folk-key: #2A241C;
+  --reda-folk-gold: #C99A34;
+  --reda-folk-green: #5E6B3B;
+  --reda-folk-terra: #A6482E;
+  /* ── semantic status (functional) ───────────────────────────────────────── */
   --reda-success: #206030;
   --reda-success-bg: #E6EDE0;
   --reda-success-border: #B8DDBA;
@@ -46,26 +64,33 @@
   --reda-error: #8A2B22;
   --reda-error-bg: #FBEAE8;
   --reda-error-border: #E8C5C5;
-  /* frame material preview */
+  /* ── frame material preview ──────────────────────────────────────────────── */
   --reda-frame-metal: #141414;
   --reda-frame-float: #FDFBF7;
   --reda-frame-gold-mat: #C8A96E;
   --reda-frame-wood: #7A5230;
-  /* dashboard decorative (gradient mood, not brand palette) */
-  --reda-dash-vp-mid: #34343A;
-  --reda-dash-sheet-warm: #2A2620;
+  /* ── dashboard decorative (warm) ─────────────────────────────────────────── */
+  --reda-dash-vp-mid: #2A2620;
+  --reda-dash-sheet-warm: #211E18;
   --reda-dash-prev-hi: #D9C39A;
-  --reda-dash-prev-deep: #1C150D;
+  --reda-dash-prev-deep: #14110A;
   --reda-dash-prev-label: #EFE6D2;
-  /* lines & fx */
-  --reda-line: rgba(185, 138, 60, 0.24);
+  /* ── lines & depth ───────────────────────────────────────────────────────── */
+  --reda-hairline-color: rgba(236, 230, 218, 0.12);
+  --reda-line: rgba(201, 163, 91, 0.24);
   --reda-hairline: linear-gradient(90deg, var(--reda-gold), transparent);
-  --reda-focus: 0 0 0 2px rgba(185, 138, 60, 0.45);
-  /* type */
-  --reda-display: 'Libre Bodoni', Georgia, serif;
-  --reda-text: 'EB Garamond', Georgia, serif;
-  --reda-ui: 'Montserrat', system-ui, sans-serif;
-  /* radius/space */
+  --reda-focus: 0 0 0 2px rgba(201, 163, 91, 0.5);
+  --reda-shadow-1: 0 12px 34px rgba(0, 0, 0, 0.35);   /* soft-lift */
+  --reda-shadow-2: 0 16px 44px rgba(0, 0, 0, 0.5);    /* panel-lift */
+  --reda-shadow-action: 0 12px 36px rgba(178, 58, 34, 0.34);
+  /* ── type — Vietnamese-capable, Tranh Việt ───────────────────────────────── */
+  --reda-display: 'UTM Dragon Fire', 'MJ Modern', Georgia, serif;
+  --reda-text: 'MJ Modern', 'Merriweather', Georgia, serif;
+  --reda-ui: 'Be Vietnam Pro', system-ui, 'Segoe UI', sans-serif;
+  --reda-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  /* ── radius/space ────────────────────────────────────────────────────────── */
   --reda-radius: 5px;
   --reda-radius-sm: 3px;
+  --reda-radius-card: 14px;
+  --reda-radius-pill: 999px;
 }

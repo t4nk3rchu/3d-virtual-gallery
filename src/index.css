@@ -1,19 +1,19 @@
 :root {
   --text: #A8A08D;
   --text-h: #F4EEDD;
-  --bg: #101015;
+  --bg: #0E0D0A;
   --border: #2B2822;
-  --code-bg: #1A1915;
-  --accent: #9E2A2B;
-  --accent-bg: rgba(158, 42, 43, 0.15);
-  --accent-border: rgba(158, 42, 43, 0.5);
-  --social-bg: rgba(26, 25, 21, 0.6);
+  --code-bg: #171610;
+  --accent: #C9A35B;
+  --accent-bg: rgba(201, 163, 91, 0.15);
+  --accent-border: rgba(201, 163, 91, 0.5);
+  --social-bg: rgba(26, 24, 18, 0.6);
   --shadow:
     rgba(0, 0, 0, 0.5) 0 10px 25px -5px, rgba(0, 0, 0, 0.4) 0 8px 10px -6px;
 
-  --sans: "Montserrat Variable", Montserrat, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --heading: "Libre Bodoni", Georgia, serif;
-  --mono: "EB Garamond", Georgia, serif;
+  --sans: "Be Vietnam Pro", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --heading: "MJ Modern", "Merriweather", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
 
   font: 16px/150% var(--sans);
   color-scheme: dark;
@@ -55,13 +55,13 @@ h4 {
 }
 
 h1 {
-  font-size: 36px;
-  letter-spacing: -0.02em;
+  font-size: 30px;
+  letter-spacing: -0.01em;
   margin: 24px 0 12px;
 }
 
 h2 {
-  font-size: 24px;
+  font-size: 22px;
   letter-spacing: -0.01em;
   margin: 0 0 12px;
 }
@@ -75,7 +75,7 @@ code {
   font-size: 14px;
   padding: 3px 6px;
   background: var(--code-bg);
-  border-radius: 4px;
+  border-radius: 5px;
   color: var(--text-h);
 }
 
