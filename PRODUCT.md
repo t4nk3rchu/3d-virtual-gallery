@@ -36,7 +36,7 @@ web
 ## Brand Commitments
 
 - **Name**: Reda Gallery (fixed).
-- **Emblem**: **Open decision.** The current Gold Medallion mark (tree fused with circuit traces, `public/reda_logo.png`) is under reconsideration in this redesign; a revised or new mark may replace it. Resolve in the visual-world step, not here.
+- **Emblem**: Retained. The existing Gold Medallion logo (`public/reda_logo.png`, includes the "Reda Gallery" wordmark) stays as the brand mark through the redesign — confirmed by the user, no longer open.
 - **Voice, typography, and palette**: Being redesigned; not fixed in this record. (The prototype at `D:/Claude/reda-mus-prototype-main` is a reference/anti-reference, not a binding spec.)
 - **Constraint**: All brand and UI typography must render **full Vietnamese diacritics** correctly — this constrains font selection in the visual world.
 

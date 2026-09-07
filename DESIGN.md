@@ -200,7 +200,7 @@ Soft, quiet corners: 5px on most chrome (3px small), 14px on cards, and full pil
 
 ### Buttons
 - **Shape:** full pill (999px).
-- **Enter seal (primary):** son ground (`#B23A22→#C4442A`), near-white text (`#FFF4EC` for AA), a small triện (Vietnamese seal chop) mark; action-lift shadow. This is the "Vào phòng tranh" moment.
+- **Enter button (primary):** son ground (`#B23A22→#C4442A`), near-white text (`#FFF4EC` for AA), action-lift shadow. This is the "Vào phòng tranh" moment — text alone, no seal glyph.
 - **Hover / Focus:** `translateY(-1px)` + deeper action-lift; gold focus ring (`0 0 0 2px rgba(201,163,91,0.5)`).
 
 ### Chips / Pills
@@ -216,8 +216,13 @@ Soft, quiet corners: 5px on most chrome (3px small), 14px on cards, and full pil
 ### Navigation / Chrome
 - Recedes by default: the roam HUD and controls stay quiet gold-on-lacquer glass pills and appear only when the art calls them. Browser surfaces (selection, caret, scrollbar, focus ring) are themed from the palette (son selection, gold focus) — never browser defaults.
 
-### The Enter Seal (signature)
-The entrance is exhibition-led: a large Vietnamese title in the display face over a lit ground, the REDA mark receding to a corner, and a single son seal to enter. The art (or the exhibition) is the hero, not the brand.
+### Hotspot Pin (signature)
+Interactive-detail pins on an artwork live in **screen space, not image space**: the pin's on-screen size is fixed and does not scale with the image's zoom. It is at its largest (most noticeable) when the whole artwork is in view, and stays exactly that size as the visitor zooms in, so it never bloats over the detail it points at. Son by default, gold when active; a soft ring for presence.
+
+**The Fixed-Pin Rule.** A hotspot pin never zooms with its artwork. Its screen size is constant across zoom; only its anchored position tracks the image.
+
+### The Entrance (signature)
+Exhibition-led: a large Vietnamese title in the display face over a lit ground, the REDA mark receding to a corner, and a single son enter button. The art (or the exhibition) is the hero, not the brand.
 
 ## Do's and Don'ts
 

@@ -37,12 +37,12 @@
   },
   "components": [
     {
-      "name": "Enter Seal (primary)",
+      "name": "Enter Button (primary)",
       "kind": "button",
       "refersTo": "button-enter",
-      "description": "The 'Vào phòng tranh' entrance action — son ground with a triện seal mark.",
-      "html": "<button class=\"ds-enter\"><span class=\"ds-trien\">莊</span> Vào phòng tranh</button>",
-      "css": ".ds-enter{display:inline-flex;align-items:center;gap:13px;font-family:'Be Vietnam Pro',system-ui,sans-serif;font-weight:600;font-size:14.5px;letter-spacing:.05em;color:#FFF4EC;padding:15px 30px 15px 15px;border-radius:999px;border:1px solid rgba(255,214,196,.22);background:linear-gradient(180deg,#C4442A,#B23A22);box-shadow:0 12px 36px rgba(178,58,34,.34),inset 0 1px 0 rgba(255,255,255,.16);cursor:pointer;transition:transform .16s cubic-bezier(.2,0,0,1),box-shadow .16s}.ds-enter:hover{transform:translateY(-1px);box-shadow:0 18px 46px rgba(178,58,34,.46)}.ds-enter:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(201,163,91,.5),0 12px 36px rgba(178,58,34,.34)}.ds-trien{width:34px;height:34px;border-radius:7px;display:grid;place-items:center;background:rgba(0,0,0,.22);border:1.5px solid rgba(255,225,210,.55);font-family:'UTM Dragon Fire',Georgia,serif;font-size:20px}"
+      "description": "The 'Vào phòng tranh' entrance action — son ground, text alone (no seal glyph).",
+      "html": "<button class=\"ds-enter\">Vào phòng tranh</button>",
+      "css": ".ds-enter{display:inline-flex;align-items:center;font-family:'Be Vietnam Pro',system-ui,sans-serif;font-weight:600;font-size:14.5px;letter-spacing:.05em;color:#FFF4EC;padding:15px 26px;border-radius:999px;border:1px solid rgba(255,214,196,.22);background:linear-gradient(180deg,#C4442A,#B23A22);box-shadow:0 12px 36px rgba(178,58,34,.34),inset 0 1px 0 rgba(255,255,255,.16);cursor:pointer;transition:transform .16s cubic-bezier(.2,0,0,1),box-shadow .16s}.ds-enter:hover{transform:translateY(-1px);box-shadow:0 18px 46px rgba(178,58,34,.46)}.ds-enter:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(201,163,91,.5),0 12px 36px rgba(178,58,34,.34)}"
     },
     {
       "name": "Gold Pill (in-context action)",
@@ -93,7 +93,8 @@
       { "name": "The Vietnamese Display Rule", "body": "UTM Dragon Fire renders only large Vietnamese titles. Never English strings, never body, never a section heading.", "section": "typography" },
       { "name": "The No-Kicker Rule", "body": "No mono eyebrow/kicker above a heading. The title carries its own weight.", "section": "typography" },
       { "name": "The Flat-Material Rule", "body": "Never fake a material in CSS. Sơn-mài, giấy điệp, oil canvas, and Đông Hồ prints are scanned assets or nothing; flat color plus light otherwise.", "section": "elevation" },
-      { "name": "The Lit-Room Rule", "body": "Every shadow carries an offset and a soft blur; depth reads as lighting, not decoration.", "section": "elevation" }
+      { "name": "The Lit-Room Rule", "body": "Every shadow carries an offset and a soft blur; depth reads as lighting, not decoration.", "section": "elevation" },
+      { "name": "The Fixed-Pin Rule", "body": "A hotspot pin never zooms with its artwork. Its screen size is constant across zoom (largest when the whole artwork is in view); only its anchored position tracks the image.", "section": "components" }
     ],
     "dos": [
       "Do keep the two registers honest: dark sơn-mài for experience, light giấy điệp for operate — same accent, same type.",
