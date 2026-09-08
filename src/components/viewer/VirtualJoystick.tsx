@@ -130,6 +130,7 @@ export function VirtualJoystick({ onMove, disabled = false }: VirtualJoystickPro
       >
         <div className="virtual-joystick__knob-center" />
       </div>
+      <div className="virtual-joystick__label">Move</div>
     </div>
   );
 }
