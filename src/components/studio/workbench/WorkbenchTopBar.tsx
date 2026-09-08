@@ -1,11 +1,10 @@
 import { Button, Icon } from '../../ui';
 
-export type Mode = 'artworks' | 'waypoints' | 'walk';
+export type Mode = 'artworks' | 'waypoints';
 
 const MODE_ITEMS: { id: Mode; label: string; title: string }[] = [
   { id: 'artworks', label: 'Artworks', title: 'Position, rotate, and scale artworks on walls' },
   { id: 'waypoints', label: 'Waypoints', title: 'Place and fine-tune start point and tour waypoints' },
-  { id: 'walk', label: 'Walkthrough', title: 'Test the 3D gallery with visitor eye height and gravity' },
 ];
 
 export function WorkbenchTopBar({

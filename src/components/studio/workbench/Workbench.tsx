@@ -246,8 +246,6 @@ export function Workbench({
             <div className="badge-mode">
               {mode === 'waypoints'
                 ? 'Waypoints mode · Visitor Path & Start'
-                : mode === 'walk'
-                ? 'Walkthrough mode · First Person'
                 : 'Artworks mode · Placement'}
             </div>
             {exhibition.room && (
