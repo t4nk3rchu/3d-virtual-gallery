@@ -39,3 +39,17 @@ describe('index.css tokens', () => {
     expect(indexRoot).toMatch(/var\(--reda-/);
   });
 });
+
+describe('App.css token adoption', () => {
+  it('has no bare hex color values outside allowed utilities', () => {
+    const hexColorDecl =
+      /(color|background(-color)?|border(-[a-z]+)?-color|fill|stroke|box-shadow|outline(-color)?|accent-color)\s*:[^;]*#(?!000\b|fff\b)[0-9a-f]{3,8}/gi;
+    const matches = appCss.match(hexColorDecl) ?? [];
+    expect(matches).toEqual([]);
+  });
+
+  it('references --reda-* tokens broadly (adoption sanity check)', () => {
+    const tokenRefs = (appCss.match(/var\(--reda-/g) ?? []).length;
+    expect(tokenRefs).toBeGreaterThan(80);
+  });
+});
