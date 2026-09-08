@@ -547,16 +547,16 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
   };
 
   return (
-    <div className="studio-new-exhibition reda-dark">
+    <div className="studio-new-exhibition reda-parch">
       <header className="studio-header">
         <h1>Create New Exhibition</h1>
-        <Button variant="ghost" onClick={onCancel}>
+        <Button variant="ghost" onClick={onCancel} style={{ borderRadius: 'var(--reda-radius-pill)' }}>
           Cancel
         </Button>
       </header>
 
-      <div style={{ padding: '32px clamp(16px, 4vw, 48px) 64px', maxWidth: '720px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-        <div className="studio-card">
+      <div style={{ padding: '20px clamp(16px, 4vw, 48px) 60px', maxWidth: '680px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+        <div className="studio-card" role="dialog" aria-modal="true" aria-labelledby="new-ex-title">
           {error && (
             <p className="error" role="alert" style={{ marginBottom: '1rem' }}>
               {error}
@@ -583,15 +583,15 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
 
             {/* 3D Gallery Space Selector / Custom GLB */}
             <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label className="form-label" style={{ display: 'block', marginBottom: '8px' }}>
+              <label className="reda-field__label" style={{ display: 'block', marginBottom: '8px' }}>
                 3D Gallery Space *
               </label>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              <div className="space-type-toggle" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
                 <button
                   type="button"
                   className={`type-btn ${roomSource === 'library' ? 'active' : ''}`}
                   onClick={() => setRoomSource('library')}
-                  style={{ flex: 1 }}
+                  style={{ justifyContent: 'center' }}
                 >
                   <Icon name="cube" /> Platform Library Room
                 </button>
@@ -599,7 +599,7 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
                   type="button"
                   className={`type-btn ${roomSource === 'custom_glb' ? 'active' : ''}`}
                   onClick={() => setRoomSource('custom_glb')}
-                  style={{ flex: 1 }}
+                  style={{ justifyContent: 'center' }}
                 >
                   <Icon name="map" /> Custom 3D Space (.GLB)
                 </button>
@@ -621,20 +621,22 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
                 </SelectField>
               ) : (
                 <div
+                  className="nested-space-block"
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '14px',
-                    padding: '16px',
+                    padding: '18px',
                     background: 'var(--reda-parch)',
-                    borderRadius: '6px',
+                    borderRadius: '12px',
                     border: '1px solid var(--reda-parch-border)',
                     boxSizing: 'border-box',
                     width: '100%',
+                    marginTop: '14px',
                   }}
                 >
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label htmlFor="custom-room-name" className="form-label" style={{ color: 'var(--reda-ink-2)' }}>
+                    <label htmlFor="custom-room-name" className="reda-field__label">
                       Custom Space Name
                     </label>
                     <input
@@ -643,18 +645,11 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
                       value={customRoomName}
                       onChange={(e) => setCustomRoomName(e.target.value)}
                       placeholder="e.g. Modern Minimalist Pavilion"
-                      className="input"
-                      style={{
-                        background: 'var(--reda-parch-card)',
-                        color: 'var(--reda-ink)',
-                        borderColor: 'var(--reda-parch-border)',
-                        width: '100%',
-                        boxSizing: 'border-box',
-                      }}
+                      className="reda-field__control"
                     />
                   </div>
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label htmlFor="custom-glb-file" className="form-label" style={{ color: 'var(--reda-ink-2)' }}>
+                    <label htmlFor="custom-glb-file" className="reda-field__label">
                       Google Drive Link or File ID (.GLB Model) *
                     </label>
                     <div style={{ display: 'flex', gap: '8px', width: '100%', boxSizing: 'border-box', alignItems: 'center' }}>
@@ -664,15 +659,13 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
                         value={customGlbInput}
                         onChange={(e) => setCustomGlbInput(e.target.value)}
                         placeholder="https://drive.google.com/file/d/... or File ID"
-                        className="input"
+                        className="reda-field__control"
                         required={roomSource === 'custom_glb'}
                         style={{
                           flex: 1,
                           minWidth: 0,
-                          background: 'var(--reda-parch-card)',
-                          color: 'var(--reda-ink)',
-                          borderColor: 'var(--reda-parch-border)',
-                          boxSizing: 'border-box',
+                          fontFamily: 'var(--reda-mono)',
+                          fontSize: '12.5px',
                         }}
                       />
                       <DriveFilePicker
@@ -696,12 +689,23 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
               placeholder="Exhibition overview..."
             />
 
-            <div className="form-actions" style={{ marginTop: '1.5rem' }}>
-              <Button type="submit" variant="primary" disabled={creating}>
-                {creating ? 'Creating…' : 'Create & Start Curating'}
-              </Button>
-              <Button type="button" variant="ghost" onClick={onCancel}>
+            <div className="form-actions" style={{ marginTop: '26px', display: 'flex', gap: '12px', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <Button type="button" variant="ghost" onClick={onCancel} style={{ borderRadius: 'var(--reda-radius-pill)' }}>
                 Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={creating}
+                style={{
+                  borderRadius: 'var(--reda-radius-pill)',
+                  background: 'var(--reda-son)',
+                  borderColor: 'var(--reda-son-hi)',
+                  color: 'var(--reda-cream-hi)',
+                  fontWeight: 600,
+                }}
+              >
+                {creating ? 'Creating…' : 'Create & Start Curating'}
               </Button>
             </div>
           </form>

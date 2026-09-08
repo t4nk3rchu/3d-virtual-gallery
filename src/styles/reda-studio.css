@@ -113,8 +113,7 @@
 
 /* ---- app grounds & shells (full-screen flex workspace) ---- */
 .studio-dashboard,
-.studio-editor,
-.studio-new-exhibition {
+.studio-editor {
   background: var(--reda-char);
   color: var(--reda-cream);
   min-height: 100vh;
@@ -1586,4 +1585,80 @@ textarea.input {
   border: 2px solid rgba(185, 138, 60, 0.2);
   border-top-color: var(--reda-gold);
   animation: spin 0.9s linear infinite;
+}
+/* ---- new exhibition form (view-06 light register) ---- */
+.studio-new-exhibition {
+  min-height: 100vh;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, var(--reda-parch) 0%, var(--reda-parch-2) 100%);
+  color: var(--reda-ink);
+}
+
+.studio-new-exhibition .studio-header {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border-bottom: 1px solid var(--reda-parch-border);
+  position: static;
+  padding: 16px clamp(16px, 3vw, 32px);
+}
+
+.studio-new-exhibition .studio-header h1 {
+  font-family: var(--reda-display);
+  font-size: 22px;
+  color: var(--reda-ink);
+  font-weight: 500;
+}
+
+.studio-new-exhibition .studio-card {
+  background: var(--reda-parch-card);
+  border: 1px solid var(--reda-parch-border);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(40, 28, 12, 0.14);
+  padding: 32px 34px 30px;
+  color: var(--reda-ink);
+}
+
+.studio-new-exhibition .space-type-toggle .type-btn {
+  background: var(--reda-parch-field);
+  color: var(--reda-ink);
+  border: 1px solid var(--reda-parch-border);
+  border-radius: var(--reda-radius);
+  font-weight: 500;
+  justify-content: center;
+}
+
+.studio-new-exhibition .space-type-toggle .type-btn:hover {
+  background: var(--reda-parch-2);
+  border-color: var(--reda-gold-deep);
+  color: var(--reda-ink);
+}
+
+.studio-new-exhibition .space-type-toggle .type-btn.active {
+  background: var(--reda-parch) !important;
+  color: var(--reda-ink) !important;
+  border: 1.5px solid var(--reda-cham-hi) !important;
+  font-weight: 600;
+}
+
+.studio-new-exhibition .nested-space-block .btn--secondary {
+  background: var(--reda-ink) !important;
+  color: var(--reda-parch-field) !important;
+  border: 1px solid var(--reda-ink) !important;
+  border-radius: var(--reda-radius) !important;
+  min-height: 44px !important;
+  padding: 0 16px !important;
+  font-weight: 600 !important;
+}
+
+.studio-new-exhibition .nested-space-block .btn--secondary:hover:not(:disabled) {
+  background: var(--reda-ink-2) !important;
+  border-color: var(--reda-ink-2) !important;
+  color: var(--reda-parch-field) !important;
 }
