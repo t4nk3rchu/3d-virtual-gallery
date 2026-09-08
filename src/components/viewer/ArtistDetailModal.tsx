@@ -95,7 +95,6 @@ export function ArtistDetailModal({ artist, onClose }: ArtistDetailModalProps) {
           {/* Right Column: Bio & Quotes */}
           <div className="artist-modal-info-col">
             <header className="artist-header">
-              <span className="artist-kicker">Featured Artist</span>
               <h1 id="artist-modal-name" className="artist-name">
                 {artist.name}
               </h1>
