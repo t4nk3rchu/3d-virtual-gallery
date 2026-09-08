@@ -115,7 +115,7 @@ export function SetupSheet({
                 fontWeight: 700,
                 letterSpacing: '.2em',
                 textTransform: 'uppercase',
-                color: 'var(--reda-oxblood)',
+                color: 'var(--reda-gold-deep)',
               }}
             >
               Setup · Identity &amp; Space
@@ -214,7 +214,7 @@ export function SetupSheet({
               background: 'rgba(0,0,0,0.03)',
               padding: '12px 16px',
               borderRadius: '6px',
-              border: '1px solid var(--reda-border)',
+              border: '1px solid var(--reda-parch-border)',
             }}
           >
             <div>
@@ -270,7 +270,7 @@ export function SetupSheet({
           </div>
 
           {onManageArtists && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.03)', padding: '12px 16px', borderRadius: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.03)', padding: '12px 16px', borderRadius: '6px', border: '1px solid var(--reda-parch-border)' }}>
               <div>
                 <strong style={{ fontSize: '13px', color: 'var(--reda-ink)' }}>Artists in Exhibition</strong>
                 <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--reda-ink-2)' }}>
@@ -331,7 +331,7 @@ export function SetupSheet({
           <IntroTransitionPreview transition={introTransition} />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '16px', borderTop: '1px solid var(--reda-parch-border)' }}>
-            <Button type="submit" variant="primary" disabled={saving}>
+            <Button type="submit" variant="primary" disabled={saving} style={{ borderRadius: 'var(--reda-radius-pill)' }}>
               {saving ? 'Saving…' : 'Save Exhibition Details'}
             </Button>
           </div>
@@ -408,6 +408,7 @@ function IntroTransitionPreview({ transition }: { transition: IntroTransition })
           size="sm"
           onClick={() => setCycle((c) => c + 1)}
           title="Replay Transition Animation"
+          style={{ borderRadius: 'var(--reda-radius-pill)' }}
         >
           <Icon name="play" size={13} /> Replay
         </Button>

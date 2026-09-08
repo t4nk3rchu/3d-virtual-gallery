@@ -781,6 +781,7 @@ export function ArtworkForm({
                   disabled={submitting}
                   onClick={handleDelete}
                   title="Permanently remove artwork from this exhibition"
+                  style={{ borderRadius: 'var(--reda-radius-pill)' }}
                 >
                   <Icon name="trash" size={13} /> Delete
                 </Button>
@@ -792,10 +793,16 @@ export function ArtworkForm({
                 variant="secondary"
                 onClick={onCancel}
                 disabled={submitting}
+                style={{ borderRadius: 'var(--reda-radius-pill)' }}
               >
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" disabled={submitting}>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={submitting}
+                style={{ borderRadius: 'var(--reda-radius-pill)' }}
+              >
                 {submitting ? 'Saving…' : isEditing ? 'Save Changes' : 'Add to Exhibition'}
               </Button>
             </div>

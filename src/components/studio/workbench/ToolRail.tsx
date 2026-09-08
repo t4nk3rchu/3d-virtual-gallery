@@ -17,6 +17,7 @@ export function ToolRail({ active, onChange }: { active: Tool; onChange(t: Tool)
           key={it.key}
           type="button"
           aria-pressed={it.key === active}
+          aria-current={it.key === active ? 'page' : undefined}
           aria-label={it.label}
           onClick={() => onChange(it.key)}
         >

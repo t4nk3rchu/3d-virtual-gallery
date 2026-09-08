@@ -21,7 +21,7 @@ export function StatusBar({
           Mode <b>{mode}</b>
         </span>
         <span>
-          <b style={{ color: 'var(--reda-sage)' }}>{saved}</b>
+          <b style={{ color: 'var(--reda-gold-deep)' }}>{saved}</b>
         </span>
       </div>
     </div>

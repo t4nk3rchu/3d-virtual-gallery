@@ -43,7 +43,7 @@ interface GizmoPlacementProps {
   artworks: Artwork[];
   exhibitionId?: string;
   settingsJson?: string | null;
-  workbenchMode?: 'artworks' | 'waypoints' | 'walk';
+  workbenchMode?: 'artworks' | 'waypoints';
   initialSelectedArtworkId?: string;
   embedded?: boolean;
   onSelectArtwork?(artworkId: string | null): void;
@@ -324,8 +324,6 @@ export function GizmoPlacement({
     }
     if (isWaypoints) {
       selectArtwork('__spawn_beacon__', false);
-    } else if (workbenchMode === 'walk') {
-      selectArtwork(null, false);
     } else if (workbenchMode === 'artworks' && selectedArtworkIdRef.current === '__spawn_beacon__') {
       selectArtwork(null, false);
     }
@@ -440,10 +438,6 @@ export function GizmoPlacement({
       // Pointer down handler for selection and right-click direct move / pan
       scene.onPointerDown = (evt, pickInfo) => {
         if (evt.button === 0) {
-          if (workbenchModeRef.current === 'walk') {
-            return;
-          }
-
           if (workbenchModeRef.current === 'waypoints') {
             if (pickInfo?.hit && pickInfo.pickedMesh) {
               let curr: AbstractMesh | null = pickInfo.pickedMesh;
@@ -872,11 +866,7 @@ export function GizmoPlacement({
         </div>
 
         <div className="toolbar-center">
-          {workbenchMode === 'walk' ? (
-            <span className="nav-mode-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-              <Icon name="play" /> Walkthrough View · WASD to walk, Mouse to look around (visitor gravity active)
-            </span>
-          ) : workbenchMode === 'waypoints' || selectedArtworkId === '__spawn_beacon__' ? (
+          {workbenchMode === 'waypoints' || selectedArtworkId === '__spawn_beacon__' ? (
             <>
               <div className="mode-toggle">
                 <button
@@ -1005,19 +995,13 @@ export function GizmoPlacement({
         {/* Coordinate HUD */}
         <div className="gizmo-hud">
           <h4>
-            {workbenchMode === 'walk'
-              ? 'Visitor Walkthrough Mode'
-              : workbenchMode === 'waypoints' || selectedArtworkId === '__spawn_beacon__'
+            {workbenchMode === 'waypoints' || selectedArtworkId === '__spawn_beacon__'
               ? 'Gallery Start Point & Waypoint'
               : selectedArt
               ? `Selected: ${selectedArt.title}`
               : 'Artworks Placement Mode'}
           </h4>
-          {workbenchMode === 'walk' ? (
-            <p className="hud-unfocused">
-              Experiencing gallery from visitor eye-level with natural floor gravity and collisions. Use <b>WASD</b> or Arrow keys to walk, mouse to look.
-            </p>
-          ) : workbenchMode === 'waypoints' || selectedArtworkId === '__spawn_beacon__' ? (
+          {workbenchMode === 'waypoints' || selectedArtworkId === '__spawn_beacon__' ? (
             <div className="hud-values">
               <span>
                 Start Pos: [{transformValues.position[0]}, {transformValues.position[1]},{' '}

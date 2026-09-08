@@ -51,7 +51,7 @@ export function HotspotTransitionPreview({ transition }: HotspotTransitionPrevie
 
       // Clear & Background
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#0f1422';
+      ctx.fillStyle = '#14100a';
       ctx.fillRect(0, 0, w, h);
 
       // Subtle Background Grid
@@ -80,13 +80,13 @@ export function HotspotTransitionPreview({ transition }: HotspotTransitionPrevie
       ctx.setLineDash([]);
 
       // Pin A
-      ctx.fillStyle = '#38bdf8';
+      ctx.fillStyle = '#3B6E8C';
       ctx.beginPath();
       ctx.arc(pinA.x, pinA.y, 3.5, 0, Math.PI * 2);
       ctx.fill();
 
       // Pin B
-      ctx.fillStyle = '#a855f7';
+      ctx.fillStyle = '#5C8FA8';
       ctx.beginPath();
       ctx.arc(pinB.x, pinB.y, 3.5, 0, Math.PI * 2);
       ctx.fill();
@@ -99,7 +99,7 @@ export function HotspotTransitionPreview({ transition }: HotspotTransitionPrevie
       ctx.translate(state.x, state.y);
 
       // Viewfinder border glow
-      ctx.strokeStyle = '#60a5fa';
+      ctx.strokeStyle = '#C9A35B';
       ctx.lineWidth = 1.5;
       ctx.strokeRect(-halfSize, -halfSize, boxSize, boxSize);
 
@@ -133,8 +133,8 @@ export function HotspotTransitionPreview({ transition }: HotspotTransitionPrevie
         width={140}
         height={64}
         style={{
-          borderRadius: '6px',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
+          borderRadius: 'var(--reda-radius)',
+          border: '1px solid var(--reda-parch-border)',
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
           cursor: 'pointer',
         }}
@@ -149,7 +149,7 @@ export function HotspotTransitionPreview({ transition }: HotspotTransitionPrevie
           }
         }}
       />
-      <span style={{ fontSize: '0.68rem', color: '#888', letterSpacing: '0.02em' }}>
+      <span style={{ fontSize: '9px', color: 'var(--reda-gold-deep)', fontFamily: 'var(--reda-mono)', textTransform: 'uppercase', letterSpacing: '.1em' }}>
         Live Simulation
       </span>
     </div>

@@ -83,7 +83,7 @@ export function Workbench({
     }
   };
 
-  if (!exhibition) return <div className="studio-loading reda-dark">Loading workbench…</div>;
+  if (!exhibition) return <div className="studio-loading reda-parch">Loading workbench…</div>;
 
   const activeArtist =
     selectedArtistId && selectedArtistId !== 'new'
@@ -91,7 +91,7 @@ export function Workbench({
       : null;
 
   return (
-    <div className="wb reda-dark">
+    <div className="wb reda-parch">
       <WorkbenchTopBar
         title={exhibition.title}
         isPublished={!!exhibition.is_published}
@@ -129,32 +129,6 @@ export function Workbench({
             onSelect={(id) => setSelectedArtistId(id)}
             onAdd={() => setSelectedArtistId('new')}
           />
-        )}
-        {tool === 'setup' && (
-          <div className="wb-pane">
-            <div className="wb-ph">
-              <h3>Setup</h3>
-            </div>
-            <div className="wb-list" style={{ padding: 0 }}>
-              <button type="button" className="wb-nav" aria-current="true">
-                <Icon name="gear" size={14} /> Identity &amp; Space
-              </button>
-              <button
-                type="button"
-                className="wb-nav"
-                onClick={() => setTool('artists')}
-              >
-                <Icon name="users" size={14} /> Artists
-              </button>
-              <button
-                type="button"
-                className="wb-nav"
-                onClick={() => setTool('curate')}
-              >
-                <Icon name="select" size={14} /> Curate Room
-              </button>
-            </div>
-          </div>
         )}
         {tool === 'rooms' && (
           <div className="wb-pane">
@@ -246,8 +220,6 @@ export function Workbench({
             <div className="badge-mode">
               {mode === 'waypoints'
                 ? 'Waypoints mode · Visitor Path & Start'
-                : mode === 'walk'
-                ? 'Walkthrough mode · First Person'
                 : 'Artworks mode · Placement'}
             </div>
             {exhibition.room && (

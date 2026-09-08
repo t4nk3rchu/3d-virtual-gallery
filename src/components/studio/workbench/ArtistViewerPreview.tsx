@@ -174,27 +174,25 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
             alignItems: 'center',
             gap: '8px',
             fontFamily: 'var(--reda-ui)',
-            fontSize: '10.5px',
+            fontSize: '11.5px',
             fontWeight: 600,
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase',
-            color: 'var(--reda-gold)',
-            background: 'rgba(27, 26, 23, 0.92)',
-            border: '1px solid rgba(185, 138, 60, 0.3)',
+            letterSpacing: '0.02em',
+            color: 'var(--reda-ink)',
+            background: 'var(--reda-parch-2)',
+            border: '1px solid var(--reda-parch-border)',
             borderRadius: '999px',
             padding: '6px 14px',
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
             pointerEvents: 'auto',
           }}
         >
           <span
             style={{
-              width: '6px',
-              height: '6px',
+              width: '8px',
+              height: '8px',
               borderRadius: '50%',
-              background: 'var(--reda-sage)',
-              boxShadow: '0 0 6px var(--reda-sage)',
+              background: 'var(--reda-gold)',
+              boxShadow: '0 0 8px var(--reda-gold)',
             }}
           />
           {isNew
@@ -208,10 +206,9 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
           className="wb-pill"
           style={{
             pointerEvents: 'auto',
-            background: 'rgba(23, 21, 17, 0.92)',
-            border: '1px solid rgba(185, 138, 60, 0.25)',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6)',
-            backdropFilter: 'blur(10px)',
+            background: 'var(--reda-parch-field)',
+            border: '1px solid var(--reda-parch-border)',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
             borderRadius: '999px',
             padding: '3px',
             display: 'inline-flex',
@@ -229,9 +226,9 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
               title={d === 'pc' ? 'Preview Desktop / PC Visitor View' : 'Preview Mobile Landscape Visitor View'}
               style={{
                 fontFamily: 'var(--reda-ui)',
-                fontSize: '11px',
-                fontWeight: 600,
-                letterSpacing: '0.06em',
+                fontSize: '11.5px',
+                fontWeight: device === d ? 600 : 500,
+                letterSpacing: '0.02em',
                 padding: '6px 14px',
                 borderRadius: '999px',
                 border: 'none',
@@ -240,9 +237,9 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                background: device === d ? 'var(--reda-gold)' : 'transparent',
-                color: device === d ? 'var(--reda-char)' : 'var(--reda-cream)',
-                boxShadow: device === d ? '0 2px 8px rgba(185, 138, 60, 0.4)' : 'none',
+                background: device === d ? 'var(--reda-parch-2)' : 'transparent',
+                color: device === d ? 'var(--reda-ink)' : 'var(--reda-muted-ink)',
+                boxShadow: device === d ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
               }}
             >
               {d === 'pc' ? (
@@ -651,19 +648,6 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                   style={{ padding: cfg.infoPadding, overflowY: 'auto', maxHeight: '100%' }}
                 >
                   <header className="artist-header">
-                    <span
-                      className="artist-kicker"
-                      style={{
-                        fontFamily: 'var(--reda-ui)',
-                        fontSize: cfg.kickerFontSize,
-                        fontWeight: 700,
-                        letterSpacing: cfg.kickerLetterSpacing,
-                        textTransform: 'uppercase',
-                        color: 'var(--reda-gold)',
-                      }}
-                    >
-                      Featured Artist
-                    </span>
                     <h1
                       id="artist-modal-name"
                       className="artist-name"

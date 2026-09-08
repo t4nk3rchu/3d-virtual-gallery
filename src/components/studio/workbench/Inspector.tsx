@@ -60,7 +60,7 @@ export function Inspector({
             color: 'var(--reda-ink-2)',
             cursor: 'pointer',
             padding: '4px',
-            borderRadius: '4px',
+            borderRadius: 'var(--reda-radius)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',

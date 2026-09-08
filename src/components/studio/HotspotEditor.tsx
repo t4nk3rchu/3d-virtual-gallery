@@ -248,9 +248,9 @@ export function HotspotEditor({
             gap: '1.25rem',
             padding: '0.75rem 1rem',
             marginBottom: '1rem',
-            backgroundColor: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '8px',
+            backgroundColor: 'var(--reda-parch-2)',
+            border: '1px solid var(--reda-parch-border)',
+            borderRadius: 'var(--reda-radius)',
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1 }}>
@@ -452,13 +452,14 @@ export function HotspotEditor({
                 {error && <p className="error">{error}</p>}
 
                 <div className="form-actions">
-                  <Button type="submit" variant="primary" disabled={saving}>
+                  <Button type="submit" variant="primary" disabled={saving} style={{ borderRadius: 'var(--reda-radius-pill)' }}>
                     {saving ? 'Saving…' : 'Add Hotspot Pin'}
                   </Button>
                   <Button
                     type="button"
                     variant="ghost"
                     onClick={() => setNewPin(null)}
+                    style={{ borderRadius: 'var(--reda-radius-pill)' }}
                   >
                     Cancel
                   </Button>
@@ -553,7 +554,7 @@ export function HotspotEditor({
                 {error && <p className="error">{error}</p>}
 
                 <div className="form-actions">
-                  <Button type="submit" variant="primary" disabled={saving}>
+                  <Button type="submit" variant="primary" disabled={saving} style={{ borderRadius: 'var(--reda-radius-pill)' }}>
                     {saving ? 'Saving…' : 'Save Changes'}
                   </Button>
                   <Button
@@ -561,6 +562,7 @@ export function HotspotEditor({
                     variant="danger"
                     onClick={() => handleDeleteHotspot(selectedHotspot.id)}
                     disabled={saving}
+                    style={{ borderRadius: 'var(--reda-radius-pill)' }}
                   >
                     Delete
                   </Button>
@@ -568,6 +570,7 @@ export function HotspotEditor({
                     type="button"
                     variant="ghost"
                     onClick={() => { setSelectedHotspot(null); prevSelectedId.current = null; }}
+                    style={{ borderRadius: 'var(--reda-radius-pill)' }}
                   >
                     Cancel
                   </Button>
@@ -585,7 +588,7 @@ export function HotspotEditor({
         </div>
 
         <div className="modal-footer">
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={onClose} style={{ borderRadius: 'var(--reda-radius-pill)' }}>
             Done Editing Hotspots
           </Button>
         </div>
