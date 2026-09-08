@@ -64,10 +64,6 @@ export function LoadingCurtain({
           />
         </div>
 
-        <span className="loading-curtain__kicker">
-          Reda Archival Gallery · Curated Space
-        </span>
-
         <h1 className="loading-curtain__title">{title}</h1>
 
         {curatorName && (
@@ -75,6 +71,10 @@ export function LoadingCurtain({
             Curated by {curatorName}
           </p>
         )}
+
+        <span className="loading-curtain__kicker">
+          Reda Archival Gallery · Curated Space
+        </span>
 
         {/* Progress & Stage Section */}
         <div className="loading-curtain__progress-section">
