@@ -114,7 +114,7 @@ export function FocusPanel({
           <div className="focus-info-modal__pinned">
             <div className="focus-info-modal__header">
               <div className="focus-info-modal__artist">
-                {displayArtist.toUpperCase()}
+                {displayArtist}
               </div>
               <button
                 type="button"
