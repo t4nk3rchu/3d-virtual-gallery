@@ -10,8 +10,16 @@ const appCss = readFileSync(
 // Legacy indigo brand palette that must not survive in App.css.
 const LEGACY_INDIGO = /#6366f1|#818cf8|#a5b4fc|#4f46e5|#c7d2fe|#4338ca/i;
 
+// Legacy Tailwind slate/zinc neutrals + raw near-white/black text.
+const LEGACY_NEUTRALS =
+  /#0f172a|#1e293b|#334155|#3f3f46|#94a3b8|#a1a1aa|#cbd5e1|#e2e8f0|#f8fafc|#ffffff\b|#fff\b/i;
+
 describe('App.css palette', () => {
   it('contains no legacy indigo brand colors (use --reda-* tokens)', () => {
     expect(appCss).not.toMatch(LEGACY_INDIGO);
+  });
+
+  it('contains no legacy slate/near-white neutrals (use --reda-* tokens)', () => {
+    expect(appCss).not.toMatch(LEGACY_NEUTRALS);
   });
 });
