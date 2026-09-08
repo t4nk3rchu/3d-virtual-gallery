@@ -113,8 +113,26 @@ function Login({ onLoggedIn }: LoginProps) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('reda-theme');
+        if (saved === 'dark' || saved === 'light') return saved;
+      } catch {}
+    }
+    return 'light';
+  });
+
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    try {
+      localStorage.setItem('reda-theme', next);
+    } catch {}
+  };
 
   const handlePasswordSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -152,12 +170,22 @@ function Login({ onLoggedIn }: LoginProps) {
   };
 
   return (
-    <main className="login-page reda-dark" aria-labelledby="login-heading">
+    <main className="login-page" data-theme={theme} aria-labelledby="login-heading">
       <div className="login-ambient-grid" aria-hidden="true" />
       <div className="login-ambient-glow" aria-hidden="true" />
 
       <div className="login-card-container">
         <div className="login-card">
+          <button
+            type="button"
+            id="themeToggle"
+            className="theme-toggle"
+            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            onClick={toggleTheme}
+          >
+            <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} />
+          </button>
+
           <header className="login-card__header">
             <div className="login-emblem-wrap">
               <img
@@ -267,14 +295,14 @@ function Login({ onLoggedIn }: LoginProps) {
               </div>
             </div>
 
-            <div className="login-field-group">
+            <div className={`login-field-group ${error ? 'error' : ''}`}>
               <label htmlFor="password" className="login-label">
                 Password Key
               </label>
-              <div className="login-input-wrap">
+              <div className="login-input-wrap pwd-wrap">
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   className="login-input"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -282,7 +310,17 @@ function Login({ onLoggedIn }: LoginProps) {
                   required
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 />
+                <button
+                  type="button"
+                  className="pwd-toggle"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                  onClick={() => setShowPassword((p) => !p)}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
               </div>
+              {error && <span className="err">{error}</span>}
             </div>
 
             <button

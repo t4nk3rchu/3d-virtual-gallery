@@ -37,6 +37,8 @@ import {
   Smartphone,
   Lock,
   Shield,
+  Sun,
+  Moon,
   ArrowRight,
   type LucideProps,
   type LucideIcon,
@@ -105,6 +107,8 @@ export const ICONS: Record<string, LucideIcon | ComponentType<LucideProps>> = {
   phone: Smartphone,
   lock: Lock,
   shield: Shield,
+  sun: Sun,
+  moon: Moon,
   arrowRight: ArrowRight,
   'arrow-right': ArrowRight,
 } as const;
@@ -149,6 +153,8 @@ export type IconName =
   | 'phone'
   | 'lock'
   | 'shield'
+  | 'sun'
+  | 'moon'
   | 'arrowRight'
   | 'arrow-right';
 
@@ -224,5 +230,7 @@ export {
   Smartphone,
   Lock,
   Shield,
+  Sun,
+  Moon,
   ArrowRight,
 };
