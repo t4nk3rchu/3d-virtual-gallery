@@ -63,7 +63,7 @@ export function WorkbenchTopBar({
               border: 'none',
               padding: 0,
               cursor: 'pointer',
-              color: 'var(--reda-muted)',
+              color: 'var(--reda-muted-ink, var(--reda-muted))',
               fontFamily: 'inherit',
               fontSize: '12px',
               display: 'inline-flex',

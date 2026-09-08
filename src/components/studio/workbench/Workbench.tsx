@@ -83,7 +83,7 @@ export function Workbench({
     }
   };
 
-  if (!exhibition) return <div className="studio-loading reda-dark">Loading workbench…</div>;
+  if (!exhibition) return <div className="studio-loading reda-parch">Loading workbench…</div>;
 
   const activeArtist =
     selectedArtistId && selectedArtistId !== 'new'
@@ -91,7 +91,7 @@ export function Workbench({
       : null;
 
   return (
-    <div className="wb reda-dark">
+    <div className="wb reda-parch">
       <WorkbenchTopBar
         title={exhibition.title}
         isPublished={!!exhibition.is_published}
