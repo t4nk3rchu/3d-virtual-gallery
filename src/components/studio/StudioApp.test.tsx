@@ -85,4 +85,26 @@ describe('StudioApp shell', () => {
     expect(loginPage).toHaveAttribute('data-theme', 'light');
     expect(localStorage.getItem('reda-theme')).toBe('light');
   });
+  it('navigates from dashboard to account view and back', async () => {
+    stubFetch((url) => {
+      if (url.includes('/api/auth/me')) return { id: 'u1', email: 'curator@gallery.com', full_name: 'Elena Curator', role: 'curator' };
+      if (url.includes('/api/exhibitions')) return [];
+      return null;
+    });
+
+    render(<StudioApp />);
+    expect(await screen.findByText('Your exhibitions')).toBeTruthy();
+
+    const accountBtn = screen.getByRole('button', { name: /Manage your account/i });
+    fireEvent.click(accountBtn);
+
+    expect(await screen.findByText('Your account')).toBeTruthy();
+    expect(screen.getByText('Personal information, curator profile, and security settings.')).toBeTruthy();
+
+    const backBtn = screen.getByRole('button', { name: 'Back to dashboard' });
+    fireEvent.click(backBtn);
+
+    expect(await screen.findByText('Your exhibitions')).toBeTruthy();
+  });
+
 });

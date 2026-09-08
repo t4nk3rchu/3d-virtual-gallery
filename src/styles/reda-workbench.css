@@ -395,3 +395,219 @@
 /* ---- embedded gizmo ---- */
 .gizmo-embedded{position:relative;width:100%;height:100%;display:flex;flex-direction:column;background:transparent}
 .gizmo-embedded .gizmo-main-area{flex:1;min-height:0}
+
+/* ---- account view (light / giấy điệp register) ---- */
+.account-page {
+  min-height: 100vh;
+  background: var(--reda-parch);
+  color: var(--reda-ink);
+  box-sizing: border-box;
+}
+
+.account-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px clamp(20px, 3.5vw, 48px);
+  border-bottom: 1px solid var(--reda-parch-border);
+  background: var(--reda-parch-2);
+}
+
+.account-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.account-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.account-mark {
+  font-family: var(--reda-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--reda-label);
+}
+
+.account-sub {
+  font-family: var(--reda-ui);
+  font-size: 13px;
+  color: var(--reda-ink-muted);
+}
+
+.account-wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+.account-head {
+  margin-bottom: 28px;
+}
+
+.account-head h1 {
+  font-family: var(--reda-display);
+  font-weight: 500;
+  font-size: 32px;
+  color: var(--reda-ink);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.account-desc {
+  font-family: var(--reda-ui);
+  font-size: 14px;
+  color: var(--reda-ink-muted);
+  margin-top: 6px;
+}
+
+.account-panel {
+  background: var(--reda-eggshell);
+  border: 1px solid var(--reda-parch-border);
+  border-radius: var(--reda-radius-card, 14px);
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.account-panel-title {
+  font-family: var(--reda-display);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--reda-ink);
+  letter-spacing: normal;
+  text-transform: none;
+  margin: 0 0 18px 0;
+}
+
+.account-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.account-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--reda-gold);
+  color: var(--reda-ink);
+  display: grid;
+  place-items: center;
+  font-family: var(--reda-display);
+  font-size: 28px;
+  font-weight: 600;
+  flex: none;
+}
+
+.account-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 620px) {
+  .account-two {
+    grid-template-columns: 1fr;
+  }
+}
+
+.account-field {
+  margin-bottom: 16px;
+}
+
+.account-field:last-child {
+  margin-bottom: 0;
+}
+
+.account-field label {
+  display: block;
+  font-family: var(--reda-ui);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--reda-label);
+  margin-bottom: 6px;
+}
+
+.account-field input {
+  width: 100%;
+  font-family: var(--reda-ui);
+  font-size: 14px;
+  color: var(--reda-ink);
+  background: var(--reda-field);
+  border: 1px solid var(--reda-parch-border);
+  border-radius: var(--reda-radius, 8px);
+  padding: 11px 13px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.16s, box-shadow 0.16s;
+}
+
+.account-field input:focus {
+  border-color: var(--reda-gold-deep);
+  box-shadow: 0 0 0 3px rgba(201, 163, 91, 0.22);
+}
+
+.account-field input[readonly] {
+  color: var(--reda-ink-muted);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.account-field .hint {
+  font-family: var(--reda-ui);
+  font-size: 12px;
+  color: var(--reda-ink-muted);
+  margin-top: 5px;
+}
+
+.account-field .err {
+  display: none;
+  font-family: var(--reda-ui);
+  font-size: 12px;
+  color: var(--reda-son);
+  margin-top: 5px;
+}
+
+.account-field.error .err {
+  display: block;
+}
+
+.account-field.error input {
+  border-color: var(--reda-son);
+}
+
+.account-saverow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.account-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--reda-radius, 8px);
+  font-family: var(--reda-ui);
+  font-size: 13.5px;
+  margin-bottom: 18px;
+}
+
+.account-alert--error {
+  background: var(--reda-error-bg);
+  border: 1px solid var(--reda-error-border);
+  color: var(--reda-son);
+}
+
+.account-alert--success {
+  background: var(--reda-success-bg);
+  border: 1px solid var(--reda-success-border);
+  color: var(--reda-success);
+}

@@ -7,12 +7,14 @@ import { Workbench } from './workbench/Workbench';
 import { Icon, Button, TextField, TextArea, SelectField } from '../ui';
 import { DriveFilePicker } from './DriveFilePicker';
 import { extractGoogleDriveFileId } from '../../lib/media/gdrive';
+import { Account } from './Account';
 
 type CmsView =
   | { type: 'login' }
   | { type: 'dashboard' }
   | { type: 'editor'; exhibitionId: string }
-  | { type: 'new-exhibition' };
+  | { type: 'new-exhibition' }
+  | { type: 'account' };
 
 interface CuratorUser {
   id: string;
@@ -76,6 +78,16 @@ export function StudioApp() {
           setUser(null);
           setView({ type: 'login' });
         }}
+        onAccount={() => setView({ type: 'account' })}
+      />
+    );
+  }
+
+  if (view.type === 'account') {
+    return (
+      <Account
+        user={user}
+        onBack={() => setView({ type: 'dashboard' })}
       />
     );
   }
