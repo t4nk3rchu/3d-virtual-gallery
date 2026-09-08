@@ -363,11 +363,13 @@ interface DashboardProps {
   onEdit(id: string): void;
   onNew(): void;
   onLogout(): void;
+  onAccount?(): void;
 }
 
-function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
+function Dashboard({ user, onEdit, onNew, onLogout, onAccount }: DashboardProps) {
   const [exhibitions, setExhibitions] = useState<ExhibitionDetail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchExhibitions = async () => {
     setLoading(true);
@@ -385,8 +387,7 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
     fetchExhibitions();
   }, []);
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+  const handleDelete = async (id: string) => {
     const res = await fetch(`/api/exhibitions/${id}`, {
       method: 'DELETE',
       credentials: 'include',
@@ -397,7 +398,7 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
   };
 
   return (
-    <div className="dash reda-dark">
+    <div className="dash">
       <div className="dhead">
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <img
@@ -408,7 +409,29 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
           <div>
             <div className="k">REDA GALLERY · ARCHIVE &amp; STUDIO</div>
             <h1>Your exhibitions</h1>
-            <div className="who">Signed in as {user.email}</div>
+            <div className="who">
+              {onAccount ? (
+                <button
+                  type="button"
+                  onClick={onAccount}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    color: 'inherit',
+                    font: 'inherit',
+                    textDecoration: 'underline',
+                    textUnderlineOffset: '3px',
+                  }}
+                  aria-label="Manage your account"
+                >
+                  Signed in as {user.email}
+                </button>
+              ) : (
+                `Signed in as ${user.email}`
+              )}
+            </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -423,6 +446,25 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
 
       {loading ? (
         <div className="studio-loading" style={{ minHeight: '300px' }}>Loading your exhibitions…</div>
+      ) : exhibitions.length === 0 ? (
+        <section className="empty" aria-label="No exhibitions yet">
+          <div className="empty-ill" aria-hidden="true">
+            <svg viewBox="0 0 220 140" fill="none" stroke="currentColor" strokeWidth="1.4">
+              <rect x="30" y="24" width="160" height="92" rx="2" />
+              <path d="M110 24v46h80" strokeDasharray="5 4" />
+              <rect x="54" y="30" width="26" height="3.4" fill="currentColor" />
+              <rect x="150" y="30" width="22" height="3.4" fill="currentColor" />
+              <rect x="34" y="58" width="3.4" height="26" fill="currentColor" />
+            </svg>
+          </div>
+          <h2 className="empty-h">You have no exhibitions yet</h2>
+          <p className="empty-d">
+            Start curating your first virtual exhibition — select artworks, craft an artistic narrative, and publish your 3D gallery.
+          </p>
+          <button className="empty-cta" type="button" onClick={onNew}>
+            <Icon name="plus" size={16} /> Create your first exhibition
+          </button>
+        </section>
       ) : (
         <div className="dgrid">
           {exhibitions.map((ex) => (
@@ -437,7 +479,9 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
                     <rect x="27" y="44" width="3" height="22" fill="currentColor" />
                   </svg>
                 </div>
-                <span className="badge">{ex.is_published ? 'Live' : 'Draft'}</span>
+                <span className={`badge ${ex.is_published ? 'b-live' : 'b-draft'}`}>
+                  {ex.is_published ? 'Live' : 'Draft'}
+                </span>
                 <span className="ct">
                   {ex.artworks?.length ?? 0} works · {ex.room?.name ?? 'No room'}
                 </span>
@@ -448,24 +492,45 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
                 <div className="cur">Curator · {ex.curator_name || '—'}</div>
               </div>
               <div className="acts">
-                <Button variant="primary" size="sm" onClick={() => onEdit(ex.id)}>
+                <button
+                  type="button"
+                  className="a-edit"
+                  onClick={() => onEdit(ex.id)}
+                >
                   Edit &amp; curate
-                </Button>
+                </button>
                 <a
-                  className="btn btn--secondary btn--sm"
+                  className="a-view"
                   href={`/e/${ex.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   View 3D <Icon name="external" size={12} />
                 </a>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  iconLeft="trash"
-                  aria-label={`Delete ${ex.title}`}
-                  onClick={() => handleDelete(ex.id, ex.title)}
-                />
+                <button
+                  type="button"
+                  className={`a-del ${deletingId === ex.id ? 'armed' : ''}`}
+                  aria-label={deletingId === ex.id ? 'Confirm delete' : `Delete ${ex.title}`}
+                  onClick={() => {
+                    if (deletingId === ex.id) {
+                      handleDelete(ex.id);
+                      setDeletingId(null);
+                    } else {
+                      setDeletingId(ex.id);
+                    }
+                  }}
+                  onBlur={() => {
+                    if (deletingId === ex.id) {
+                      setTimeout(() => setDeletingId(null), 250);
+                    }
+                  }}
+                >
+                  {deletingId === ex.id ? (
+                    'Confirm delete'
+                  ) : (
+                    <Icon name="trash" size={16} />
+                  )}
+                </button>
               </div>
             </div>
           ))}
