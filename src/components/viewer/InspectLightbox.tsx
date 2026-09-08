@@ -844,7 +844,7 @@ export function InspectLightbox({
           <Icon name="reset" size={14} /> Reset View
         </button>
 
-        {isTiltEnabled && (
+        {isTiltEnabled && isMobile && (
           <button
             type="button"
             className={`btn btn--sm inspect-btn-tilt ${mobileMode === 'tilt' ? 'btn--primary is-active' : 'btn--ghost'}`}
@@ -959,7 +959,7 @@ export function InspectLightbox({
                 : 'Drag to Pan · Pinch to Zoom · Tap "3D Tilt" to angle'
               : 'Drag to Pan · Pinch to Zoom'
             : isTiltEnabled
-            ? 'Left-drag to Pan · Right-drag or "3D Tilt" to Angle · Scroll to Zoom'
+            ? 'Left-drag to Pan · Right-drag to Tilt · Scroll to Zoom'
             : 'Left-drag to Pan · Scroll to Zoom'}
         </span>
       </footer>
