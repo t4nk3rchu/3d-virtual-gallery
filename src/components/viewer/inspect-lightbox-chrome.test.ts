@@ -12,4 +12,16 @@ describe('InspectLightbox chrome', () => {
   it('imports Icon', () => {
     expect(src).toMatch(/import\s*\{[^}]*\bIcon\b[^}]*\}\s*from\s*['"]\.\.\/ui['"]/);
   });
+  it('hotspot list button is hidden on mobile (gated by !isMobile)', () => {
+    // The "Hotspots List" button must only render when !isMobile
+    // Find the line with the title="Toggle Hotspots Directory"
+    // and ensure it is within a !isMobile conditional
+    const buttonIdx = src.indexOf('Toggle Hotspots Directory');
+    expect(buttonIdx).toBeGreaterThan(-1);
+    // The !isMobile guard must appear before the button in the same JSX block
+    // We check that !isMobile appears within 300 chars before the button title
+    // (300 instead of 200 to account for CRLF line endings on Windows)
+    const context = src.slice(Math.max(0, buttonIdx - 300), buttonIdx);
+    expect(context).toContain('!isMobile');
+  });
 });

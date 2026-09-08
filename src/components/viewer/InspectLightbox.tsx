@@ -242,6 +242,9 @@ export function InspectLightbox({
         if (stage.style.transform !== nextTransform) {
           stage.style.transform = nextTransform;
         }
+        // Publish the inverse zoom so hotspot pins (children of the scaled stage)
+        // can counter-scale and stay a constant on-screen size at any zoom.
+        stage.style.setProperty('--inspect-pin-scale', String(ss > 0 ? 1 / ss : 1));
       }
       if (tilt) {
         const nextTilt = `rotateX(${srx}deg) rotateY(${sry}deg)`;
@@ -651,7 +654,7 @@ export function InspectLightbox({
         </div>
 
         <div className="inspect-lightbox__header-actions">
-          {hotspots.length > 0 && (
+          {!isMobile && hotspots.length > 0 && (
             <button
               type="button"
               className={`btn btn--sm ${showHotspotList ? 'btn--primary' : 'btn--secondary'}`}
@@ -766,10 +769,14 @@ export function InspectLightbox({
         {/* Slide-Over Right Drawer for Hotspots Directory */}
         {showHotspotList && (
           <>
-            <div
-              className="inspect-drawer-backdrop"
-              onClick={() => setShowHotspotList(false)}
-            />
+            {/* Dimming backdrop only on mobile, where the list is a full drawer.
+                On desktop the list is a floating popup with no backdrop. */}
+            {isMobile && (
+              <div
+                className="inspect-drawer-backdrop"
+                onClick={() => setShowHotspotList(false)}
+              />
+            )}
             <aside
               className="inspect-lightbox__drawer"
               role="dialog"
