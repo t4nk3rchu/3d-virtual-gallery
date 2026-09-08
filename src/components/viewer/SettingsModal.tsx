@@ -115,6 +115,7 @@ export function SettingsModal({ settings, onChange, onClose }: SettingsModalProp
                 value={local.fov}
                 onChange={(e) => update({ fov: Number(e.target.value) })}
                 className="range-input"
+                style={{ accentColor: 'var(--reda-gold)' }}
               />
               <div className="slider-labels">
                 <span>Narrow (50°)</span>
@@ -141,6 +142,7 @@ export function SettingsModal({ settings, onChange, onClose }: SettingsModalProp
                 value={local.walkSpeed}
                 onChange={(e) => update({ walkSpeed: Number(e.target.value) })}
                 className="range-input"
+                style={{ accentColor: 'var(--reda-gold)' }}
               />
               <div className="slider-labels">
                 <span>Slow</span>
@@ -162,6 +164,7 @@ export function SettingsModal({ settings, onChange, onClose }: SettingsModalProp
                 value={local.sprintSpeed}
                 onChange={(e) => update({ sprintSpeed: Number(e.target.value) })}
                 className="range-input"
+                style={{ accentColor: 'var(--reda-gold)' }}
               />
             </div>
           </section>
