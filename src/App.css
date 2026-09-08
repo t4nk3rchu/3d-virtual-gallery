@@ -22,13 +22,13 @@
 }
 
 .btn--primary {
-  background: #6366f1;
+  background: var(--reda-son);
   color: #fff;
-  border-color: #4f46e5;
+  border-color: var(--reda-son-hi);
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: #4f46e5;
+  background: var(--reda-son-hi);
 }
 
 .btn--secondary {
@@ -90,7 +90,7 @@
 }
 
 .input:focus {
-  border-color: #6366f1;
+  border-color: var(--reda-gold);
 }
 
 .input.textarea {
@@ -404,7 +404,7 @@
 
 .artwork-card__hotspots-count {
   font-size: 12px;
-  color: #818cf8;
+  color: var(--reda-gold);
   font-weight: 500;
   margin-top: 8px;
 }
@@ -491,9 +491,9 @@
 }
 
 .type-btn.active {
-  background: #6366f1;
+  background: var(--reda-cham-hi);
   color: #fff;
-  border-color: #4f46e5;
+  border-color: var(--reda-cham);
 }
 
 .thumbnail-preview {
@@ -645,7 +645,7 @@
 }
 
 .mode-btn.active {
-  background: #6366f1;
+  background: var(--reda-cham-hi);
   color: #fff;
 }
 
@@ -686,7 +686,7 @@
 
 .nav-mode-indicator {
   font-size: 13px;
-  color: #a5b4fc;
+  color: var(--reda-gold-hi);
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -771,7 +771,7 @@
 }
 
 .controls-cheatsheet li b {
-  color: #a5b4fc;
+  color: var(--reda-gold-hi);
 }
 
 /* ─── Hotspot Editor Layout ───────────────────────────────────────────────── */
@@ -825,7 +825,7 @@
 .coords-readout {
   font-family: var(--mono);
   font-size: 12px;
-  color: #818cf8;
+  color: var(--reda-gold);
   margin-bottom: 12px;
 }
 
@@ -929,7 +929,7 @@
 
 .viewer-progress__bar {
   height: 6px;
-  background: #6366f1;
+  background: var(--reda-gold);
   border-radius: 3px;
   margin-bottom: 6px;
   transition: width 0.3s ease;
@@ -1242,7 +1242,7 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #c7d2fe;
+  color: var(--reda-gold-hi);
 }
 
 .focus-info-modal__close {
@@ -1500,7 +1500,7 @@
   padding: 8px 12px;
   background: rgba(99, 102, 241, 0.18);
   border: 1px solid rgba(99, 102, 241, 0.35);
-  color: #c7d2fe;
+  color: var(--reda-gold-hi);
   border-radius: 8px;
   font-size: 12.5px;
   font-weight: 500;
@@ -1515,13 +1515,13 @@
 .focus-panel__artist-link-btn:hover {
   background: rgba(99, 102, 241, 0.35);
   color: #ffffff;
-  border-color: #818cf8;
+  border-color: var(--reda-gold);
 }
 
 .focus-info-modal__inspect-btn {
   width: 100%;
   padding: 9px 12px;
-  background: #6366f1;
+  background: var(--reda-cham);
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -1532,7 +1532,7 @@
 }
 
 .focus-info-modal__inspect-btn:hover {
-  background: #4f46e5;
+  background: var(--reda-cham-hi);
   box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
 }
 
@@ -1598,7 +1598,7 @@
 
 .focus-nav-btn:hover {
   background: rgba(99, 102, 241, 0.35);
-  border-color: #818cf8;
+  border-color: var(--reda-gold);
   transform: scale(1.08);
 }
 
@@ -1637,7 +1637,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #818cf8;
+  color: var(--reda-gold);
   font-weight: 600;
   display: block;
 }
@@ -1657,7 +1657,7 @@
 .inspect-artist-link {
   background: rgba(99, 102, 241, 0.18);
   border: 1px solid rgba(99, 102, 241, 0.35);
-  color: #c7d2fe;
+  color: var(--reda-gold-hi);
   font-size: 12px;
   font-weight: 500;
   border-radius: 9999px;
@@ -1669,7 +1669,7 @@
 .inspect-artist-link:hover {
   background: rgba(99, 102, 241, 0.35);
   color: #ffffff;
-  border-color: #818cf8;
+  border-color: var(--reda-gold);
 }
 
 .inspect-lightbox__close {
@@ -1886,15 +1886,15 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #6366f1;
+  background: var(--reda-cham-hi);
   border: 2px solid #ffffff;
-  box-shadow: 0 0 10px #6366f1;
+  box-shadow: 0 0 10px var(--reda-cham-hi);
   transition: transform 0.2s ease;
 }
 
 .hotspot-pin:hover .hotspot-pin__dot {
   transform: scale(1.3);
-  background: #818cf8;
+  background: var(--reda-gold-hi);
 }
 
 .hotspot-pin__ripple {
@@ -2020,7 +2020,7 @@
 .sidebar-minimize-btn {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #c7d2fe;
+  color: var(--reda-cream);
   font-size: 11px;
   font-weight: 500;
   padding: 3px 8px;
@@ -2031,7 +2031,7 @@
 
 .sidebar-minimize-btn:hover {
   background: rgba(99, 102, 241, 0.25);
-  border-color: #818cf8;
+  border-color: var(--reda-gold);
   color: #ffffff;
 }
 
@@ -2045,7 +2045,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #818cf8;
+  color: var(--reda-gold-hi);
   font-weight: 600;
 }
 
@@ -2099,7 +2099,7 @@
 .audio-label {
   font-size: 12px;
   font-weight: 600;
-  color: #a5b4fc;
+  color: var(--reda-gold-hi);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2168,7 +2168,7 @@
 }
 
 .item-badge {
-  background: #6366f1;
+  background: var(--reda-cham-hi);
   color: #ffffff;
   font-size: 11px;
   font-weight: 700;
@@ -2196,7 +2196,7 @@
 .item-audio-indicator {
   display: inline-block;
   font-size: 11px;
-  color: #818cf8;
+  color: var(--reda-gold);
   margin-top: 6px;
 }
 
@@ -2215,7 +2215,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #818cf8;
+  color: var(--reda-gold);
   font-weight: 600;
   display: block;
   margin-bottom: 4px;
@@ -2235,7 +2235,7 @@
 }
 
 .hotspot-card__seek-btn {
-  background: #6366f1;
+  background: var(--reda-cham);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -2247,7 +2247,7 @@
 }
 
 .hotspot-card__seek-btn:hover {
-  background: #4f46e5;
+  background: var(--reda-cham-hi);
 }
 
 /* ─── Inspect Lightbox Slide-Over Drawer & On-Demand Info Modal ─────────── */
@@ -2376,7 +2376,7 @@
 }
 
 .eyebrow--hotspot {
-  color: #818cf8 !important;
+  color: var(--reda-gold) !important;
   font-weight: 700;
 }
 
@@ -2421,7 +2421,7 @@
 .inspect-desc-more-btn {
   background: transparent;
   border: none;
-  color: #a5b4fc;
+  color: var(--reda-gold-hi);
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
@@ -2492,7 +2492,7 @@
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 9999px;
   padding: 2px 10px;
-  color: #a5b4fc;
+  color: var(--reda-gold-hi);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -2508,7 +2508,7 @@
 }
 
 .inspect-audio-btn {
-  background: #6366f1;
+  background: var(--reda-cham);
   color: #ffffff;
   border-radius: 9999px;
   padding: 4px 10px;
@@ -2524,7 +2524,7 @@
 }
 
 .inspect-audio-btn:hover {
-  background: #4f46e5;
+  background: var(--reda-cham-hi);
   transform: scale(1.03);
 }
 
@@ -2699,7 +2699,7 @@
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #818cf8;
+  color: var(--reda-gold);
   font-weight: 600;
 }
 
@@ -2715,7 +2715,7 @@
   width: 18px;
   height: 18px;
   margin-top: 2px;
-  accent-color: #6366f1;
+  accent-color: var(--reda-gold);
   cursor: pointer;
 }
 
@@ -2756,7 +2756,7 @@
 
 .range-input {
   width: 100%;
-  accent-color: #6366f1;
+  accent-color: var(--reda-gold);
   cursor: pointer;
 }
 
@@ -2820,12 +2820,12 @@
 
 .keybinding-btn:hover {
   background: #3f3f46;
-  border-color: #6366f1;
+  border-color: var(--reda-gold);
 }
 
 .keybinding-btn.recording {
-  background: #6366f1;
-  border-color: #a5b4fc;
+  background: var(--reda-cham);
+  border-color: var(--reda-gold-hi);
   color: #ffffff;
   animation: recordingPulse 1.2s infinite alternate;
 }
@@ -2847,7 +2847,7 @@
 .section-title {
   margin: 0 0 10px;
   font-size: 14px;
-  color: #a5b4fc;
+  color: var(--reda-gold-hi);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 600;
@@ -2873,13 +2873,13 @@
 
 .settings-slider {
   width: 140px;
-  accent-color: #6366f1;
+  accent-color: var(--reda-gold);
 }
 
 .slider-value {
   font-family: var(--mono);
   font-size: 12px;
-  color: #a5b4fc;
+  color: var(--reda-gold-hi);
   min-width: 32px;
 }
 
@@ -2887,7 +2887,7 @@
 .focus-panel__artist-link-btn {
   background: rgba(99, 102, 241, 0.15);
   border: 1px solid rgba(99, 102, 241, 0.3);
-  color: #c7d2fe;
+  color: var(--reda-gold-hi);
   font-size: 12px;
   font-weight: 500;
   border-radius: 9999px;
@@ -2898,7 +2898,7 @@
 
 .focus-panel__artist-link-btn:hover {
   background: rgba(99, 102, 241, 0.3);
-  border-color: #818cf8;
+  border-color: var(--reda-gold);
   color: #ffffff;
   transform: translateX(2px);
 }
@@ -3166,7 +3166,7 @@
 }
 
 .intro-unmute-btn:hover {
-  background: #4f46e5;
+  background: var(--reda-son-hi);
   transform: scale(1.08);
 }
 
@@ -3218,7 +3218,7 @@
   width: 14px;
   height: 14px;
   border: 2px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #818cf8;
+  border-top-color: var(--reda-gold);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -3241,7 +3241,7 @@
   width: 42px;
   height: 42px;
   border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #6366f1;
+  border-top-color: var(--reda-gold);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
