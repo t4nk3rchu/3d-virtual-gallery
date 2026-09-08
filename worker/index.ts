@@ -12,6 +12,7 @@ import {
   handlePasswordRegister,
   handlePasswordLogin,
   handleLogout,
+  handleChangePassword,
 } from './auth';
 import {
   handleExhibitions,
@@ -67,6 +68,9 @@ export default {
     }
     if (path === '/api/auth/logout' && req.method === 'POST') {
       return handleLogout();
+    }
+    if (path === '/api/auth/change-password' && req.method === 'POST') {
+      return handleChangePassword(req, env);
     }
 
     const jwtSecret = env.JWT_SECRET_KEY || 'reda-gallery-default-jwt-secret-key-32b';

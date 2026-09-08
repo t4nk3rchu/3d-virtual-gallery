@@ -10,8 +10,9 @@ import {
   buildStateCookie,
   clearStateCookie,
   readCookie,
+  requireAuth,
 } from './jwt';
-import { getUserByEmail, upsertGoogleUser, createUser } from './db';
+import { getUserByEmail, upsertGoogleUser, createUser, getUserById, updateUserPassword } from './db';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -300,4 +301,82 @@ export function handleLogout(): Response {
     status: 200,
     headers: { 'Set-Cookie': clearAuthCookie() },
   });
+}
+
+export async function handleChangePassword(
+  req: Request,
+  env: Env
+): Promise<Response> {
+  try {
+    const jwtSecret = env.JWT_SECRET_KEY || 'reda-gallery-default-jwt-secret-key-32b';
+    const auth = await requireAuth(req, jwtSecret);
+    if (!auth) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    let body: { current_password?: string; new_password?: string };
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { current_password, new_password } = body;
+    if (!current_password || !new_password) {
+      return new Response(
+        JSON.stringify({ error: 'Both current_password and new_password are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (new_password.length < 8) {
+      return new Response(
+        JSON.stringify({ error: 'New password must be at least 8 characters' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!env.DB) {
+      return new Response(JSON.stringify({ error: 'Database binding (DB) is not configured' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const user = await getUserById(env.DB, auth.sub);
+    if (!user || !user.password_hash) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid current password' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const ok = await verifyPassword(current_password, user.password_hash);
+    if (!ok) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid current password' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const newHash = await hashPassword(new_password);
+    await updateUserPassword(env.DB, user.id, newHash);
+
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err: any) {
+    console.error('Change password error:', err);
+    return new Response(
+      JSON.stringify({ error: 'Failed to change password' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 }
