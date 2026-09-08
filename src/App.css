@@ -159,45 +159,57 @@
 
 /* ─── Login Page ─────────────────────────────────────────────────────────── */
 .login-page {
+  --login-bg: var(--reda-eggshell);
+  --login-surface: var(--reda-parch);
+  --login-text: var(--reda-ink);
+  --login-muted: var(--reda-ink-muted);
+  --login-border: var(--reda-parch-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 80vh;
+  min-height: 100vh;
   padding: 24px;
+}
+
+.login-page[data-theme="dark"] {
+  --login-bg: var(--reda-char);
+  --login-surface: var(--reda-char-2);
+  --login-text: var(--reda-cream-hi);
+  --login-muted: var(--reda-muted);
+  --login-border: var(--reda-line);
 }
 
 .login-card {
   width: 100%;
-  max-width: 420px;
-  padding: 40px;
-  background: var(--code-bg);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
+  max-width: 440px;
+  padding: 36px 32px 28px;
+  background: var(--login-surface);
+  border: 1px solid var(--login-border);
+  border-radius: var(--reda-radius-card, 14px);
   text-align: center;
 }
 
 .login-card__title {
-  font-size: 28px;
+  font-size: 26px;
   margin: 0 0 4px;
+  color: var(--login-text);
 }
 
 .login-card__subtitle {
-  font-size: 15px;
-  color: var(--text);
-  margin-bottom: 24px;
+  font-size: 14px;
+  color: var(--login-muted);
+  margin-bottom: 22px;
 }
 
 .login-divider {
   border: none;
-  border-top: 1px solid var(--border);
-  margin: 20px 0 8px;
+  border-top: 1px solid var(--login-border);
+  margin: 20px 0 18px;
 }
 
 .login-divider__label {
-  font-size: 12px;
-  color: var(--text);
-  margin-bottom: 16px;
+  font-size: 11px;
+  color: var(--login-muted);
 }
 
 /* ─── Studio Dashboard ────────────────────────────────────────────────────── */

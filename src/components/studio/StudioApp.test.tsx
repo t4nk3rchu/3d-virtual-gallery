@@ -1,6 +1,25 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { StudioApp } from './StudioApp';
+
+
+const storage: Record<string, string> = {};
+const mockLocalStorage = {
+  getItem: (k: string) => storage[k] ?? null,
+  setItem: (k: string, v: string) => { storage[k] = v; },
+  removeItem: (k: string) => { delete storage[k]; },
+  clear: () => { for (const k in storage) delete storage[k]; },
+};
+Object.defineProperty(window, 'localStorage', {
+  value: mockLocalStorage,
+  writable: true,
+});
+if (typeof globalThis !== 'undefined') {
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: mockLocalStorage,
+    writable: true,
+  });
+}
 
 function stubFetch(handler: (url: string) => unknown) {
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo) => {
@@ -47,4 +66,45 @@ describe('StudioApp shell', () => {
     expect(container.querySelector('.dcard')).toBeTruthy();
     expect(screen.getByText(/Live/i)).toBeTruthy();
   });
+
+  it('toggles auth theme between light and dark and persists to localStorage', async () => {
+    localStorage.clear();
+    render(<StudioApp />);
+    const loginPage = await screen.findByRole('main');
+    expect(loginPage).toHaveAttribute('data-theme', 'light');
+
+    const toggleBtn = screen.getByRole('button', { name: /Switch to dark theme/i });
+    fireEvent.click(toggleBtn);
+
+    expect(loginPage).toHaveAttribute('data-theme', 'dark');
+    expect(localStorage.getItem('reda-theme')).toBe('dark');
+
+    const lightBtn = screen.getByRole('button', { name: /Switch to light theme/i });
+    fireEvent.click(lightBtn);
+
+    expect(loginPage).toHaveAttribute('data-theme', 'light');
+    expect(localStorage.getItem('reda-theme')).toBe('light');
+  });
+  it('navigates from dashboard to account view and back', async () => {
+    stubFetch((url) => {
+      if (url.includes('/api/auth/me')) return { id: 'u1', email: 'curator@gallery.com', full_name: 'Elena Curator', role: 'curator' };
+      if (url.includes('/api/exhibitions')) return [];
+      return null;
+    });
+
+    render(<StudioApp />);
+    expect(await screen.findByText('Your exhibitions')).toBeTruthy();
+
+    const accountBtn = screen.getByRole('button', { name: /Manage your account/i });
+    fireEvent.click(accountBtn);
+
+    expect(await screen.findByText('Your account')).toBeTruthy();
+    expect(screen.getByText('Personal information, curator profile, and security settings.')).toBeTruthy();
+
+    const backBtn = screen.getByRole('button', { name: 'Back to dashboard' });
+    fireEvent.click(backBtn);
+
+    expect(await screen.findByText('Your exhibitions')).toBeTruthy();
+  });
+
 });

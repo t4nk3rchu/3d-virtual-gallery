@@ -138,3 +138,146 @@ describe('handleGoogleAuthStart / handleGoogleAuthCallback (state & scope)', () 
   });
 });
 
+
+// ─── POST /api/auth/change-password tests ─────────────────────────────────────
+import worker from './index';
+
+describe('POST /api/auth/change-password', () => {
+  function createMockDb(users: Array<{ id: string; email: string; password_hash: string }>) {
+    return {
+      prepare: (query: string) => {
+        return {
+          bind: (...args: any[]) => {
+            return {
+              first: async () => {
+                if (query.includes('FROM users WHERE id = ?')) {
+                  return users.find((u) => u.id === args[0]) || null;
+                }
+                if (query.includes('FROM users WHERE email = ?')) {
+                  return users.find((u) => u.email === args[0]) || null;
+                }
+                return null;
+              },
+              run: async () => {
+                if (query.includes('UPDATE users SET password_hash = ? WHERE id = ?')) {
+                  const user = users.find((u) => u.id === args[1]);
+                  if (user) {
+                    user.password_hash = args[0];
+                  }
+                }
+                return { success: true };
+              },
+            };
+          },
+        };
+      },
+    };
+  }
+
+  const mockCtx = {
+    waitUntil: () => {},
+    passThroughOnException: () => {},
+  } as any;
+
+  it('rejects an unauthenticated request with 401', async () => {
+    const mockEnv = {
+      JWT_SECRET_KEY: TEST_SECRET,
+      DB: createMockDb([]) as any,
+    } as any;
+
+    const res = await worker.fetch(
+      new Request('https://app.example.com/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current_password: 'old-password', new_password: 'new-password-123' }),
+      }),
+      mockEnv,
+      mockCtx
+    );
+
+    expect(res.status).toBe(401);
+    const json = await res.json() as any;
+    expect(json.error).toBeTruthy();
+  });
+
+  it('rejects missing or short new password with 400', async () => {
+    const token = await signJwt({ sub: 'user-1', email: 'u1@example.com', role: 'curator' }, TEST_SECRET);
+    const mockEnv = {
+      JWT_SECRET_KEY: TEST_SECRET,
+      DB: createMockDb([]) as any,
+    } as any;
+
+    const resShort = await worker.fetch(
+      new Request('https://app.example.com/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `auth_token=${token}`,
+        },
+        body: JSON.stringify({ current_password: 'old-password', new_password: 'short' }),
+      }),
+      mockEnv,
+      mockCtx
+    );
+
+    expect(resShort.status).toBe(400);
+  });
+
+  it('rejects wrong current password with 401', async () => {
+    const initialHash = await hashPassword('correct-old-password');
+    const users = [{ id: 'user-1', email: 'u1@example.com', password_hash: initialHash }];
+    const token = await signJwt({ sub: 'user-1', email: 'u1@example.com', role: 'curator' }, TEST_SECRET);
+
+    const mockEnv = {
+      JWT_SECRET_KEY: TEST_SECRET,
+      DB: createMockDb(users) as any,
+    } as any;
+
+    const res = await worker.fetch(
+      new Request('https://app.example.com/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `auth_token=${token}`,
+        },
+        body: JSON.stringify({ current_password: 'wrong-old-password', new_password: 'brand-new-password' }),
+      }),
+      mockEnv,
+      mockCtx
+    );
+
+    expect(res.status).toBe(401);
+  });
+
+  it('changes password when current is correct and returns 200 { ok: true }', async () => {
+    const initialHash = await hashPassword('correct-old-password');
+    const users = [{ id: 'user-1', email: 'u1@example.com', password_hash: initialHash }];
+    const token = await signJwt({ sub: 'user-1', email: 'u1@example.com', role: 'curator' }, TEST_SECRET);
+
+    const mockEnv = {
+      JWT_SECRET_KEY: TEST_SECRET,
+      DB: createMockDb(users) as any,
+    } as any;
+
+    const res = await worker.fetch(
+      new Request('https://app.example.com/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `auth_token=${token}`,
+        },
+        body: JSON.stringify({ current_password: 'correct-old-password', new_password: 'brand-new-password' }),
+      }),
+      mockEnv,
+      mockCtx
+    );
+
+    expect(res.status).toBe(200);
+    const json = await res.json() as any;
+    expect(json.ok).toBe(true);
+
+    // Verify password hash was updated
+    expect(users[0].password_hash).not.toBe(initialHash);
+    expect(await verifyPassword('brand-new-password', users[0].password_hash)).toBe(true);
+  });
+});

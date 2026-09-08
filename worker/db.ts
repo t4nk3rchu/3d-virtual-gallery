@@ -457,6 +457,17 @@ export async function getUserByEmail(
     .first<User>();
 }
 
+export async function updateUserPassword(
+  db: D1Database,
+  userId: string,
+  passwordHash: string
+): Promise<void> {
+  await db
+    .prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+    .bind(passwordHash, userId)
+    .run();
+}
+
 export async function getUserById(
   db: D1Database,
   id: string
