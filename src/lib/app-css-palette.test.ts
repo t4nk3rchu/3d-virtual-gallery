@@ -23,3 +23,19 @@ describe('App.css palette', () => {
     expect(appCss).not.toMatch(LEGACY_NEUTRALS);
   });
 });
+
+const indexCss = readFileSync(
+  fileURLToPath(new URL('../index.css', import.meta.url)),
+  'utf8',
+);
+const indexRoot = indexCss.slice(
+  indexCss.indexOf(':root'),
+  indexCss.indexOf('}', indexCss.indexOf(':root')) + 1,
+);
+
+describe('index.css tokens', () => {
+  it(':root aliases onto --reda-* tokens (no standalone hex)', () => {
+    expect(indexRoot).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    expect(indexRoot).toMatch(/var\(--reda-/);
+  });
+});
