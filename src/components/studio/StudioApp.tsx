@@ -24,6 +24,20 @@ interface CuratorUser {
   is_team?: boolean;
 }
 
+// ISO date → "DD.MM.YYYY"; joins a start/end pair as "start — end". Returns '' when neither is set.
+function formatDateRange(start?: string | null, end?: string | null): string {
+  const fmt = (iso?: string | null) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+  };
+  const a = fmt(start);
+  const b = fmt(end);
+  if (a && b) return `${a} — ${b}`;
+  return a || b;
+}
+
 export function StudioApp() {
   const [user, setUser] = useState<CuratorUser | null>(null);
   const [view, setView] = useState<CmsView>({ type: 'login' });
@@ -410,7 +424,7 @@ function Dashboard({ user, onEdit, onNew, onLogout, onAccount }: DashboardProps)
   };
 
   return (
-    <div className="dash">
+    <div className="dash reda-parch">
       <div className="dhead">
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <img
@@ -421,32 +435,22 @@ function Dashboard({ user, onEdit, onNew, onLogout, onAccount }: DashboardProps)
           <div>
             <div className="k">REDA GALLERY · ARCHIVE &amp; STUDIO</div>
             <h1>Your exhibitions</h1>
-            <div className="who">
-              {onAccount ? (
-                <button
-                  type="button"
-                  onClick={onAccount}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    cursor: 'pointer',
-                    color: 'inherit',
-                    font: 'inherit',
-                    textDecoration: 'underline',
-                    textUnderlineOffset: '3px',
-                  }}
-                  aria-label="Manage your account"
-                >
-                  Signed in as {user.email}
-                </button>
-              ) : (
-                `Signed in as ${user.email}`
-              )}
-            </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {onAccount && (
+            <button
+              type="button"
+              className="user-chip"
+              onClick={onAccount}
+              aria-label="Manage your account"
+            >
+              <span className="av" aria-hidden="true">
+                {(user.full_name || user.email).charAt(0).toUpperCase()}
+              </span>
+              <span className="user-chip__name">{user.full_name || user.email}</span>
+            </button>
+          )}
           <Button type="button" variant="primary" iconLeft="plus" onClick={onNew}>
             New exhibition
           </Button>
@@ -501,7 +505,11 @@ function Dashboard({ user, onEdit, onNew, onLogout, onAccount }: DashboardProps)
               <div className="bd">
                 <h3>{ex.title}</h3>
                 <div className="slug">/e/{ex.slug}</div>
+                {ex.description && <p className="desc">{ex.description}</p>}
                 <div className="cur">Curator · {ex.curator_name || '—'}</div>
+                {formatDateRange(ex.start_date, ex.end_date) && (
+                  <div className="dt">{formatDateRange(ex.start_date, ex.end_date)}</div>
+                )}
               </div>
               <div className="acts">
                 <button

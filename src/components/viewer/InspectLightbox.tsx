@@ -665,15 +665,17 @@ export function InspectLightbox({
             </button>
           )}
 
-          <button
-            type="button"
-            className="inspect-lightbox__close"
-            onClick={onClose}
-            aria-label="Close inspect"
-            title="Exit Inspect Mode"
-          >
-            <Icon name="close" size={16} />
-          </button>
+          {!(isMobile && showHotspotList) && (
+            <button
+              type="button"
+              className="inspect-lightbox__close"
+              onClick={onClose}
+              aria-label="Close inspect"
+              title="Exit Inspect Mode"
+            >
+              <Icon name="close" size={16} />
+            </button>
+          )}
         </div>
       </header>
 
@@ -835,141 +837,138 @@ export function InspectLightbox({
       </div>
 
       {/* Direct Bottom-Bar Controls with Navigation & Dedicated Audio Listening */}
-      <footer className="inspect-lightbox__controls">
-        <button
-          type="button"
-          className="btn btn--ghost btn--sm inspect-btn-reset"
-          onClick={() => {
-            tgt.current.rx = 0;
-            tgt.current.ry = 0;
-            setMobileMode('pan');
-            setActiveHotspotIndex(-1);
-            fitToScreen(false);
-          }}
-          title="Reset zoom, tilt, and framing"
-        >
-          <Icon name="reset" size={14} /> Reset View
-        </button>
-
-        {isTiltEnabled && isMobile && (
+      {!(isMobile && showHotspotList) && (
+        <footer className="inspect-lightbox__controls">
           <button
             type="button"
-            className={`btn btn--sm inspect-btn-tilt ${mobileMode === 'tilt' ? 'btn--primary is-active' : 'btn--ghost'}`}
-            onClick={() => setMobileMode((prev) => (prev === 'tilt' ? 'pan' : 'tilt'))}
-            title={mobileMode === 'tilt' ? 'Tilt active: drag to angle in 3D. Click to switch to pan.' : 'Toggle 3D perspective tilt'}
+            className="btn btn--ghost btn--sm inspect-btn-reset"
+            onClick={() => {
+              tgt.current.rx = 0;
+              tgt.current.ry = 0;
+              setMobileMode('pan');
+              setActiveHotspotIndex(-1);
+              fitToScreen(false);
+            }}
+            title="Reset zoom, tilt, and framing"
           >
-            <Icon name="cube" size={13} /> {mobileMode === 'tilt' ? 'Tilt Active' : '3D Tilt'}
+            <Icon name="reset" size={14} /> Reset View
           </button>
-        )}
 
-        {hotspots.length > 0 && (
-          <div className="inspect-lightbox__carousel">
+          {isTiltEnabled && isMobile && (
             <button
               type="button"
-              className="btn btn--secondary btn--sm inspect-nav-btn"
-              onClick={() => {
-                const nextIdx =
-                  activeHotspotIndex <= 0 ? hotspots.length - 1 : activeHotspotIndex - 1;
-                focusHotspot(nextIdx, true);
-              }}
-              title="Previous Detail"
+              className={`btn btn--sm inspect-btn-tilt ${mobileMode === 'tilt' ? 'btn--primary is-active' : 'btn--ghost'}`}
+              onClick={() => setMobileMode((prev) => (prev === 'tilt' ? 'pan' : 'tilt'))}
+              title={mobileMode === 'tilt' ? 'Tilt active: drag to angle in 3D. Click to switch to pan.' : 'Toggle 3D perspective tilt'}
             >
-              <Icon name="chevronLeft" size={13} /> Prev
+              <Icon name="cube" size={13} /> {mobileMode === 'tilt' ? 'Tilt Active' : '3D Tilt'}
             </button>
+          )}
 
-            <button
-              type="button"
-              className={`carousel-counter-btn ${activeHotspotIndex >= 0 ? 'active' : ''}`}
-              onClick={() => {
-                if (activeHotspotIndex >= 0) {
-                  const nextIdx = (activeHotspotIndex + 1) % hotspots.length;
-                  focusHotspot(nextIdx, true);
-                } else {
-                  setShowHotspotList((prev) => !prev);
-                }
-              }}
-              title={activeHotspotIndex >= 0 ? 'Click to go to next detail' : 'Click to open hotspots directory'}
-            >
-              {activeHotspotIndex >= 0 ? (
-                <>
-                  <span className="carousel-counter-tag">
-                    <Icon name="pin" size={12} /> {String(activeHotspotIndex + 1).padStart(2, '0')}/{String(hotspots.length).padStart(2, '0')}
-                  </span>
-                  <span className="carousel-counter-title">{hotspots[activeHotspotIndex]?.title || ''}</span>
-                </>
-              ) : (
-                <>
-                  <span className="carousel-counter-tag"><Icon name="pin" size={12} /> Details ({hotspots.length})</span>
-                  <span className="carousel-counter-info-icon"><Icon name="list" size={13} /></span>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              className="btn btn--secondary btn--sm inspect-nav-btn"
-              onClick={() => {
-                const nextIdx =
-                  activeHotspotIndex < 0 || activeHotspotIndex >= hotspots.length - 1
-                    ? 0
-                    : activeHotspotIndex + 1;
-                focusHotspot(nextIdx, true);
-              }}
-              title="Next Detail"
-            >
-              Next <Icon name="chevronRight" size={13} />
-            </button>
-
-            {/* Inline Audio Listening Button on Mobile if Hotspot has Audio */}
-            {isMobile && activeHotspot?.audio_file_id && (
-              <>
-                <audio
-                  ref={audioPlayerRef}
-                  src={proxyMediaUrl(activeHotspot.audio_file_id!) || ''}
-                  onPlay={() => setIsPlayingAudio(true)}
-                  onPause={() => setIsPlayingAudio(false)}
-                  onEnded={() => setIsPlayingAudio(false)}
-                />
-                <button
-                  type="button"
-                  className={`btn btn--sm ${isPlayingAudio ? 'btn--primary' : 'btn--secondary'} inspect-audio-btn`}
-                  onClick={toggleAudio}
-                  title={isPlayingAudio ? 'Pause Audio' : 'Listen to Audio Commentary'}
-                >
-                  {isPlayingAudio
-                    ? (<><Icon name="pause" size={13} /> Pause</>)
-                    : (<><Icon name="audio" size={13} /> Listen</>)}
-                </button>
-              </>
-            )}
-
-            {isMobile && activeHotspot?.audio_timestamp_seconds != null && onAudioSeek && (
+          {hotspots.length > 0 && (
+            <div className="inspect-lightbox__carousel">
               <button
                 type="button"
-                className="btn btn--sm btn--secondary inspect-audio-btn"
+                className="btn btn--secondary btn--sm inspect-nav-btn"
+                onClick={() => {
+                  if (activeHotspotIndex <= 0) {
+                    focusHotspot(hotspots.length - 1, true);
+                  } else {
+                    focusHotspot(activeHotspotIndex - 1, true);
+                  }
+                }}
+                title="Previous Detail"
+                aria-label="Previous Detail"
+              >
+                <Icon name="chevronLeft" size={14} /> Prev
+              </button>
+
+              <button
+                type="button"
+                className={`carousel-counter-btn ${activeHotspotIndex >= 0 ? 'active' : ''}`}
+                onClick={() => setShowHotspotList((prev) => !prev)}
+                title="Click to open hotspots directory"
+              >
+                <span className="carousel-counter-tag">
+                  <Icon name="pin" size={10} /> Details ({hotspots.length})
+                </span>
+                <span className="carousel-counter-title">
+                  {activeHotspotIndex >= 0
+                    ? `${String(activeHotspotIndex + 1).padStart(2, '0')}. ${hotspots[activeHotspotIndex].title}`
+                    : 'Overview'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm inspect-nav-btn"
+                onClick={() => {
+                  if (activeHotspotIndex < 0 || activeHotspotIndex >= hotspots.length - 1) {
+                    focusHotspot(0, true);
+                  } else {
+                    focusHotspot(activeHotspotIndex + 1, true);
+                  }
+                }}
+                title="Next Detail"
+                aria-label="Next Detail"
+              >
+                Next <Icon name="chevronRight" size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* Dedicated Hotspot Audio Clip Listening */}
+          {activeHotspot?.audio_file_id && (
+            <div className="inspect-lightbox__hotspot-audio">
+              <button
+                type="button"
+                className={`btn btn--sm inspect-audio-btn ${isPlayingAudio ? 'btn--primary' : ''}`}
+                onClick={toggleAudio}
+                title={isPlayingAudio ? 'Pause Detail Audio' : 'Listen to Detail Audio'}
+              >
+                <Icon name={isPlayingAudio ? 'pause' : 'audio'} size={13} /> {isPlayingAudio ? 'Pause Clip' : 'Listen'}
+              </button>
+              <audio
+                ref={audioPlayerRef}
+                src={proxyMediaUrl(activeHotspot.audio_file_id, artwork.updated_at)}
+                preload="metadata"
+                onPlay={() => setIsPlayingAudio(true)}
+                onPause={() => setIsPlayingAudio(false)}
+                onEnded={() => setIsPlayingAudio(false)}
+                hidden
+              />
+            </div>
+          )}
+
+          {/* Seek Link to Timestamp in Main Exhibition / Artwork Audio Guide */}
+          {activeHotspot?.audio_timestamp_seconds != null && onAudioSeek && (
+            <div className="inspect-lightbox__seek-audio">
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm inspect-audio-btn inspect-audio-btn--seek"
                 onClick={() => onAudioSeek(activeHotspot.audio_timestamp_seconds!, activeHotspot.audio_timestamp_end_seconds)}
                 title={`Jump to ${Math.floor(activeHotspot.audio_timestamp_seconds)}s in Main Audio Guide`}
               >
                 <Icon name="audio" size={13} /> Guide ({Math.floor(activeHotspot.audio_timestamp_seconds)}s)
               </button>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
-        <span className="inspect-lightbox__hint">
-          {artwork.artwork_type === 'VIDEO'
-            ? 'Cinema Mode · Press Esc or click to return to gallery'
-            : isMobile
-            ? isTiltEnabled
-              ? mobileMode === 'tilt'
-                ? 'Drag to Tilt in 3D · Pinch to Zoom · Tap "Tilt Active" to return to Pan'
-                : 'Drag to Pan · Pinch to Zoom · Tap "3D Tilt" to angle'
-              : 'Drag to Pan · Pinch to Zoom'
-            : isTiltEnabled
-            ? 'Left-drag to Pan · Right-drag to Tilt · Scroll to Zoom'
-            : 'Left-drag to Pan · Scroll to Zoom'}
-        </span>
-      </footer>
+          <span className="inspect-lightbox__hint">
+            {artwork.artwork_type === 'VIDEO'
+              ? 'Cinema Mode · Press Esc or click to return to gallery'
+              : isMobile
+              ? isTiltEnabled
+                ? mobileMode === 'tilt'
+                  ? 'Drag to Tilt in 3D · Pinch to Zoom · Tap "Tilt Active" to return to Pan'
+                  : 'Drag to Pan · Pinch to Zoom · Tap "3D Tilt" to angle'
+                : 'Drag to Pan · Pinch to Zoom'
+              : isTiltEnabled
+              ? 'Left-drag to Pan · Right-drag to Tilt · Scroll to Zoom'
+              : 'Left-drag to Pan · Scroll to Zoom'}
+          </span>
+        </footer>
+      )}
     </div>
   );
 }

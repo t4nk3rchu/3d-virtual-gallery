@@ -644,6 +644,20 @@
   font-size: 13px;
 }
 
+/* The gizmo toolbar is a dark glass bar; ghost buttons here need light text
+   (the global .reda-parch .btn--ghost rule forces dark ink → invisible). */
+.gizmo-toolbar .btn--ghost {
+  color: var(--reda-cream-hi) !important;
+  border-color: var(--reda-line) !important;
+  background: transparent !important;
+}
+
+.gizmo-toolbar .btn--ghost:hover:not(:disabled) {
+  background: rgba(218, 196, 143, 0.1) !important;
+  border-color: var(--reda-gold) !important;
+  color: var(--reda-cream-hi) !important;
+}
+
 .mode-toggle {
   display: flex;
   background: rgba(20, 15, 8, 0.78);
@@ -845,6 +859,28 @@
   margin-bottom: 12px;
 }
 
+/* "Done Editing Hotspots" — flat dark button under the canvas (mockup .done) */
+.hotspot-done-btn {
+  align-self: flex-start;
+  margin-top: 16px;
+  font-family: var(--reda-ui);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--reda-cream-hi);
+  background: var(--reda-ink);
+  border: 1px solid var(--reda-gold);
+  border-radius: var(--reda-radius);
+  padding: 11px 18px;
+  min-height: 44px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.hotspot-done-btn:hover {
+  background: var(--reda-char);
+  border-color: var(--reda-gold-hi, var(--reda-gold));
+}
+
 .hotspot-image-wrapper {
   position: relative;
   display: inline-block;
@@ -891,7 +927,7 @@
 }
 
 .hotspot-pin:hover {
-  transform: translate(-50%, -50%) scale(1.15) !important;
+  transform: translate(-50%, -50%) scale(var(--inspect-pin-scale, 1)) !important;
 }
 
 .hotspot-pin.selected {

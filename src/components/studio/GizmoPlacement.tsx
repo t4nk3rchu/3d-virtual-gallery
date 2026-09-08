@@ -273,7 +273,10 @@ export function GizmoPlacement({
         gm.attachToMesh(mesh);
         updateCoordsFromMesh(mesh);
         if (camera) {
+          // Auto-frame: recenter and zoom the camera onto the selected artwork,
+          // mirroring the viewer's focus behavior.
           camera.setTarget(mesh.position.clone());
+          camera.radius = 3.5;
         }
       } else {
         gm.attachToMesh(null);
@@ -335,17 +338,6 @@ export function GizmoPlacement({
       selectArtwork(targetId, false);
     }
   }, [initialSelectedArtworkId, selectArtwork]);
-
-  // Focus / Frame camera on selected artwork
-  const frameSelectedArtwork = useCallback(() => {
-    if (!selectedArtworkId) return;
-    const mesh = meshesMapRef.current.get(selectedArtworkId);
-    const camera = cameraRef.current;
-    if (mesh && camera) {
-      camera.setTarget(mesh.position.clone());
-      camera.radius = 3.5;
-    }
-  }, [selectedArtworkId]);
 
   // Initialize authoring Babylon scene
   useEffect(() => {
@@ -938,17 +930,6 @@ export function GizmoPlacement({
                   {lockAspectRatio ? 'Lock Ratio' : 'Free Scale'}
                 </Button>
               )}
-
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                iconLeft="inspect"
-                onClick={frameSelectedArtwork}
-                title="Center camera on selected artwork"
-              >
-                Frame Artwork
-              </Button>
 
               <Button
                 type="button"

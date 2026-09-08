@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import type { Artist } from '../../../types/schema';
+import type { Artist, Artwork } from '../../../types/schema';
 import { getImageUrl } from '../../../lib/media/gdrive';
 import { Icon } from '../../ui';
 
 interface ArtistViewerPreviewProps {
   artist: Artist | null;
+  artworks?: Artwork[];
   isNew?: boolean;
 }
 
@@ -121,7 +122,7 @@ const DEVICE_CONFIG: Record<PreviewDevice, DeviceConfig> = {
   },
 };
 
-export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps) {
+export function ArtistViewerPreview({ artist, artworks = [], isNew }: ArtistViewerPreviewProps) {
   const [device, setDevice] = useState<PreviewDevice>('pc');
 
   const portraitUrl = artist?.portrait_file_id
@@ -132,6 +133,7 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
   const lifeDates = artist?.life_dates || null;
   const quote = artist?.quote || null;
   const bio = artist?.biography || null;
+  const assignedArtworks = artworks.filter((a) => a.artist_id === artist?.id);
   const contact = artist?.contact_info || null;
 
   const cfg = DEVICE_CONFIG[device];
@@ -439,9 +441,25 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                 type="button"
                 className="artist-modal-close"
                 aria-label="Close artist profile"
-                style={cfg.closeStyle}
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  width: '44px',
+                  height: '44px',
+                  minWidth: '44px',
+                  minHeight: '44px',
+                  borderRadius: '50%',
+                  background: 'rgba(14, 10, 5, 0.65)',
+                  border: '1px solid rgba(201, 163, 91, 0.35)',
+                  color: 'var(--reda-stone)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  zIndex: 2,
+                  ...cfg.closeStyle,
+                }}
               >
-                <Icon name="close" size={cfg.closeIconSize} />
+                <Icon name="close" size={16} />
               </button>
 
               <div
@@ -742,6 +760,93 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                     <p className="artist-bio-empty" style={{ fontSize: cfg.bioEmptyFontSize, color: 'var(--reda-muted)' }}>
                       Biography not available for this artist.
                     </p>
+                  )}
+
+                  {/* Assigned Artworks in Exhibition (matches mockup .fworks) */}
+                  {assignedArtworks.length > 0 && (
+                    <div
+                      className="artist-modal-works"
+                      style={{
+                        marginTop: '24px',
+                        borderTop: '1px solid rgba(201, 163, 91, 0.18)',
+                        paddingTop: '18px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: 'var(--reda-mono)',
+                          fontSize: '9.5px',
+                          letterSpacing: '0.12em',
+                          textTransform: 'uppercase',
+                          color: 'var(--reda-gold-deep)',
+                          marginBottom: '12px',
+                        }}
+                      >
+                        Works in Exhibition ({assignedArtworks.length})
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        {assignedArtworks.map((work) => {
+                          const thumbUrl = work.media_file_id ? getImageUrl(work.media_file_id, 'thumbnail') : null;
+                          return (
+                            <div
+                              key={work.id}
+                              style={{
+                                width: '104px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '4px',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  height: '74px',
+                                  borderRadius: 'var(--reda-radius)',
+                                  background: 'linear-gradient(180deg, #41586c, #8ea6b6)',
+                                  border: '1px solid rgba(201, 163, 91, 0.25)',
+                                  overflow: 'hidden',
+                                  position: 'relative',
+                                }}
+                              >
+                                {thumbUrl && (
+                                  <img
+                                    src={thumbUrl}
+                                    alt={work.title}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                                  />
+                                )}
+                              </div>
+                              <div
+                                style={{
+                                  fontFamily: 'var(--reda-serif)',
+                                  fontSize: '12.5px',
+                                  color: 'var(--reda-bone)',
+                                  lineHeight: 1.3,
+                                  marginTop: '4px',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                }}
+                                title={work.title}
+                              >
+                                {work.title}
+                              </div>
+                              {(work.year || work.medium) && (
+                                <div
+                                  style={{
+                                    fontFamily: 'var(--reda-ui)',
+                                    fontSize: '10.5px',
+                                    color: 'var(--reda-stone)',
+                                  }}
+                                >
+                                  {[work.year, work.medium].filter(Boolean).join(' · ')}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

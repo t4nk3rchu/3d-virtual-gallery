@@ -100,10 +100,14 @@ export function HotspotOverlay({
               position: 'absolute',
               left: `${hotspot.x_percent}%`,
               top: `${hotspot.y_percent}%`,
-              transform: 'translate(-50%, -50%)',
-              opacity: isActive && !hideFloatingCard ? 0 : 1,
-              pointerEvents: isActive && !hideFloatingCard ? 'none' : 'auto',
-              transition: 'opacity 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease',
+              // Counter-scale by the inspect stage's inverse zoom (set on an ancestor)
+              // so pins keep a constant on-screen size. Defaults to 1 elsewhere.
+              transform: 'translate(-50%, -50%) scale(var(--inspect-pin-scale, 1))',
+              opacity: isActive ? 0 : 1,
+              pointerEvents: isActive ? 'none' : 'auto',
+              // No transform transition: the counter-scale updates every frame during
+              // zoom and must track instantly, not lag behind.
+              transition: 'opacity 0.3s ease, box-shadow 0.2s ease',
             }}
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}

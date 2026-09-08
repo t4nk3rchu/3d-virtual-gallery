@@ -20,9 +20,7 @@ export function AudioGuidePlayer({ audioRef, title = 'Audio Narration', classNam
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
 
   // Bind to the external element: sync initial state (it may already be playing) + subscribe to events
   useEffect(() => {
@@ -31,15 +29,13 @@ export function AudioGuidePlayer({ audioRef, title = 'Audio Narration', classNam
     setIsPlaying(!audio.paused);
     setCurrentTime(audio.currentTime);
     setDuration(audio.duration || 0);
-    setIsLoaded(audio.readyState >= 1);
-    setVolume(audio.volume);
     setIsMuted(audio.muted);
 
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
     const onEnded = () => { setIsPlaying(false); setCurrentTime(0); };
     const onTime = () => setCurrentTime(audio.currentTime);
-    const onMeta = () => { setDuration(audio.duration || 0); setIsLoaded(true); };
+    const onMeta = () => { setDuration(audio.duration || 0); };
     audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
     audio.addEventListener('ended', onEnded);
@@ -73,29 +69,14 @@ export function AudioGuidePlayer({ audioRef, title = 'Audio Narration', classNam
     }
   };
 
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVol = parseFloat(e.target.value);
-    setVolume(newVol);
-    setIsMuted(newVol === 0);
-    if (audioRef.current) {
-      audioRef.current.volume = newVol;
-      audioRef.current.muted = newVol === 0;
-    }
-  };
-
   const toggleMute = () => {
     if (!audioRef.current) return;
     const nextMute = !isMuted;
     setIsMuted(nextMute);
     audioRef.current.muted = nextMute;
-    if (!nextMute && volume === 0) {
-      setVolume(0.5);
-      audioRef.current.volume = 0.5;
-    }
   };
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const volumePercent = isMuted ? 0 : volume * 100;
 
   return (
     <div
@@ -103,17 +84,19 @@ export function AudioGuidePlayer({ audioRef, title = 'Audio Narration', classNam
       role="region"
       aria-label={`Audio guide: ${title}`}
     >
-      {/* Header with Title & Badge */}
+      {/* Header with Title & Time */}
       <div className="reda-audio-player__header">
         <div className="reda-audio-player__title-group">
           <span className="reda-audio-player__icon">
-            <Icon name="audio" size={13} />
+            <Icon name="audio" size={12} />
           </span>
-          <span className="reda-audio-player__kicker">AUDIO GUIDE</span>
+          <span className="reda-audio-player__kicker">Audio Guide</span>
         </div>
-        <span className="reda-audio-player__status">
-          {isPlaying ? 'PLAYING' : isLoaded ? 'READY' : 'AUDIO'}
-        </span>
+        <div className="reda-audio-player__time-display">
+          <span className="reda-audio-player__time-current">{formatTime(currentTime)}</span>
+          <span className="reda-audio-player__time-divider">/</span>
+          <span className="reda-audio-player__time-total">{formatTime(duration)}</span>
+        </div>
       </div>
 
       {/* Primary Control Bar & Progress */}
@@ -124,12 +107,12 @@ export function AudioGuidePlayer({ audioRef, title = 'Audio Narration', classNam
           className={`reda-audio-player__play-btn ${isPlaying ? 'is-playing' : ''}`}
           onClick={togglePlay}
           aria-label={isPlaying ? 'Pause narration' : 'Play narration'}
-          title={isPlaying ? 'Pause' : 'Play audio narration'}
+          title={isPlaying ? 'Pause narration' : 'Play audio narration'}
         >
-          <Icon name={isPlaying ? 'pause' : 'play'} size={14} />
+          <Icon name={isPlaying ? 'pause' : 'play'} size={13} />
         </button>
 
-        {/* Scrubber and Time */}
+        {/* Scrubber and Track */}
         <div className="reda-audio-player__scrubber-group">
           <div className="reda-audio-player__progress-wrap">
             <input
@@ -146,39 +129,18 @@ export function AudioGuidePlayer({ audioRef, title = 'Audio Narration', classNam
               }}
             />
           </div>
-
-          <div className="reda-audio-player__time-display">
-            <span className="reda-audio-player__time-current">{formatTime(currentTime)}</span>
-            <span className="reda-audio-player__time-divider">/</span>
-            <span className="reda-audio-player__time-total">{formatTime(duration)}</span>
-          </div>
         </div>
 
-        {/* Volume controls */}
-        <div className="reda-audio-player__volume-group">
-          <button
-            type="button"
-            className="reda-audio-player__mute-btn"
-            onClick={toggleMute}
-            aria-label={isMuted ? 'Unmute' : 'Mute'}
-            title={isMuted ? 'Unmute' : 'Mute'}
-          >
-            <Icon name="sound" size={13} />
-          </button>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={isMuted ? 0 : volume}
-            onChange={handleVolumeChange}
-            className="reda-audio-player__slider reda-audio-player__slider--volume"
-            aria-label="Volume slider"
-            style={{
-              background: `linear-gradient(to right, var(--reda-cream-hi) 0%, var(--reda-cream-hi) ${volumePercent}%, rgba(236, 227, 206, 0.2) ${volumePercent}%, rgba(236, 227, 206, 0.2) 100%)`
-            }}
-          />
-        </div>
+        {/* Mute toggle button */}
+        <button
+          type="button"
+          className="reda-audio-player__mute-btn"
+          onClick={toggleMute}
+          aria-label={isMuted ? 'Unmute' : 'Mute'}
+          title={isMuted ? 'Unmute' : 'Mute'}
+        >
+          <Icon name={isMuted ? 'soundMute' : 'sound'} size={13} />
+        </button>
       </div>
     </div>
   );

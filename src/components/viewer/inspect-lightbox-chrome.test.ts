@@ -24,4 +24,17 @@ describe('InspectLightbox chrome', () => {
     const context = src.slice(Math.max(0, buttonIdx - 300), buttonIdx);
     expect(context).toContain('!isMobile');
   });
+
+  it('hides close button and bottom controls navbar when mobile directory drawer is open', () => {
+    // Both inspect-lightbox__close and inspect-lightbox__controls should be guarded when drawer is open on mobile
+    const closeBtnIdx = src.indexOf('className="inspect-lightbox__close"');
+    expect(closeBtnIdx).toBeGreaterThan(-1);
+    const closeContext = src.slice(Math.max(0, closeBtnIdx - 200), closeBtnIdx);
+    expect(closeContext).toContain('!(isMobile && showHotspotList)');
+
+    const controlsIdx = src.indexOf('className="inspect-lightbox__controls"');
+    expect(controlsIdx).toBeGreaterThan(-1);
+    const controlsContext = src.slice(Math.max(0, controlsIdx - 200), controlsIdx);
+    expect(controlsContext).toContain('!(isMobile && showHotspotList)');
+  });
 });

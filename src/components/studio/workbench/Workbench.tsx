@@ -106,9 +106,11 @@ export function Workbench({
       <div
         className="wb-main"
         style={{
+          // setup renders only the rail + sheet (2 children), so it needs 2
+          // columns — a 3-column track squeezed the sheet into the narrow slot.
           gridTemplateColumns:
             tool === 'setup'
-              ? '60px 210px 1fr'
+              ? '60px 1fr'
               : '60px 232px 1fr',
         }}
       >
@@ -189,6 +191,7 @@ export function Workbench({
             <div style={{ flex: 1, minWidth: 0, height: '100%', position: 'relative', overflow: 'hidden' }}>
               <ArtistViewerPreview
                 artist={activeArtist}
+                artworks={exhibition.artworks ?? []}
                 isNew={selectedArtistId === 'new'}
               />
             </div>

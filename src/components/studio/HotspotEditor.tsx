@@ -233,7 +233,25 @@ export function HotspotEditor({
             <h2>Interactive Hotspot Editor</h2>
             <p className="subtitle">Artwork: {artwork.title}</p>
           </div>
-          <button className="btn btn--ghost" onClick={onClose} aria-label="Close" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '6px' }}>
+          <button
+            type="button"
+            className="hotspot-editor-close"
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              display: 'grid',
+              placeItems: 'center',
+              background: 'none',
+              border: '1px solid var(--reda-parch-border)',
+              color: 'var(--reda-muted)',
+              cursor: 'pointer',
+              padding: 0,
+              transition: 'all 0.15s ease',
+            }}
+          >
             <Icon name="close" size={16} />
           </button>
         </div>
@@ -313,27 +331,41 @@ export function HotspotEditor({
                 />
 
                 {/* Existing Hotspot Pins */}
-                {hotspots.map((h) => (
-                  <button
-                    key={h.id}
-                    type="button"
-                    className={`hotspot-pin ${selectedHotspot?.id === h.id ? 'selected' : ''}`}
-                    style={{
-                      position: 'absolute',
-                      left: `${h.x_percent}%`,
-                      top: `${h.y_percent}%`,
-                      transform: 'translate(-50%, -50%)',
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setNewPin(null);
-                      setSelectedHotspot(h);
-                    }}
-                    title={h.title}
-                  >
-                    <span className="hotspot-pin__dot" />
-                  </button>
-                ))}
+                {hotspots.map((h) => {
+                  const isSelected = selectedHotspot?.id === h.id;
+                  return (
+                    <button
+                      key={h.id}
+                      type="button"
+                      className={`hotspot-pin ${isSelected ? 'selected on' : ''}`}
+                      style={{
+                        position: 'absolute',
+                        left: `${h.x_percent}%`,
+                        top: `${h.y_percent}%`,
+                        transform: 'translate(-50%, -50%)',
+                        width: isSelected ? '28px' : '22px',
+                        height: isSelected ? '28px' : '22px',
+                        borderRadius: '50%',
+                        background: isSelected ? 'var(--reda-cham-hi)' : 'var(--reda-cham)',
+                        border: isSelected ? '3px solid var(--reda-cream-hi)' : '2px solid #fff',
+                        boxShadow: isSelected
+                          ? '0 0 0 3px rgba(78, 114, 134, 0.4), 0 3px 8px rgba(0,0,0,0.5)'
+                          : '0 2px 6px rgba(0,0,0,0.4)',
+                        cursor: 'pointer',
+                        padding: 0,
+                        zIndex: isSelected ? 12 : 10,
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setNewPin(null);
+                        setSelectedHotspot(h);
+                      }}
+                      title={h.title}
+                    >
+                      <span className="hotspot-pin__dot" />
+                    </button>
+                  );
+                })}
 
                 {/* Newly Placed Pin Indicator */}
                 {newPin && (
@@ -344,6 +376,14 @@ export function HotspotEditor({
                       left: `${newPin.x}%`,
                       top: `${newPin.y}%`,
                       transform: 'translate(-50%, -50%)',
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '50%',
+                      background: 'var(--reda-cham-hi)',
+                      border: '3px solid var(--reda-gold)',
+                      boxShadow: '0 0 0 3px rgba(201, 163, 91, 0.4), 0 3px 8px rgba(0,0,0,0.5)',
+                      pointerEvents: 'none',
+                      zIndex: 15,
                     }}
                   >
                     <span className="hotspot-pin__dot" />
@@ -353,6 +393,11 @@ export function HotspotEditor({
             ) : (
               <p>No image file associated with this artwork.</p>
             )}
+
+            {/* Done button lives under the canvas (matches mockup .done) */}
+            <button type="button" className="hotspot-done-btn" onClick={onClose}>
+              Done Editing Hotspots
+            </button>
           </div>
 
           {/* Hotspot Form & Details Panel */}
@@ -451,10 +496,7 @@ export function HotspotEditor({
 
                 {error && <p className="error">{error}</p>}
 
-                <div className="form-actions">
-                  <Button type="submit" variant="primary" disabled={saving} style={{ borderRadius: 'var(--reda-radius-pill)' }}>
-                    {saving ? 'Saving…' : 'Add Hotspot Pin'}
-                  </Button>
+                <div className="form-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '20px' }}>
                   <Button
                     type="button"
                     variant="ghost"
@@ -462,6 +504,14 @@ export function HotspotEditor({
                     style={{ borderRadius: 'var(--reda-radius-pill)' }}
                   >
                     Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={saving}
+                    style={{ borderRadius: 'var(--reda-radius-pill)', marginLeft: 'auto' }}
+                  >
+                    {saving ? 'Saving…' : 'Add Hotspot Pin'}
                   </Button>
                 </div>
               </form>
@@ -553,9 +603,14 @@ export function HotspotEditor({
 
                 {error && <p className="error">{error}</p>}
 
-                <div className="form-actions">
-                  <Button type="submit" variant="primary" disabled={saving} style={{ borderRadius: 'var(--reda-radius-pill)' }}>
-                    {saving ? 'Saving…' : 'Save Changes'}
+                <div className="form-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '20px' }}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => { setSelectedHotspot(null); prevSelectedId.current = null; }}
+                    style={{ borderRadius: 'var(--reda-radius-pill)' }}
+                  >
+                    Cancel
                   </Button>
                   <Button
                     type="button"
@@ -567,12 +622,12 @@ export function HotspotEditor({
                     Delete
                   </Button>
                   <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => { setSelectedHotspot(null); prevSelectedId.current = null; }}
-                    style={{ borderRadius: 'var(--reda-radius-pill)' }}
+                    type="submit"
+                    variant="primary"
+                    disabled={saving}
+                    style={{ borderRadius: 'var(--reda-radius-pill)', marginLeft: 'auto' }}
                   >
-                    Cancel
+                    {saving ? 'Saving…' : 'Save Changes'}
                   </Button>
                 </div>
               </form>
@@ -585,12 +640,6 @@ export function HotspotEditor({
               </div>
             )}
           </div>
-        </div>
-
-        <div className="modal-footer">
-          <Button type="button" variant="secondary" onClick={onClose} style={{ borderRadius: 'var(--reda-radius-pill)' }}>
-            Done Editing Hotspots
-          </Button>
         </div>
       </div>
     </div>

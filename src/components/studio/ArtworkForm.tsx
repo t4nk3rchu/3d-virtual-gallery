@@ -390,7 +390,7 @@ export function ArtworkForm({
                   textTransform: 'uppercase',
                 }}
               >
-                Live Frame Preview • {frameConfig.frameType.replace('_', ' ').toUpperCase()}
+                Live Frame Preview • {(frameConfig.frameType || 'wood').replace('_', ' ').toUpperCase()}
               </span>
             </div>
           )}
@@ -441,24 +441,24 @@ export function ArtworkForm({
         {/* Artwork Type Selection */}
         <div className="form-group">
           <label className="form-label">Artwork Medium Type</label>
-          <div className="type-selector">
+          <div className="type-selector medium">
             <button
               type="button"
-              className={`type-btn ${artworkType === 'IMAGE_2D' ? 'active' : ''}`}
+              className={`type-btn med ${artworkType === 'IMAGE_2D' ? 'active on' : ''}`}
               onClick={() => setArtworkType('IMAGE_2D')}
             >
               <Icon name="frame" /> 2D Painting / Image
             </button>
             <button
               type="button"
-              className={`type-btn ${artworkType === 'VIDEO' ? 'active' : ''}`}
+              className={`type-btn med ${artworkType === 'VIDEO' ? 'active on' : ''}`}
               onClick={() => setArtworkType('VIDEO')}
             >
               <Icon name="film" /> Video (YouTube)
             </button>
             <button
               type="button"
-              className="type-btn type-btn--disabled"
+              className="type-btn med dis type-btn--disabled"
               disabled
               title="3D Object Model — coming in a future update"
             >
@@ -593,65 +593,46 @@ export function ArtworkForm({
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="mat-width" className="form-label">Mat Border Width (m)</label>
+            <div className="form-group checkbox-group" style={{ display: 'flex', alignItems: 'center', marginTop: '4px' }}>
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                 <input
-                  id="mat-width"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="0.3"
-                  value={frameConfig.matWidth}
+                  type="checkbox"
+                  checked={frameConfig.showPlacard}
                   onChange={(e) =>
                     setFrameConfig({
                       ...frameConfig,
-                      matWidth: parseFloat(e.target.value) || 0,
+                      showPlacard: e.target.checked,
                     })
                   }
-                  className="input"
                 />
-              </div>
-
-              <div className="form-group checkbox-group" style={{ display: 'flex', alignItems: 'center', marginTop: '20px' }}>
-                <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={frameConfig.showPlacard}
-                    onChange={(e) =>
-                      setFrameConfig({
-                        ...frameConfig,
-                        showPlacard: e.target.checked,
-                      })
-                    }
-                  />
-                  Display Wall Placard under artwork
-                </label>
-              </div>
+                Display Wall Placard under artwork
+              </label>
             </div>
 
-            <div className="form-row" style={{ marginTop: '6px' }}>
-              <div className="form-group checkbox-group" style={{ display: 'flex', alignItems: 'center' }}>
-                <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={frameConfig.allowTilt !== false}
-                    onChange={(e) =>
-                      setFrameConfig({
-                        ...frameConfig,
-                        allowTilt: e.target.checked,
-                      })
-                    }
-                  />
-                  Enable 3D Perspective Tilt in Inspect Mode
-                </label>
-              </div>
+            <div className="form-group checkbox-group" style={{ display: 'flex', alignItems: 'center' }}>
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={frameConfig.allowTilt !== false}
+                  onChange={(e) =>
+                    setFrameConfig({
+                      ...frameConfig,
+                      allowTilt: e.target.checked,
+                    })
+                  }
+                />
+                Enable 3D Perspective Tilt in Inspect Mode
+              </label>
             </div>
           </div>
         )}
 
-        {/* Metadata Section */}
-        <div className="form-row">
+        {/* Metadata Section — Artwork Info */}
+        <div className="studio-card__subgroup">
+          <label className="form-label" style={{ fontWeight: 600, color: 'var(--reda-ink)' }}>
+            Artwork Info
+          </label>
+
           <div className="form-group">
             <label htmlFor="art-title" className="form-label">Title *</label>
             <input
@@ -664,22 +645,8 @@ export function ArtworkForm({
               className="input"
             />
           </div>
-          <div className="form-group">
-            <label htmlFor="art-artist" className="form-label">
-              Artist Name
-            </label>
-            <input
-              id="art-artist"
-              type="text"
-              value={artist}
-              onChange={(e) => setArtist(e.target.value)}
-              placeholder="Artist name"
-              className="input"
-            />
-          </div>
-        </div>
 
-        {artists.length > 0 && (
+          {artists.length > 0 && (
           <div className="form-group">
             <label htmlFor="art-artist-profile" className="form-label">
               Link to Exhibition Artist Profile
@@ -692,7 +659,7 @@ export function ArtworkForm({
                 const selectedId = e.target.value;
                 setArtistId(selectedId);
                 const matched = artists.find((a) => a.id === selectedId);
-                if (matched && (!artist || artist === '')) {
+                if (matched) {
                   setArtist(matched.name);
                 }
               }}
@@ -754,10 +721,12 @@ export function ArtworkForm({
             className="input textarea"
           />
         </div>
+        </div>
 
         {error && <p className="error" role="alert">{error}</p>}
         {embedded && (
           <div
+            className="artwork-form-actions"
             style={{
               position: 'sticky',
               bottom: 0,
@@ -768,44 +737,39 @@ export function ArtworkForm({
               display: 'flex',
               gap: '10px',
               alignItems: 'center',
-              justifyContent: 'space-between',
               zIndex: 10,
             }}
           >
-            <div>
-              {isEditing && (
-                <Button
-                  type="button"
-                  variant="danger"
-                  size="sm"
-                  disabled={submitting}
-                  onClick={handleDelete}
-                  title="Permanently remove artwork from this exhibition"
-                  style={{ borderRadius: 'var(--reda-radius-pill)' }}
-                >
-                  <Icon name="trash" size={13} /> Delete
-                </Button>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onCancel}
+              disabled={submitting}
+              style={{ borderRadius: 'var(--reda-radius-pill)' }}
+            >
+              Cancel
+            </Button>
+            {isEditing && (
               <Button
                 type="button"
-                variant="secondary"
-                onClick={onCancel}
+                variant="danger"
+                size="sm"
                 disabled={submitting}
+                onClick={handleDelete}
+                title="Permanently remove artwork from this exhibition"
                 style={{ borderRadius: 'var(--reda-radius-pill)' }}
               >
-                Cancel
+                <Icon name="trash" size={13} /> Delete
               </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                disabled={submitting}
-                style={{ borderRadius: 'var(--reda-radius-pill)' }}
-              >
-                {submitting ? 'Saving…' : isEditing ? 'Save Changes' : 'Add to Exhibition'}
-              </Button>
-            </div>
+            )}
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={submitting}
+              style={{ borderRadius: 'var(--reda-radius-pill)', marginLeft: 'auto' }}
+            >
+              {submitting ? 'Saving…' : isEditing ? 'Save Changes' : 'Add to Exhibition'}
+            </Button>
           </div>
         )}
       </form>

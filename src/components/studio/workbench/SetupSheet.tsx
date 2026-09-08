@@ -108,25 +108,14 @@ export function SetupSheet({
       <div className="wb-sheet">
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ borderBottom: '1px solid var(--reda-parch-border)', paddingBottom: '16px' }}>
-            <span
-              style={{
-                fontFamily: 'var(--reda-ui)',
-                fontSize: '10px',
-                fontWeight: 700,
-                letterSpacing: '.2em',
-                textTransform: 'uppercase',
-                color: 'var(--reda-gold-deep)',
-              }}
-            >
-              Setup · Identity &amp; Space
-            </span>
             <h2
               style={{
                 fontFamily: 'var(--reda-display)',
                 fontWeight: 500,
                 fontSize: '28px',
+                lineHeight: 1.2,
                 color: 'var(--reda-ink)',
-                margin: '6px 0 2px',
+                margin: '0 0 4px',
               }}
             >
               Exhibition Settings

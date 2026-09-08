@@ -56,7 +56,8 @@
 .wb-close-btn:hover{background:var(--reda-parch-border-subtle);color:var(--reda-son)}
 .wb-insp .ih{padding:14px 16px 10px;border-bottom:1px solid var(--reda-parch-border-subtle);position:relative}
 .wb-insp .ih .k{font-family:var(--reda-ui);font-size:12px;letter-spacing:normal;text-transform:none;color:var(--reda-muted-ink)}
-.wb-insp .ih h3{font-family:var(--reda-text);font-weight:500;font-size:19px;margin-top:3px;color:var(--reda-ink)}
+.wb-insp .ih h3{font-family:var(--reda-text);font-weight:500;font-size:19px;color:var(--reda-ink)}
+.wb-insp .ih .ih-sub{font-family:var(--reda-ui);font-size:12.5px;color:var(--reda-muted-ink);margin-top:3px}
 .wb-insp .body{overflow-y:auto;overflow-x:hidden;flex:1;padding:0 16px;position:relative}
 .wb-insp .form-group{margin-bottom:12px}
 .wb-insp .form-label{display:block;font-family:var(--reda-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--reda-label);margin-bottom:4px}
@@ -66,14 +67,23 @@
 .wb-insp .portrait{width:44px;height:44px;border-radius:50%;background:var(--reda-parch-border-subtle);border:1px solid var(--reda-parch-border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none}
 .wb-insp .artwork-form{display:flex;flex-direction:column;gap:4px}
 .wb-insp .foot{padding:12px 16px;border-top:1px solid var(--reda-parch-border);display:flex;gap:8px;align-items:center;background:var(--reda-parch-2)}
+/* ---- medium selector ---- */
+.medium{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.med{border:1px solid var(--reda-parch-border);border-radius:var(--reda-radius);padding:10px 8px;text-align:center;cursor:pointer;background:var(--reda-eggshell);font:inherit;width:100%;transition:all .15s ease}
+.med.on,.med.active{background:var(--reda-parch);border:1.5px solid var(--reda-cham-hi);color:var(--reda-ink)}
+.med.dis,.med:disabled{opacity:.45;cursor:not-allowed}
+.med .g{font-size:15px}
+.med .t{font-family:var(--reda-ui);font-size:11px;font-weight:600;margin-top:3px}
+.med .s{font-family:var(--reda-ui);font-size:8.5px;color:var(--reda-muted-ink)}
+
 /* ---- status ---- */
 .wb-status{display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--reda-parch-2);border-top:1px solid var(--reda-parch-border);font-family:var(--reda-mono);font-size:10.5px;color:var(--reda-muted-ink);letter-spacing:.04em;font-variant-numeric:tabular-nums}
 .wb-status .g{display:flex;gap:16px;align-items:center}
 .wb-status b{color:var(--reda-gold-deep);font-weight:600}
 /* ---- setup sheet ---- */
-.wb-sheetwrap{position:relative;overflow-y:auto;overflow-x:hidden;min-height:100%;box-sizing:border-box;display:flex;align-items:flex-start;justify-content:center;padding:26px 20px 48px;background:radial-gradient(120% 100% at 50% 0%,var(--reda-dash-sheet-warm),var(--reda-char) 60%)}
+.wb-sheetwrap{position:relative;overflow-y:auto;overflow-x:hidden;min-height:100%;box-sizing:border-box;display:flex;align-items:flex-start;justify-content:center;padding:26px 20px 48px;background:var(--reda-parch-2)}
 .wb-sheetwrap .vbg{display:none}
-.wb-sheet{position:relative;z-index:2;width:min(760px,94%);background:var(--reda-parch);color:var(--reda-ink);border-radius:10px;box-shadow:0 40px 90px rgba(0,0,0,.55);padding:30px 34px}
+.wb-sheet{position:relative;z-index:2;width:min(760px,94%);background:var(--reda-parch);color:var(--reda-ink);border:1px solid var(--reda-parch-border);border-radius:12px;box-shadow:0 4px 24px rgba(36,26,16,.08);padding:30px 34px}
 /* ---- dashboard (light / giấy điệp register) ---- */
 .dash {
   min-height: 100vh;
@@ -115,6 +125,36 @@
   color: var(--reda-ink-muted);
   font-size: 13.5px;
   margin-top: 2px;
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  cursor: pointer;
+  font-family: var(--reda-ui);
+  font-size: 13px;
+  color: var(--reda-ink);
+  border-radius: var(--reda-radius-pill);
+}
+
+.user-chip:hover {
+  color: var(--reda-son);
+}
+
+.user-chip .av {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--reda-gold);
+  color: var(--reda-ink);
+  font-weight: 600;
+  font-size: 13px;
 }
 
 .dgrid {
@@ -217,11 +257,26 @@
   margin: 5px 0 2px;
 }
 
+.dcard .desc {
+  font-family: var(--reda-ui);
+  color: var(--reda-ink-2);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin-top: 6px;
+}
+
 .dcard .cur {
   font-family: var(--reda-ui);
   color: var(--reda-ink-muted);
   font-size: 12.5px;
   margin-top: 6px;
+}
+
+.dcard .dt {
+  font-family: var(--reda-mono);
+  color: var(--reda-ink-muted);
+  font-size: 11px;
+  margin-top: 4px;
 }
 
 .dcard .acts {

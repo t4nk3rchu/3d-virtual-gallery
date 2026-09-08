@@ -24,4 +24,15 @@ describe('reda-viewer.css', () => {
     // no #rgb / #rrggbb anywhere (tokens only)
     expect(css).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
   });
+
+  it('focus-info-modal and inspect-lightbox__drawer adapt to landscape mobile drawer (<=667px)', () => {
+    const cssPath = resolve(__dirname, '../styles/reda-viewer.css');
+    const cssContent = readFileSync(cssPath, 'utf8');
+    const idx667 = cssContent.indexOf('max-width: 667px');
+    expect(idx667).toBeGreaterThan(-1);
+    const nextBlock = cssContent.slice(idx667, idx667 + 2500);
+    expect(nextBlock).toContain('.focus-info-modal');
+    expect(nextBlock).toContain('.inspect-lightbox__drawer');
+    expect(nextBlock).toContain('border-radius: 0');
+  });
 });

@@ -57,5 +57,7 @@ describe('Workbench shell', () => {
     await userEvent.click(setupToolBtn);
     expect(screen.getByText('Exhibition Settings')).toBeTruthy();
     expect(container.querySelector('.wb-nav')).toBeNull();
+    const sheetwrap = container.querySelector('.wb-sheetwrap');
+    expect(sheetwrap).toBeTruthy();
   });
 });

@@ -107,7 +107,13 @@ export function IntroVideoLoader({
           className="intro-video-player"
           playsInline
           preload="auto"
-          style={{ opacity: hasStarted ? 1 : 0.35, transition: 'opacity 0.6s ease', backgroundColor: '#000000' }}
+          style={{
+            // Fade the clip out once it ends so its final frame doesn't linger as a
+            // "black card" over the dark overlay while the scene finishes loading.
+            opacity: videoEnded ? 0 : hasStarted ? 1 : 0.35,
+            transition: 'opacity 0.6s ease',
+            backgroundColor: '#000000',
+          }}
           onEnded={handleVideoEnded}
           onError={() => {
             setVideoError(true);
@@ -143,8 +149,10 @@ export function IntroVideoLoader({
         </div>
       )}
 
-      {/* Bottom Actions: Skip Button or Preparing Scene status once started */}
-      {hasStarted && (
+      {/* Bottom Actions: Skip Button or Preparing Scene status once started.
+          Hidden after the clip ends — the centered "Finalizing…" state takes over
+          so there aren't two competing loading messages. */}
+      {hasStarted && !videoEnded && (
         <div className="intro-video-footer">
           {isSceneReady ? (
             <button

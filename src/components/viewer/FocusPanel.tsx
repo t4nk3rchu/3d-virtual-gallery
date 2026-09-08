@@ -102,101 +102,108 @@ export function FocusPanel({
         </div>
       </div>
 
-      {/* Expanded Translucent Info Popover Modal (Image 3) */}
+      {/* Expanded Translucent Info Popover Drawer (Mobile / Desktop) */}
       {isInfoOpen && (
-        <aside
-          className="focus-info-modal"
-          role="dialog"
-          aria-modal="false"
-          aria-label={`Artwork information: ${artwork.title}`}
-        >
-          {/* Section 1: Fixed Pinned Info (Header, Title, Medium, Dimensions) */}
-          <div className="focus-info-modal__pinned">
-            <div className="focus-info-modal__header">
-              <div className="focus-info-modal__artist">
-                {displayArtist}
+        <>
+          <div
+            className="focus-info-backdrop"
+            onClick={() => setIsInfoOpen(false)}
+            aria-hidden="true"
+          />
+          <aside
+            className="focus-info-modal"
+            role="dialog"
+            aria-modal="false"
+            aria-label={`Artwork information: ${artwork.title}`}
+          >
+            {/* Section 1: Fixed Pinned Info (Header, Title, Medium, Dimensions) */}
+            <div className="focus-info-modal__pinned">
+              <div className="focus-info-modal__header">
+                <div className="focus-info-modal__artist">
+                  {displayArtist}
+                </div>
+                <button
+                  type="button"
+                  className="focus-info-modal__close"
+                  onClick={() => setIsInfoOpen(false)}
+                  aria-label="Close information card"
+                >
+                  <Icon name="close" size={15} />
+                </button>
               </div>
-              <button
-                type="button"
-                className="focus-info-modal__close"
-                onClick={() => setIsInfoOpen(false)}
-                aria-label="Close information card"
-              >
-                <Icon name="close" size={15} />
-              </button>
+
+              <div className="focus-info-modal__title-year">
+                <strong>{artwork.title}</strong>
+                {artwork.year && <span className="focus-info-modal__year">, {artwork.year}</span>}
+              </div>
+
+              {artwork.medium && (
+                <div className="focus-info-modal__detail-row">
+                  <span className="detail-label">Medium:</span> {artwork.medium}
+                </div>
+              )}
+
+              {artwork.dimensions && (
+                <div className="focus-info-modal__detail-row">
+                  <span className="detail-label">Dimensions:</span> {artwork.dimensions}
+                </div>
+              )}
             </div>
 
-            <div className="focus-info-modal__title-year">
-              <strong>{artwork.title}</strong>
-              {artwork.year && <span className="focus-info-modal__year">, {artwork.year}</span>}
+            {/* Section 2: Scrollable Content (Description & Media) */}
+            <div className="focus-info-modal__scrollable">
+              {artwork.description && (
+                <p className="focus-info-modal__desc">{artwork.description}</p>
+              )}
+
+              {/* Audio guide narration player — controls the persistent element above */}
+              {hasGuide && (
+                <div className="focus-info-modal__audio">
+                  <AudioGuidePlayer audioRef={guideRef} title={artwork.title} />
+                </div>
+              )}
+
+              {/* YouTube embed for VIDEO artworks */}
+              {artwork.artwork_type === 'VIDEO' && artwork.youtube_video_id && (
+                <div className="focus-info-modal__video">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${artwork.youtube_video_id}?rel=0`}
+                    title={artwork.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              )}
             </div>
 
-            {artwork.medium && (
-              <div className="focus-info-modal__detail-row">
-                <span className="detail-label">Medium:</span> {artwork.medium}
-              </div>
-            )}
+            {/* Section 3: Fixed Bottom Actions (Read Bio & Inspect buttons) */}
+            <div className="focus-info-modal__actions">
+              {artwork.artist_profile && (
+                <button
+                  type="button"
+                  className="focus-panel__artist-link-btn"
+                  onClick={() => onOpenArtist?.(artwork.artist_profile!)}
+                  title={`Read biography of ${artwork.artist_profile.name}`}
+                >
+                  <Icon name="user" size={14} /> Read Artist Bio
+                </button>
+              )}
 
-            {artwork.dimensions && (
-              <div className="focus-info-modal__detail-row">
-                <span className="detail-label">Dimensions:</span> {artwork.dimensions}
-              </div>
-            )}
-          </div>
-
-          {/* Section 2: Scrollable Content (Description & Media) */}
-          <div className="focus-info-modal__scrollable">
-            {artwork.description && (
-              <p className="focus-info-modal__desc">{artwork.description}</p>
-            )}
-
-            {/* Audio guide narration player — controls the persistent element above */}
-            {hasGuide && (
-              <div className="focus-info-modal__audio">
-                <AudioGuidePlayer audioRef={guideRef} title={artwork.title} />
-              </div>
-            )}
-
-            {/* YouTube embed for VIDEO artworks */}
-            {artwork.artwork_type === 'VIDEO' && artwork.youtube_video_id && (
-              <div className="focus-info-modal__video">
-                <iframe
-                  src={`https://www.youtube.com/embed/${artwork.youtube_video_id}?rel=0`}
-                  title={artwork.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Section 3: Fixed Bottom Actions (Read Bio & Inspect buttons) */}
-          <div className="focus-info-modal__actions">
-            {artwork.artist_profile && (
-              <button
-                type="button"
-                className="focus-panel__artist-link-btn"
-                onClick={() => onOpenArtist?.(artwork.artist_profile!)}
-                title={`Read biography of ${artwork.artist_profile.name}`}
-              >
-                <Icon name="user" size={14} /> Read Artist Bio
-              </button>
-            )}
-
-            {((artwork.artwork_type === 'IMAGE_2D' && artwork.media_file_id) ||
-              (artwork.artwork_type === 'VIDEO' && artwork.youtube_video_id)) && (
-              <button
-                type="button"
-                className="focus-info-modal__inspect-btn"
-                onClick={onInspect}
-              >
-                {artwork.artwork_type === 'VIDEO'
-                  ? (<><Icon name="film" size={14} /> Open Cinema Mode</>)
-                  : (<><Icon name="search" size={14} /> Inspect Full Resolution</>)}
-              </button>
-            )}
-          </div>
-        </aside>
+              {((artwork.artwork_type === 'IMAGE_2D' && artwork.media_file_id) ||
+                (artwork.artwork_type === 'VIDEO' && artwork.youtube_video_id)) && (
+                <button
+                  type="button"
+                  className="focus-info-modal__inspect-btn"
+                  onClick={onInspect}
+                >
+                  {artwork.artwork_type === 'VIDEO'
+                    ? (<><Icon name="film" size={14} /> Open Cinema Mode</>)
+                    : (<><Icon name="search" size={14} /> Inspect Full Resolution</>)}
+                </button>
+              )}
+            </div>
+          </aside>
+        </>
       )}
 
       {/* Floating Side Rail Navigation Controls (Image 2) */}
