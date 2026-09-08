@@ -1334,8 +1334,7 @@ textarea.input {
 .dossier-book .btn--secondary,
 .dossier-page .btn--secondary,
 .studio-drawer .btn--secondary,
-.studio-drawer__footer .btn--secondary,
-.reda-parch .btn--secondary {
+.studio-drawer__footer .btn--secondary {
   background: var(--reda-char-2) !important;
   color: #F7E8D0 !important;
   border: 1px solid var(--reda-char-1) !important;
@@ -1346,11 +1345,22 @@ textarea.input {
 .dossier-book .btn--secondary:hover:not(:disabled),
 .dossier-page .btn--secondary:hover:not(:disabled),
 .studio-drawer .btn--secondary:hover:not(:disabled),
-.studio-drawer__footer .btn--secondary:hover:not(:disabled),
-.reda-parch .btn--secondary:hover:not(:disabled) {
+.studio-drawer__footer .btn--secondary:hover:not(:disabled) {
   background: #110E0B !important;
   border-color: var(--reda-gold) !important;
   color: #FFFFFF !important;
+}
+
+.reda-parch .btn--secondary {
+  background: var(--reda-parch-2) !important;
+  color: var(--reda-ink) !important;
+  border: 1px solid var(--reda-parch-border) !important;
+}
+
+.reda-parch .btn--secondary:hover:not(:disabled) {
+  background: var(--reda-parch) !important;
+  border-color: var(--reda-gold-deep) !important;
+  color: var(--reda-ink) !important;
 }
 
 .modal-card .btn--danger,
@@ -1432,8 +1442,8 @@ textarea.input {
 
 /* ---- type selector in ArtworkForm modal ---- */
 .type-btn {
-  background: var(--reda-field);
-  border: 1px solid #cbbd9d;
+  background: var(--reda-parch-field);
+  border: 1px solid var(--reda-parch-border);
   color: var(--reda-ink);
   font-family: var(--reda-ui);
   font-size: 12px;
@@ -1449,14 +1459,14 @@ textarea.input {
 }
 
 .type-btn:hover {
-  border-color: var(--reda-gold);
-  background: #ece2cd;
+  border-color: var(--reda-gold-deep);
+  background: var(--reda-parch-2);
 }
 
 .type-btn.active {
-  background: var(--reda-oxblood) !important;
-  color: #F3E7D5 !important;
-  border-color: var(--reda-oxblood) !important;
+  background: var(--reda-parch-2) !important;
+  color: var(--reda-ink) !important;
+  border: 1.5px solid var(--reda-cham-hi) !important;
 }
 
 .type-btn--disabled,
@@ -1464,9 +1474,9 @@ textarea.input {
   opacity: 0.45;
   cursor: not-allowed;
   border-style: dashed;
-  background: var(--reda-field) !important;
-  border-color: #cbbd9d !important;
-  color: var(--reda-ink-2) !important;
+  background: var(--reda-parch-field) !important;
+  border-color: var(--reda-parch-border) !important;
+  color: var(--reda-muted-ink) !important;
 }
 
 /* ---- artist item card in ArtistManagerModal ---- */

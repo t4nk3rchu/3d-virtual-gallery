@@ -16,17 +16,17 @@
 .wb-insp .btn--secondary,
 .reda-parch .btn--secondary,
 .login-card .btn--secondary {
-  background: var(--reda-char-2) !important;
-  color: #F7E8D0 !important;
-  border: 1px solid var(--reda-char-1) !important;
+  background: var(--reda-parch-2) !important;
+  color: var(--reda-ink) !important;
+  border: 1px solid var(--reda-parch-border) !important;
 }
 .wb-sheet .btn--secondary:hover,
 .wb-insp .btn--secondary:hover,
 .reda-parch .btn--secondary:hover,
 .login-card .btn--secondary:hover {
-  background: #110E0B !important;
-  color: #FFFFFF !important;
-  border-color: var(--reda-gold) !important;
+  background: var(--reda-parch) !important;
+  color: var(--reda-ink) !important;
+  border-color: var(--reda-gold-deep) !important;
 }
 
 .wb-sheet .btn--ghost,
