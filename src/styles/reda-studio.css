@@ -1282,7 +1282,7 @@ textarea.input {
 .modal-card {
   background: var(--reda-parch);
   color: var(--reda-ink);
-  border: 1px solid #d3c6a8;
+  border: 1px solid var(--reda-parch-border);
   border-radius: var(--reda-radius);
   box-shadow: 0 24px 60px rgba(0, 0, 0, .6);
   width: 100%;
@@ -1313,7 +1313,7 @@ textarea.input {
 .studio-drawer__footer .btn--ghost,
 .reda-parch .btn--ghost {
   color: var(--reda-ink) !important;
-  border-color: #cbbd9d !important;
+  border-color: var(--reda-parch-border) !important;
   background: transparent !important;
 }
 
@@ -1329,7 +1329,6 @@ textarea.input {
   border-color: var(--reda-gold) !important;
 }
 
-.modal-card .btn--secondary,
 .studio-card .btn--secondary,
 .dossier-book .btn--secondary,
 .dossier-page .btn--secondary,
@@ -1340,7 +1339,6 @@ textarea.input {
   border: 1px solid var(--reda-char-1) !important;
 }
 
-.modal-card .btn--secondary:hover:not(:disabled),
 .studio-card .btn--secondary:hover:not(:disabled),
 .dossier-book .btn--secondary:hover:not(:disabled),
 .dossier-page .btn--secondary:hover:not(:disabled),
@@ -1351,12 +1349,14 @@ textarea.input {
   color: #FFFFFF !important;
 }
 
+.modal-card .btn--secondary,
 .reda-parch .btn--secondary {
   background: var(--reda-parch-2) !important;
   color: var(--reda-ink) !important;
   border: 1px solid var(--reda-parch-border) !important;
 }
 
+.modal-card .btn--secondary:hover:not(:disabled),
 .reda-parch .btn--secondary:hover:not(:disabled) {
   background: var(--reda-parch) !important;
   border-color: var(--reda-gold-deep) !important;
