@@ -130,32 +130,6 @@ export function Workbench({
             onAdd={() => setSelectedArtistId('new')}
           />
         )}
-        {tool === 'setup' && (
-          <div className="wb-pane">
-            <div className="wb-ph">
-              <h3>Setup</h3>
-            </div>
-            <div className="wb-list" style={{ padding: 0 }}>
-              <button type="button" className="wb-nav" aria-current="true">
-                <Icon name="gear" size={14} /> Identity &amp; Space
-              </button>
-              <button
-                type="button"
-                className="wb-nav"
-                onClick={() => setTool('artists')}
-              >
-                <Icon name="users" size={14} /> Artists
-              </button>
-              <button
-                type="button"
-                className="wb-nav"
-                onClick={() => setTool('curate')}
-              >
-                <Icon name="select" size={14} /> Curate Room
-              </button>
-            </div>
-          </div>
-        )}
         {tool === 'rooms' && (
           <div className="wb-pane">
             <div className="wb-ph">

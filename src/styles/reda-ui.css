@@ -88,7 +88,28 @@ textarea.reda-field__control { resize: vertical; min-height: 60px; line-height: 
 .reda-seg__opt { background: none; border: none; font-family: var(--reda-ui); font-weight: 600; font-size: 11px;
   letter-spacing: .08em; text-transform: uppercase; color: var(--reda-muted); padding: 8px 15px; min-height: 44px;
   cursor: pointer; }
-.reda-seg__opt[aria-pressed="true"] { background: var(--reda-gold); color: #241a08; }
+.reda-seg__opt[aria-pressed="true"] { background: var(--reda-char-2); color: var(--reda-cream-hi); }
+
+.wb-sheet .reda-seg,
+.reda-parch .reda-seg {
+  background: var(--reda-parch-field);
+  border: 1px solid var(--reda-parch-border);
+  border-radius: var(--reda-radius);
+  padding: 3px;
+  gap: 3px;
+}
+.wb-sheet .reda-seg__opt,
+.reda-parch .reda-seg__opt {
+  color: var(--reda-muted-ink);
+  border-radius: var(--reda-radius);
+  padding: 7px 14px;
+}
+.wb-sheet .reda-seg__opt[aria-pressed="true"],
+.reda-parch .reda-seg__opt[aria-pressed="true"] {
+  background: var(--reda-parch-2);
+  color: var(--reda-ink);
+  font-weight: 600;
+}
 
 /* ===== Tabs ===== */
 .reda-tabs { display: flex; gap: 20px; border-bottom: 1px solid var(--reda-line); }
