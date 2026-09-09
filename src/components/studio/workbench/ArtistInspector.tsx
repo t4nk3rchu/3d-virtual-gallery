@@ -187,7 +187,7 @@ export function ArtistInspector({
             color: 'var(--reda-ink-2)',
             cursor: 'pointer',
             padding: '4px',
-            borderRadius: '4px',
+            borderRadius: 'var(--reda-radius)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -365,16 +365,33 @@ export function ArtistInspector({
 
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
             {existingArtist ? (
-              <Button type="button" variant="danger" onClick={handleDelete} disabled={saving}>
+              <Button
+                type="button"
+                variant="danger"
+                onClick={handleDelete}
+                disabled={saving}
+                style={{ borderRadius: 'var(--reda-radius-pill)' }}
+              >
                 Delete
               </Button>
             ) : <div />}
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              <Button type="button" variant="ghost" onClick={onDeselect} disabled={saving}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={onDeselect}
+                disabled={saving}
+                style={{ borderRadius: 'var(--reda-radius-pill)' }}
+              >
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" disabled={saving}>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={saving}
+                style={{ borderRadius: 'var(--reda-radius-pill)' }}
+              >
                 {saving ? 'Saving…' : isNew ? 'Add Artist' : 'Save Profile'}
               </Button>
             </div>

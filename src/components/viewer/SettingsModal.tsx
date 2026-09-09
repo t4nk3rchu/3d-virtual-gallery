@@ -8,7 +8,7 @@
  *   - Camera Field of View (FOV)
  * Persisted in localStorage.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { IntroTransition } from '../../lib/viewer/intro-animations';
 import { Icon, Toggle } from '../ui';
 
@@ -71,6 +71,17 @@ interface SettingsModalProps {
 export function SettingsModal({ settings, onChange, onClose }: SettingsModalProps) {
   const [local, setLocal] = useState<ViewerSettings>(settings);
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const update = useCallback(
     (patch: Partial<ViewerSettings>) => {
       const updated = { ...local, ...patch };
@@ -92,7 +103,7 @@ export function SettingsModal({ settings, onChange, onClose }: SettingsModalProp
       <div className="settings-modal" role="dialog" aria-modal="true" aria-label="Viewer Settings">
         <header className="settings-modal__header">
           <h2><Icon name="gear" size={18} /> Gallery &amp; Control Settings</h2>
-          <button type="button" className="settings-modal__close" onClick={onClose} aria-label="Close">
+          <button type="button" className="settings-modal__close" onClick={onClose} aria-label="Close settings">
             <Icon name="close" size={16} />
           </button>
         </header>
@@ -114,7 +125,9 @@ export function SettingsModal({ settings, onChange, onClose }: SettingsModalProp
                 step="1"
                 value={local.fov}
                 onChange={(e) => update({ fov: Number(e.target.value) })}
+                aria-label="Field of View (FOV)"
                 className="range-input"
+                style={{ accentColor: 'var(--reda-gold)' }}
               />
               <div className="slider-labels">
                 <span>Narrow (50°)</span>
@@ -140,7 +153,9 @@ export function SettingsModal({ settings, onChange, onClose }: SettingsModalProp
                 step="0.002"
                 value={local.walkSpeed}
                 onChange={(e) => update({ walkSpeed: Number(e.target.value) })}
+                aria-label="Walking Speed"
                 className="range-input"
+                style={{ accentColor: 'var(--reda-gold)' }}
               />
               <div className="slider-labels">
                 <span>Slow</span>
@@ -161,7 +176,9 @@ export function SettingsModal({ settings, onChange, onClose }: SettingsModalProp
                 step="0.005"
                 value={local.sprintSpeed}
                 onChange={(e) => update({ sprintSpeed: Number(e.target.value) })}
+                aria-label="Sprint Speed"
                 className="range-input"
+                style={{ accentColor: 'var(--reda-gold)' }}
               />
             </div>
           </section>
@@ -193,6 +210,24 @@ export function SettingsModal({ settings, onChange, onClose }: SettingsModalProp
                   FPS Mode (Pointer Lock)
                 </button>
               </div>
+            </div>
+
+            <div className="settings-slider-group" style={{ marginBottom: '16px' }}>
+              <div className="settings-slider-header">
+                <span>Mouse Sensitivity</span>
+                <span>{Math.round(local.mouseSensitivity)}</span>
+              </div>
+              <input
+                type="range"
+                min="500"
+                max="5000"
+                step="100"
+                value={local.mouseSensitivity}
+                onChange={(e) => update({ mouseSensitivity: Number(e.target.value) })}
+                aria-label="Mouse Sensitivity"
+                className="range-input"
+                style={{ accentColor: 'var(--reda-gold)' }}
+              />
             </div>
 
             <div className="settings-toggles-grid">

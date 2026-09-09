@@ -90,19 +90,24 @@ export function HotspotOverlay({
     <div className="hotspot-overlay-container">
       {hotspots.map((hotspot) => {
         const isActive = hotspot.id === currentActiveId;
+        const hasAudio = Boolean(hotspot.audio_file_id || hotspot.audio_timestamp_seconds != null);
         return (
           <button
             key={hotspot.id}
             type="button"
-            className={`hotspot-pin ${isActive ? 'hotspot-pin--active' : ''}`}
+            className={`hotspot-pin ${isActive ? 'hotspot-pin--active active' : ''} ${hasAudio ? 'hotspot-pin--audio audio' : ''}`}
             style={{
               position: 'absolute',
               left: `${hotspot.x_percent}%`,
               top: `${hotspot.y_percent}%`,
-              transform: 'translate(-50%, -50%)',
+              // Counter-scale by the inspect stage's inverse zoom (set on an ancestor)
+              // so pins keep a constant on-screen size. Defaults to 1 elsewhere.
+              transform: 'translate(-50%, -50%) scale(var(--inspect-pin-scale, 1))',
               opacity: isActive ? 0 : 1,
               pointerEvents: isActive ? 'none' : 'auto',
-              transition: 'opacity 0.3s ease, transform 0.3s ease',
+              // No transform transition: the counter-scale updates every frame during
+              // zoom and must track instantly, not lag behind.
+              transition: 'opacity 0.3s ease, box-shadow 0.2s ease',
             }}
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}

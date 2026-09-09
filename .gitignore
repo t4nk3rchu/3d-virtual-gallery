@@ -30,3 +30,6 @@ env/
 
 # Brainstorming visual companion
 .superpowers/
+
+# Local audit/scratch scripts (not part of the deliverable)
+scratch/

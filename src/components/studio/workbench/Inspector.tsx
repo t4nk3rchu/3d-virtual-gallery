@@ -46,8 +46,10 @@ export function Inspector({
       )}
       <div className="ih" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div className="k">Artwork · catalogue</div>
           <h3>{art?.title ?? 'New artwork'}</h3>
+          {art && (art.medium || art.year) && (
+            <div className="ih-sub">{[art.medium, art.year].filter(Boolean).join(' · ')}</div>
+          )}
         </div>
         <button
           type="button"
@@ -59,12 +61,16 @@ export function Inspector({
             border: 'none',
             color: 'var(--reda-ink-2)',
             cursor: 'pointer',
-            padding: '4px',
-            borderRadius: '4px',
+            width: '44px',
+            height: '44px',
+            minWidth: '44px',
+            minHeight: '44px',
+            borderRadius: '50%',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             lineHeight: 1,
+            transition: 'background 0.15s, color 0.15s',
           }}
         >
           <Icon name="close" size={16} />

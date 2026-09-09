@@ -48,4 +48,16 @@ describe('Workbench shell', () => {
     await userEvent.click(waypoints);
     expect(waypoints.getAttribute('aria-pressed')).toBe('true');
   });
+
+  it('shows setup sheet directly without redundant mini-nav pane when tool is setup', async () => {
+    stub();
+    const { container } = render(<Workbench exhibitionId="e1" onBack={() => {}} />);
+    await screen.findByText('Testing GLB Room');
+    const setupToolBtn = screen.getByRole('button', { name: /Setup/i });
+    await userEvent.click(setupToolBtn);
+    expect(screen.getByText('Exhibition Settings')).toBeTruthy();
+    expect(container.querySelector('.wb-nav')).toBeNull();
+    const sheetwrap = container.querySelector('.wb-sheetwrap');
+    expect(sheetwrap).toBeTruthy();
+  });
 });

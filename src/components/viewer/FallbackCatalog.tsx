@@ -41,6 +41,7 @@ interface FallbackCatalogProps {
   curatorName?: string | null;
   description?: string | null;
   artworks: Artwork[];
+  onSwitchTo3D?(): void;
 }
 
 export function FallbackCatalog({
@@ -48,11 +49,12 @@ export function FallbackCatalog({
   curatorName,
   description,
   artworks,
+  onSwitchTo3D,
 }: FallbackCatalogProps) {
   const sorted = [...artworks].sort((a, b) => a.order_index - b.order_index);
 
   return (
-    <main className="fallback-catalog" aria-label="Exhibition catalog">
+    <main className="fallback-catalog reda-dark" aria-label="Exhibition catalog">
       <header className="fallback-catalog__header">
         <h1 className="fallback-catalog__title">{title}</h1>
         {curatorName && (
@@ -61,9 +63,21 @@ export function FallbackCatalog({
         {description && (
           <p className="fallback-catalog__description">{description}</p>
         )}
-        <p className="fallback-catalog__notice">
-          3D view requires WebGL2. Showing the 2D catalog.
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px', flexWrap: 'wrap' }}>
+          <p className="fallback-catalog__notice" style={{ margin: 0 }}>
+            {onSwitchTo3D ? 'Showing 2D accessible catalog.' : '3D view requires WebGL2. Showing the 2D catalog.'}
+          </p>
+          {onSwitchTo3D && (
+            <button
+              type="button"
+              className="btn btn--secondary btn--sm"
+              onClick={onSwitchTo3D}
+              style={{ borderRadius: 'var(--reda-radius-pill)' }}
+            >
+              Enter 3D Gallery
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="fallback-catalog__grid">

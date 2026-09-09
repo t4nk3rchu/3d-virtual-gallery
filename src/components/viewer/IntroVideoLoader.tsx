@@ -107,7 +107,13 @@ export function IntroVideoLoader({
           className="intro-video-player"
           playsInline
           preload="auto"
-          style={{ opacity: hasStarted ? 1 : 0.35, transition: 'opacity 0.6s ease', backgroundColor: '#000000' }}
+          style={{
+            // Fade the clip out once it ends so its final frame doesn't linger as a
+            // "black card" over the dark overlay while the scene finishes loading.
+            opacity: videoEnded ? 0 : hasStarted ? 1 : 0.35,
+            transition: 'opacity 0.6s ease',
+            backgroundColor: '#000000',
+          }}
           onEnded={handleVideoEnded}
           onError={() => {
             setVideoError(true);
@@ -123,31 +129,19 @@ export function IntroVideoLoader({
 
       {/* Center Entrance Card (Prompts user to start experience with full sound) */}
       {!hasStarted && !videoError && (
-        <div className="intro-wordmark" style={{ maxWidth: '600px', width: '90%' }}>
-          <div className="k">Exhibition Intro</div>
+        <div className="intro-wordmark">
           <h2>{title || 'Virtual Exhibition'}</h2>
           {curatorName && (
-            <p style={{ color: 'var(--reda-muted-hi)', fontSize: '14px', margin: '8px 0 0', letterSpacing: '0.04em' }}>
+            <p className="intro-curator">
               Curated by {curatorName}
             </p>
           )}
-          <div style={{ marginTop: '28px' }}>
+          <div className="intro-start-wrap">
             <button
               type="button"
-              className="btn btn--primary intro-start-btn"
+              className="intro-start-btn"
               onClick={startPlaybackWithSound}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '14px 32px',
-                fontSize: '15px',
-                letterSpacing: '0.06em',
-                fontWeight: 600,
-                borderRadius: '999px',
-                boxShadow: '0 8px 30px rgba(0,0,0,0.5), 0 0 20px rgba(185,138,60,0.3)',
-                cursor: 'pointer',
-              }}
+              aria-label="Enter Exhibition"
             >
               <Icon name="play" size={16} /> Enter Exhibition
             </button>
@@ -155,8 +149,10 @@ export function IntroVideoLoader({
         </div>
       )}
 
-      {/* Bottom Actions: Skip Button or Preparing Scene status once started */}
-      {hasStarted && (
+      {/* Bottom Actions: Skip Button or Preparing Scene status once started.
+          Hidden after the clip ends — the centered "Finalizing…" state takes over
+          so there aren't two competing loading messages. */}
+      {hasStarted && !videoEnded && (
         <div className="intro-video-footer">
           {isSceneReady ? (
             <button

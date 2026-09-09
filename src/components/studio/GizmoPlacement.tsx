@@ -43,7 +43,7 @@ interface GizmoPlacementProps {
   artworks: Artwork[];
   exhibitionId?: string;
   settingsJson?: string | null;
-  workbenchMode?: 'artworks' | 'waypoints' | 'walk';
+  workbenchMode?: 'artworks' | 'waypoints';
   initialSelectedArtworkId?: string;
   embedded?: boolean;
   onSelectArtwork?(artworkId: string | null): void;
@@ -273,7 +273,10 @@ export function GizmoPlacement({
         gm.attachToMesh(mesh);
         updateCoordsFromMesh(mesh);
         if (camera) {
+          // Auto-frame: recenter and zoom the camera onto the selected artwork,
+          // mirroring the viewer's focus behavior.
           camera.setTarget(mesh.position.clone());
+          camera.radius = 3.5;
         }
       } else {
         gm.attachToMesh(null);
@@ -324,8 +327,6 @@ export function GizmoPlacement({
     }
     if (isWaypoints) {
       selectArtwork('__spawn_beacon__', false);
-    } else if (workbenchMode === 'walk') {
-      selectArtwork(null, false);
     } else if (workbenchMode === 'artworks' && selectedArtworkIdRef.current === '__spawn_beacon__') {
       selectArtwork(null, false);
     }
@@ -338,23 +339,13 @@ export function GizmoPlacement({
     }
   }, [initialSelectedArtworkId, selectArtwork]);
 
-  // Focus / Frame camera on selected artwork
-  const frameSelectedArtwork = useCallback(() => {
-    if (!selectedArtworkId) return;
-    const mesh = meshesMapRef.current.get(selectedArtworkId);
-    const camera = cameraRef.current;
-    if (mesh && camera) {
-      camera.setTarget(mesh.position.clone());
-      camera.radius = 3.5;
-    }
-  }, [selectedArtworkId]);
-
   // Initialize authoring Babylon scene
   useEffect(() => {
     if (!canvasRef.current) return;
 
     let disposed = false;
     let sceneHandle: import('../../lib/babylon/engine').SceneHandle | null = null;
+    let resizeObserver: ResizeObserver | null = null;
 
     (async () => {
       try {
@@ -364,8 +355,23 @@ export function GizmoPlacement({
         if (disposed || !canvasRef.current) return;
 
         sceneHandle = initScene(canvasRef.current);
-        const { scene } = sceneHandle;
+        const { scene, engine } = sceneHandle;
         sceneRef.current = scene;
+
+        // Auto-resize viewport whenever container changes size or unhides
+        const container = canvasRef.current.parentElement;
+        if (container && typeof ResizeObserver !== 'undefined') {
+          resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+              if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+                if (engine && !engine.isDisposed) {
+                  engine.resize();
+                }
+              }
+            }
+          });
+          resizeObserver.observe(container);
+        }
 
       // Authoring camera: ArcRotateCamera allows orbiting & panning
       const camera = new ArcRotateCamera(
@@ -440,10 +446,6 @@ export function GizmoPlacement({
       // Pointer down handler for selection and right-click direct move / pan
       scene.onPointerDown = (evt, pickInfo) => {
         if (evt.button === 0) {
-          if (workbenchModeRef.current === 'walk') {
-            return;
-          }
-
           if (workbenchModeRef.current === 'waypoints') {
             if (pickInfo?.hit && pickInfo.pickedMesh) {
               let curr: AbstractMesh | null = pickInfo.pickedMesh;
@@ -639,6 +641,7 @@ export function GizmoPlacement({
       disposed = true;
       setSceneReady(false);
       sceneRef.current = null;
+      resizeObserver?.disconnect();
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
@@ -872,11 +875,7 @@ export function GizmoPlacement({
         </div>
 
         <div className="toolbar-center">
-          {workbenchMode === 'walk' ? (
-            <span className="nav-mode-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-              <Icon name="play" /> Walkthrough View · WASD to walk, Mouse to look around (visitor gravity active)
-            </span>
-          ) : workbenchMode === 'waypoints' || selectedArtworkId === '__spawn_beacon__' ? (
+          {workbenchMode === 'waypoints' || selectedArtworkId === '__spawn_beacon__' ? (
             <>
               <div className="mode-toggle">
                 <button
@@ -951,19 +950,9 @@ export function GizmoPlacement({
 
               <Button
                 type="button"
-                variant="secondary"
-                size="sm"
-                iconLeft="inspect"
-                onClick={frameSelectedArtwork}
-                title="Center camera on selected artwork"
-              >
-                Frame Artwork
-              </Button>
-
-              <Button
-                type="button"
                 variant="ghost"
                 size="sm"
+                className="gizmo-unfocus-btn"
                 onClick={() => selectArtwork(null)}
                 title="Unfocus / Deselect (Esc)"
               >
@@ -1005,19 +994,13 @@ export function GizmoPlacement({
         {/* Coordinate HUD */}
         <div className="gizmo-hud">
           <h4>
-            {workbenchMode === 'walk'
-              ? 'Visitor Walkthrough Mode'
-              : workbenchMode === 'waypoints' || selectedArtworkId === '__spawn_beacon__'
+            {workbenchMode === 'waypoints' || selectedArtworkId === '__spawn_beacon__'
               ? 'Gallery Start Point & Waypoint'
               : selectedArt
               ? `Selected: ${selectedArt.title}`
               : 'Artworks Placement Mode'}
           </h4>
-          {workbenchMode === 'walk' ? (
-            <p className="hud-unfocused">
-              Experiencing gallery from visitor eye-level with natural floor gravity and collisions. Use <b>WASD</b> or Arrow keys to walk, mouse to look.
-            </p>
-          ) : workbenchMode === 'waypoints' || selectedArtworkId === '__spawn_beacon__' ? (
+          {workbenchMode === 'waypoints' || selectedArtworkId === '__spawn_beacon__' ? (
             <div className="hud-values">
               <span>
                 Start Pos: [{transformValues.position[0]}, {transformValues.position[1]},{' '}

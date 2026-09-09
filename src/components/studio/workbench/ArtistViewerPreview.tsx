@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import type { Artist } from '../../../types/schema';
+import type { Artist, Artwork } from '../../../types/schema';
 import { getImageUrl } from '../../../lib/media/gdrive';
 import { Icon } from '../../ui';
 
 interface ArtistViewerPreviewProps {
   artist: Artist | null;
+  artworks?: Artwork[];
   isNew?: boolean;
 }
 
@@ -121,7 +122,7 @@ const DEVICE_CONFIG: Record<PreviewDevice, DeviceConfig> = {
   },
 };
 
-export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps) {
+export function ArtistViewerPreview({ artist, artworks = [], isNew }: ArtistViewerPreviewProps) {
   const [device, setDevice] = useState<PreviewDevice>('pc');
 
   const portraitUrl = artist?.portrait_file_id
@@ -132,6 +133,7 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
   const lifeDates = artist?.life_dates || null;
   const quote = artist?.quote || null;
   const bio = artist?.biography || null;
+  const assignedArtworks = artworks.filter((a) => a.artist_id === artist?.id);
   const contact = artist?.contact_info || null;
 
   const cfg = DEVICE_CONFIG[device];
@@ -174,27 +176,25 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
             alignItems: 'center',
             gap: '8px',
             fontFamily: 'var(--reda-ui)',
-            fontSize: '10.5px',
+            fontSize: '11.5px',
             fontWeight: 600,
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase',
-            color: 'var(--reda-gold)',
-            background: 'rgba(27, 26, 23, 0.92)',
-            border: '1px solid rgba(185, 138, 60, 0.3)',
+            letterSpacing: '0.02em',
+            color: 'var(--reda-ink)',
+            background: 'var(--reda-parch-2)',
+            border: '1px solid var(--reda-parch-border)',
             borderRadius: '999px',
             padding: '6px 14px',
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
             pointerEvents: 'auto',
           }}
         >
           <span
             style={{
-              width: '6px',
-              height: '6px',
+              width: '8px',
+              height: '8px',
               borderRadius: '50%',
-              background: 'var(--reda-sage)',
-              boxShadow: '0 0 6px var(--reda-sage)',
+              background: 'var(--reda-gold)',
+              boxShadow: '0 0 8px var(--reda-gold)',
             }}
           />
           {isNew
@@ -208,10 +208,9 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
           className="wb-pill"
           style={{
             pointerEvents: 'auto',
-            background: 'rgba(23, 21, 17, 0.92)',
-            border: '1px solid rgba(185, 138, 60, 0.25)',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6)',
-            backdropFilter: 'blur(10px)',
+            background: 'var(--reda-parch-field)',
+            border: '1px solid var(--reda-parch-border)',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
             borderRadius: '999px',
             padding: '3px',
             display: 'inline-flex',
@@ -229,9 +228,9 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
               title={d === 'pc' ? 'Preview Desktop / PC Visitor View' : 'Preview Mobile Landscape Visitor View'}
               style={{
                 fontFamily: 'var(--reda-ui)',
-                fontSize: '11px',
-                fontWeight: 600,
-                letterSpacing: '0.06em',
+                fontSize: '11.5px',
+                fontWeight: device === d ? 600 : 500,
+                letterSpacing: '0.02em',
                 padding: '6px 14px',
                 borderRadius: '999px',
                 border: 'none',
@@ -240,9 +239,9 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                background: device === d ? 'var(--reda-gold)' : 'transparent',
-                color: device === d ? 'var(--reda-char)' : 'var(--reda-cream)',
-                boxShadow: device === d ? '0 2px 8px rgba(185, 138, 60, 0.4)' : 'none',
+                background: device === d ? 'var(--reda-parch-2)' : 'transparent',
+                color: device === d ? 'var(--reda-ink)' : 'var(--reda-muted-ink)',
+                boxShadow: device === d ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
               }}
             >
               {d === 'pc' ? (
@@ -442,9 +441,25 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                 type="button"
                 className="artist-modal-close"
                 aria-label="Close artist profile"
-                style={cfg.closeStyle}
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  width: '44px',
+                  height: '44px',
+                  minWidth: '44px',
+                  minHeight: '44px',
+                  borderRadius: '50%',
+                  background: 'rgba(14, 10, 5, 0.65)',
+                  border: '1px solid rgba(201, 163, 91, 0.35)',
+                  color: 'var(--reda-stone)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  zIndex: 2,
+                  ...cfg.closeStyle,
+                }}
               >
-                <Icon name="close" size={cfg.closeIconSize} />
+                <Icon name="close" size={16} />
               </button>
 
               <div
@@ -651,19 +666,6 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                   style={{ padding: cfg.infoPadding, overflowY: 'auto', maxHeight: '100%' }}
                 >
                   <header className="artist-header">
-                    <span
-                      className="artist-kicker"
-                      style={{
-                        fontFamily: 'var(--reda-ui)',
-                        fontSize: cfg.kickerFontSize,
-                        fontWeight: 700,
-                        letterSpacing: cfg.kickerLetterSpacing,
-                        textTransform: 'uppercase',
-                        color: 'var(--reda-gold)',
-                      }}
-                    >
-                      Featured Artist
-                    </span>
                     <h1
                       id="artist-modal-name"
                       className="artist-name"
@@ -758,6 +760,93 @@ export function ArtistViewerPreview({ artist, isNew }: ArtistViewerPreviewProps)
                     <p className="artist-bio-empty" style={{ fontSize: cfg.bioEmptyFontSize, color: 'var(--reda-muted)' }}>
                       Biography not available for this artist.
                     </p>
+                  )}
+
+                  {/* Assigned Artworks in Exhibition (matches mockup .fworks) */}
+                  {assignedArtworks.length > 0 && (
+                    <div
+                      className="artist-modal-works"
+                      style={{
+                        marginTop: '24px',
+                        borderTop: '1px solid rgba(201, 163, 91, 0.18)',
+                        paddingTop: '18px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: 'var(--reda-mono)',
+                          fontSize: '9.5px',
+                          letterSpacing: '0.12em',
+                          textTransform: 'uppercase',
+                          color: 'var(--reda-gold-deep)',
+                          marginBottom: '12px',
+                        }}
+                      >
+                        Works in Exhibition ({assignedArtworks.length})
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        {assignedArtworks.map((work) => {
+                          const thumbUrl = work.media_file_id ? getImageUrl(work.media_file_id, 'thumbnail') : null;
+                          return (
+                            <div
+                              key={work.id}
+                              style={{
+                                width: '104px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '4px',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  height: '74px',
+                                  borderRadius: 'var(--reda-radius)',
+                                  background: 'linear-gradient(180deg, #41586c, #8ea6b6)',
+                                  border: '1px solid rgba(201, 163, 91, 0.25)',
+                                  overflow: 'hidden',
+                                  position: 'relative',
+                                }}
+                              >
+                                {thumbUrl && (
+                                  <img
+                                    src={thumbUrl}
+                                    alt={work.title}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                                  />
+                                )}
+                              </div>
+                              <div
+                                style={{
+                                  fontFamily: 'var(--reda-serif)',
+                                  fontSize: '12.5px',
+                                  color: 'var(--reda-bone)',
+                                  lineHeight: 1.3,
+                                  marginTop: '4px',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                }}
+                                title={work.title}
+                              >
+                                {work.title}
+                              </div>
+                              {(work.year || work.medium) && (
+                                <div
+                                  style={{
+                                    fontFamily: 'var(--reda-ui)',
+                                    fontSize: '10.5px',
+                                    color: 'var(--reda-stone)',
+                                  }}
+                                >
+                                  {[work.year, work.medium].filter(Boolean).join(' · ')}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

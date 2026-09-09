@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
   server: {
@@ -23,6 +23,28 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules/@babylonjs/core')) {
+            return 'babylon-core';
+          }
+          if (
+            id.includes('node_modules/@babylonjs/loaders') ||
+            id.includes('node_modules/@babylonjs/materials') ||
+            id.includes('node_modules/@babylonjs/post-processes')
+          ) {
+            return 'babylon-loaders';
+          }
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'react-vendor';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'ui-vendor';
+          }
+        },
+      },
+    },
   },
   // Self-host Babylon decoder assets
   assetsInclude: ['**/*.wasm', '**/*.basis'],

@@ -108,25 +108,14 @@ export function SetupSheet({
       <div className="wb-sheet">
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ borderBottom: '1px solid var(--reda-parch-border)', paddingBottom: '16px' }}>
-            <span
-              style={{
-                fontFamily: 'var(--reda-ui)',
-                fontSize: '10px',
-                fontWeight: 700,
-                letterSpacing: '.2em',
-                textTransform: 'uppercase',
-                color: 'var(--reda-oxblood)',
-              }}
-            >
-              Setup · Identity &amp; Space
-            </span>
             <h2
               style={{
                 fontFamily: 'var(--reda-display)',
                 fontWeight: 500,
                 fontSize: '28px',
+                lineHeight: 1.2,
                 color: 'var(--reda-ink)',
-                margin: '6px 0 2px',
+                margin: '0 0 4px',
               }}
             >
               Exhibition Settings
@@ -214,7 +203,7 @@ export function SetupSheet({
               background: 'rgba(0,0,0,0.03)',
               padding: '12px 16px',
               borderRadius: '6px',
-              border: '1px solid var(--reda-border)',
+              border: '1px solid var(--reda-parch-border)',
             }}
           >
             <div>
@@ -270,7 +259,7 @@ export function SetupSheet({
           </div>
 
           {onManageArtists && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.03)', padding: '12px 16px', borderRadius: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.03)', padding: '12px 16px', borderRadius: '6px', border: '1px solid var(--reda-parch-border)' }}>
               <div>
                 <strong style={{ fontSize: '13px', color: 'var(--reda-ink)' }}>Artists in Exhibition</strong>
                 <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--reda-ink-2)' }}>
@@ -331,7 +320,7 @@ export function SetupSheet({
           <IntroTransitionPreview transition={introTransition} />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '16px', borderTop: '1px solid var(--reda-parch-border)' }}>
-            <Button type="submit" variant="primary" disabled={saving}>
+            <Button type="submit" variant="primary" disabled={saving} style={{ borderRadius: 'var(--reda-radius-pill)' }}>
               {saving ? 'Saving…' : 'Save Exhibition Details'}
             </Button>
           </div>
@@ -408,6 +397,7 @@ function IntroTransitionPreview({ transition }: { transition: IntroTransition })
           size="sm"
           onClick={() => setCycle((c) => c + 1)}
           title="Replay Transition Animation"
+          style={{ borderRadius: 'var(--reda-radius-pill)' }}
         >
           <Icon name="play" size={13} /> Replay
         </Button>

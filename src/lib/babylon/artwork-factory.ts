@@ -43,23 +43,23 @@ function createPlacard(scene: Scene, artwork: Artwork, parentName: string, width
   const ctx = dt.getContext();
 
   // Parchment plaque background with subtle border
-  ctx.fillStyle = '#FAF7EE';
+  ctx.fillStyle = '#F6EFDC';
   ctx.fillRect(0, 0, texW, texH);
-  ctx.strokeStyle = '#D3C6A8';
+  ctx.strokeStyle = '#D9C9A6';
   ctx.lineWidth = 4;
   ctx.strokeRect(2, 2, texW - 4, texH - 4);
 
   // Artwork metadata
-  ctx.fillStyle = '#1A1813';
+  ctx.fillStyle = '#241A10';
   ctx.font = 'bold 24px sans-serif';
   ctx.fillText(artwork.title || 'Untitled', 18, 42);
 
   ctx.font = '20px sans-serif';
-  ctx.fillStyle = '#4A4639';
+  ctx.fillStyle = '#3A2C1C';
   if (artwork.artist) ctx.fillText(artwork.artist, 18, 78);
 
   ctx.font = 'italic 16px sans-serif';
-  ctx.fillStyle = '#7A7566';
+  ctx.fillStyle = '#7A6E57';
   const meta = [artwork.year, artwork.medium].filter(Boolean).join(' • ');
   if (meta) ctx.fillText(meta, 18, 116);
   else if (artwork.medium) ctx.fillText(artwork.medium, 18, 116);

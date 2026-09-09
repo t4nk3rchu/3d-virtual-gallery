@@ -7,12 +7,14 @@ import { Workbench } from './workbench/Workbench';
 import { Icon, Button, TextField, TextArea, SelectField } from '../ui';
 import { DriveFilePicker } from './DriveFilePicker';
 import { extractGoogleDriveFileId } from '../../lib/media/gdrive';
+import { Account } from './Account';
 
 type CmsView =
   | { type: 'login' }
   | { type: 'dashboard' }
   | { type: 'editor'; exhibitionId: string }
-  | { type: 'new-exhibition' };
+  | { type: 'new-exhibition' }
+  | { type: 'account' };
 
 interface CuratorUser {
   id: string;
@@ -20,6 +22,20 @@ interface CuratorUser {
   full_name: string;
   role: string;
   is_team?: boolean;
+}
+
+// ISO date → "DD.MM.YYYY"; joins a start/end pair as "start — end". Returns '' when neither is set.
+function formatDateRange(start?: string | null, end?: string | null): string {
+  const fmt = (iso?: string | null) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+  };
+  const a = fmt(start);
+  const b = fmt(end);
+  if (a && b) return `${a} — ${b}`;
+  return a || b;
 }
 
 export function StudioApp() {
@@ -76,6 +92,16 @@ export function StudioApp() {
           setUser(null);
           setView({ type: 'login' });
         }}
+        onAccount={() => setView({ type: 'account' })}
+      />
+    );
+  }
+
+  if (view.type === 'account') {
+    return (
+      <Account
+        user={user}
+        onBack={() => setView({ type: 'dashboard' })}
       />
     );
   }
@@ -113,8 +139,26 @@ function Login({ onLoggedIn }: LoginProps) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('reda-theme');
+        if (saved === 'dark' || saved === 'light') return saved;
+      } catch {}
+    }
+    return 'light';
+  });
+
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    try {
+      localStorage.setItem('reda-theme', next);
+    } catch {}
+  };
 
   const handlePasswordSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -152,12 +196,22 @@ function Login({ onLoggedIn }: LoginProps) {
   };
 
   return (
-    <main className="login-page reda-dark" aria-labelledby="login-heading">
+    <main className="login-page" data-theme={theme} aria-labelledby="login-heading">
       <div className="login-ambient-grid" aria-hidden="true" />
       <div className="login-ambient-glow" aria-hidden="true" />
 
       <div className="login-card-container">
         <div className="login-card">
+          <button
+            type="button"
+            id="themeToggle"
+            className="theme-toggle"
+            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            onClick={toggleTheme}
+          >
+            <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} />
+          </button>
+
           <header className="login-card__header">
             <div className="login-emblem-wrap">
               <img
@@ -267,14 +321,14 @@ function Login({ onLoggedIn }: LoginProps) {
               </div>
             </div>
 
-            <div className="login-field-group">
+            <div className={`login-field-group ${error ? 'error' : ''}`}>
               <label htmlFor="password" className="login-label">
                 Password Key
               </label>
-              <div className="login-input-wrap">
+              <div className="login-input-wrap pwd-wrap">
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   className="login-input"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -282,7 +336,17 @@ function Login({ onLoggedIn }: LoginProps) {
                   required
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 />
+                <button
+                  type="button"
+                  className="pwd-toggle"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                  onClick={() => setShowPassword((p) => !p)}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
               </div>
+              {error && <span className="err">{error}</span>}
             </div>
 
             <button
@@ -325,11 +389,13 @@ interface DashboardProps {
   onEdit(id: string): void;
   onNew(): void;
   onLogout(): void;
+  onAccount?(): void;
 }
 
-function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
+function Dashboard({ user, onEdit, onNew, onLogout, onAccount }: DashboardProps) {
   const [exhibitions, setExhibitions] = useState<ExhibitionDetail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchExhibitions = async () => {
     setLoading(true);
@@ -347,8 +413,7 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
     fetchExhibitions();
   }, []);
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+  const handleDelete = async (id: string) => {
     const res = await fetch(`/api/exhibitions/${id}`, {
       method: 'DELETE',
       credentials: 'include',
@@ -359,7 +424,7 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
   };
 
   return (
-    <div className="dash reda-dark">
+    <div className="dash reda-parch">
       <div className="dhead">
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <img
@@ -370,10 +435,22 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
           <div>
             <div className="k">REDA GALLERY · ARCHIVE &amp; STUDIO</div>
             <h1>Your exhibitions</h1>
-            <div className="who">Signed in as {user.email}</div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {onAccount && (
+            <button
+              type="button"
+              className="user-chip"
+              onClick={onAccount}
+              aria-label="Manage your account"
+            >
+              <span className="av" aria-hidden="true">
+                {(user.full_name || user.email).charAt(0).toUpperCase()}
+              </span>
+              <span className="user-chip__name">{user.full_name || user.email}</span>
+            </button>
+          )}
           <Button type="button" variant="primary" iconLeft="plus" onClick={onNew}>
             New exhibition
           </Button>
@@ -385,6 +462,25 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
 
       {loading ? (
         <div className="studio-loading" style={{ minHeight: '300px' }}>Loading your exhibitions…</div>
+      ) : exhibitions.length === 0 ? (
+        <section className="empty" aria-label="No exhibitions yet">
+          <div className="empty-ill" aria-hidden="true">
+            <svg viewBox="0 0 220 140" fill="none" stroke="currentColor" strokeWidth="1.4">
+              <rect x="30" y="24" width="160" height="92" rx="2" />
+              <path d="M110 24v46h80" strokeDasharray="5 4" />
+              <rect x="54" y="30" width="26" height="3.4" fill="currentColor" />
+              <rect x="150" y="30" width="22" height="3.4" fill="currentColor" />
+              <rect x="34" y="58" width="3.4" height="26" fill="currentColor" />
+            </svg>
+          </div>
+          <h2 className="empty-h">You have no exhibitions yet</h2>
+          <p className="empty-d">
+            Start curating your first virtual exhibition — select artworks, craft an artistic narrative, and publish your 3D gallery.
+          </p>
+          <button className="empty-cta" type="button" onClick={onNew}>
+            <Icon name="plus" size={16} /> Create your first exhibition
+          </button>
+        </section>
       ) : (
         <div className="dgrid">
           {exhibitions.map((ex) => (
@@ -399,7 +495,9 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
                     <rect x="27" y="44" width="3" height="22" fill="currentColor" />
                   </svg>
                 </div>
-                <span className="badge">{ex.is_published ? 'Live' : 'Draft'}</span>
+                <span className={`badge ${ex.is_published ? 'b-live' : 'b-draft'}`}>
+                  {ex.is_published ? 'Live' : 'Draft'}
+                </span>
                 <span className="ct">
                   {ex.artworks?.length ?? 0} works · {ex.room?.name ?? 'No room'}
                 </span>
@@ -407,27 +505,52 @@ function Dashboard({ user, onEdit, onNew, onLogout }: DashboardProps) {
               <div className="bd">
                 <h3>{ex.title}</h3>
                 <div className="slug">/e/{ex.slug}</div>
+                {ex.description && <p className="desc">{ex.description}</p>}
                 <div className="cur">Curator · {ex.curator_name || '—'}</div>
+                {formatDateRange(ex.start_date, ex.end_date) && (
+                  <div className="dt">{formatDateRange(ex.start_date, ex.end_date)}</div>
+                )}
               </div>
               <div className="acts">
-                <Button variant="primary" size="sm" onClick={() => onEdit(ex.id)}>
+                <button
+                  type="button"
+                  className="a-edit"
+                  onClick={() => onEdit(ex.id)}
+                >
                   Edit &amp; curate
-                </Button>
+                </button>
                 <a
-                  className="btn btn--secondary btn--sm"
+                  className="a-view"
                   href={`/e/${ex.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   View 3D <Icon name="external" size={12} />
                 </a>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  iconLeft="trash"
-                  aria-label={`Delete ${ex.title}`}
-                  onClick={() => handleDelete(ex.id, ex.title)}
-                />
+                <button
+                  type="button"
+                  className={`a-del ${deletingId === ex.id ? 'armed' : ''}`}
+                  aria-label={deletingId === ex.id ? 'Confirm delete' : `Delete ${ex.title}`}
+                  onClick={() => {
+                    if (deletingId === ex.id) {
+                      handleDelete(ex.id);
+                      setDeletingId(null);
+                    } else {
+                      setDeletingId(ex.id);
+                    }
+                  }}
+                  onBlur={() => {
+                    if (deletingId === ex.id) {
+                      setTimeout(() => setDeletingId(null), 250);
+                    }
+                  }}
+                >
+                  {deletingId === ex.id ? (
+                    'Confirm delete'
+                  ) : (
+                    <Icon name="trash" size={16} />
+                  )}
+                </button>
               </div>
             </div>
           ))}
@@ -547,16 +670,16 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
   };
 
   return (
-    <div className="studio-new-exhibition reda-dark">
+    <div className="studio-new-exhibition reda-parch">
       <header className="studio-header">
         <h1>Create New Exhibition</h1>
-        <Button variant="ghost" onClick={onCancel}>
+        <Button variant="ghost" onClick={onCancel} style={{ borderRadius: 'var(--reda-radius-pill)' }}>
           Cancel
         </Button>
       </header>
 
-      <div style={{ padding: '32px clamp(16px, 4vw, 48px) 64px', maxWidth: '720px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-        <div className="studio-card">
+      <div style={{ padding: '20px clamp(16px, 4vw, 48px) 60px', maxWidth: '680px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+        <div className="studio-card" role="dialog" aria-modal="true" aria-labelledby="new-ex-title">
           {error && (
             <p className="error" role="alert" style={{ marginBottom: '1rem' }}>
               {error}
@@ -583,15 +706,15 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
 
             {/* 3D Gallery Space Selector / Custom GLB */}
             <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label className="form-label" style={{ display: 'block', marginBottom: '8px' }}>
+              <label className="reda-field__label" style={{ display: 'block', marginBottom: '8px' }}>
                 3D Gallery Space *
               </label>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              <div className="space-type-toggle" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
                 <button
                   type="button"
                   className={`type-btn ${roomSource === 'library' ? 'active' : ''}`}
                   onClick={() => setRoomSource('library')}
-                  style={{ flex: 1 }}
+                  style={{ justifyContent: 'center' }}
                 >
                   <Icon name="cube" /> Platform Library Room
                 </button>
@@ -599,7 +722,7 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
                   type="button"
                   className={`type-btn ${roomSource === 'custom_glb' ? 'active' : ''}`}
                   onClick={() => setRoomSource('custom_glb')}
-                  style={{ flex: 1 }}
+                  style={{ justifyContent: 'center' }}
                 >
                   <Icon name="map" /> Custom 3D Space (.GLB)
                 </button>
@@ -621,20 +744,22 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
                 </SelectField>
               ) : (
                 <div
+                  className="nested-space-block"
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '14px',
-                    padding: '16px',
+                    padding: '18px',
                     background: 'var(--reda-parch)',
-                    borderRadius: '6px',
+                    borderRadius: '12px',
                     border: '1px solid var(--reda-parch-border)',
                     boxSizing: 'border-box',
                     width: '100%',
+                    marginTop: '14px',
                   }}
                 >
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label htmlFor="custom-room-name" className="form-label" style={{ color: 'var(--reda-ink-2)' }}>
+                    <label htmlFor="custom-room-name" className="reda-field__label">
                       Custom Space Name
                     </label>
                     <input
@@ -643,18 +768,11 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
                       value={customRoomName}
                       onChange={(e) => setCustomRoomName(e.target.value)}
                       placeholder="e.g. Modern Minimalist Pavilion"
-                      className="input"
-                      style={{
-                        background: 'var(--reda-parch-card)',
-                        color: 'var(--reda-ink)',
-                        borderColor: 'var(--reda-parch-border)',
-                        width: '100%',
-                        boxSizing: 'border-box',
-                      }}
+                      className="reda-field__control"
                     />
                   </div>
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label htmlFor="custom-glb-file" className="form-label" style={{ color: 'var(--reda-ink-2)' }}>
+                    <label htmlFor="custom-glb-file" className="reda-field__label">
                       Google Drive Link or File ID (.GLB Model) *
                     </label>
                     <div style={{ display: 'flex', gap: '8px', width: '100%', boxSizing: 'border-box', alignItems: 'center' }}>
@@ -664,15 +782,13 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
                         value={customGlbInput}
                         onChange={(e) => setCustomGlbInput(e.target.value)}
                         placeholder="https://drive.google.com/file/d/... or File ID"
-                        className="input"
+                        className="reda-field__control"
                         required={roomSource === 'custom_glb'}
                         style={{
                           flex: 1,
                           minWidth: 0,
-                          background: 'var(--reda-parch-card)',
-                          color: 'var(--reda-ink)',
-                          borderColor: 'var(--reda-parch-border)',
-                          boxSizing: 'border-box',
+                          fontFamily: 'var(--reda-mono)',
+                          fontSize: '12.5px',
                         }}
                       />
                       <DriveFilePicker
@@ -696,12 +812,23 @@ function NewExhibitionForm({ onCreated, onCancel }: NewExhibitionFormProps) {
               placeholder="Exhibition overview..."
             />
 
-            <div className="form-actions" style={{ marginTop: '1.5rem' }}>
-              <Button type="submit" variant="primary" disabled={creating}>
-                {creating ? 'Creating…' : 'Create & Start Curating'}
-              </Button>
-              <Button type="button" variant="ghost" onClick={onCancel}>
+            <div className="form-actions" style={{ marginTop: '26px', display: 'flex', gap: '12px', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <Button type="button" variant="ghost" onClick={onCancel} style={{ borderRadius: 'var(--reda-radius-pill)' }}>
                 Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={creating}
+                style={{
+                  borderRadius: 'var(--reda-radius-pill)',
+                  background: 'var(--reda-son)',
+                  borderColor: 'var(--reda-son-hi)',
+                  color: 'var(--reda-cream-hi)',
+                  fontWeight: 600,
+                }}
+              >
+                {creating ? 'Creating…' : 'Create & Start Curating'}
               </Button>
             </div>
           </form>

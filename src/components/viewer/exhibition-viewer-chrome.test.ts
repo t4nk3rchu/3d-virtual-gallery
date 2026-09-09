@@ -12,4 +12,10 @@ describe('ExhibitionViewer chrome is icon-based', () => {
   it('imports the Icon component', () => {
     expect(src).toMatch(/import\s*\{[^}]*\bIcon\b[^}]*\}\s*from\s*['"]\.\.\/ui['"]/);
   });
+  it('applies reda-dark to the root viewer container', () => {
+    expect(src).toMatch(/className="viewer\s+reda-dark"/);
+  });
+  it('supports 2D catalog mode toggle', () => {
+    expect(src).toMatch(/viewMode|FallbackCatalog/);
+  });
 });

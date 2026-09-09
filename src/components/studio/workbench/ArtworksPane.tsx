@@ -86,9 +86,9 @@ export function ArtworksPane({
               fontFamily: 'var(--reda-ui)',
               fontWeight: 500,
               padding: '6px 8px',
-              background: 'var(--reda-char-3)',
-              color: 'var(--reda-cream)',
-              border: '1px solid var(--reda-line)',
+              background: 'var(--reda-eggshell)',
+              color: 'var(--reda-ink-2)',
+              border: '1px solid var(--reda-parch-border)',
               borderRadius: '4px',
               outline: 'none',
               cursor: 'pointer',
@@ -119,7 +119,7 @@ export function ArtworksPane({
 
       <div className="wb-list">
         {displayedArtworks.length === 0 ? (
-          <div style={{ padding: '20px 12px', textAlign: 'center', color: 'var(--reda-muted-2)', fontSize: '11.5px', lineHeight: 1.5 }}>
+          <div style={{ padding: '20px 12px', textAlign: 'center', color: 'var(--reda-muted-ink)', fontSize: '11.5px', lineHeight: 1.5 }}>
             {selectedArtistFilter !== 'all'
               ? 'No artworks match the selected artist filter in this tab.'
               : tab === 'in_room'

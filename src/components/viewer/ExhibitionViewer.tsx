@@ -57,6 +57,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
   const [controlMode, setControlMode] = useState<CameraControlMode>(() => getStoredViewerSettings().controlMode || 'gallery');
   const [isPointerLocked, setIsPointerLocked] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ambientAudioRef = useRef<HTMLAudioElement | null>(null);
   // Cleanup for the "stop at end timestamp" watcher on the seek audio element
@@ -490,7 +491,28 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
   const hasIntroVideo = Boolean(exhibition.intro_video_file_id && !videoUnavailable);
 
   return (
-    <div className="viewer" aria-label={`3D exhibition: ${exhibition.title}`}>
+    <div className="viewer reda-dark" aria-label={`3D exhibition: ${exhibition.title}`}>
+      {/* 2D Catalog Accessible View Overlay (preserves 3D canvas in background) */}
+      {viewMode === '2d' && (
+        <div
+          className="viewer-2d-catalog-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 120,
+            overflowY: 'auto',
+            background: 'var(--reda-char)',
+          }}
+        >
+          <FallbackCatalog
+            title={exhibition.title}
+            curatorName={exhibition.curator_name}
+            description={exhibition.description}
+            artworks={exhibition.artworks}
+            onSwitchTo3D={() => setViewMode('3d')}
+          />
+        </div>
+      )}
       {/* Intro Video Loader (plays when configured) */}
       {hasIntroVideo && !isIntroDismissed && (
         <IntroVideoLoader
@@ -627,9 +649,9 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
         </div>
       )}
 
-      {/* Gallery Controls HUD & Settings (Desktop) */}
+      {/* Gallery Controls HUD (Instruction Bar Only) */}
       {!focusedArtwork && !inspectedArtwork && !activeArtistProfile && (!exhibition.intro_video_file_id || isIntroDismissed) && (
-        <div className="viewer-controls-hint">
+        <div className="viewer-controls-hint" role="status" aria-label="Movement instructions">
           {/* Mode Switcher Pill */}
           <button
             type="button"
@@ -657,29 +679,32 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
               <span><Icon name="target" size={15} /> <strong>Click floor</strong> to teleport</span>
             </>
           )}
-
-          <button
-            type="button"
-            className="btn btn--ghost btn--sm btn-settings-hud"
-            onClick={() => setShowSettings(true)}
-            title="Gallery &amp; Control Settings"
-          >
-            <Icon name="gear" size={15} /> Settings
-          </button>
         </div>
       )}
 
-      {/* Floating Settings Button for Mobile */}
+      {/* Top-Right Action Controls (Settings & 2D Catalog Stack) */}
       {!focusedArtwork && !inspectedArtwork && !activeArtistProfile && (!exhibition.intro_video_file_id || isIntroDismissed) && (
-        <button
-          type="button"
-          className="btn-mobile-settings"
-          onClick={() => setShowSettings(true)}
-          title="Gallery Settings"
-          aria-label="Gallery Settings"
-        >
-          <Icon name="gear" size={20} />
-        </button>
+        <div className="viewer-top-right-actions">
+          <button
+            type="button"
+            className="btn-viewer-action"
+            onClick={() => setShowSettings(true)}
+            title="Gallery Settings"
+            aria-label="Gallery Settings"
+          >
+            <Icon name="gear" size={20} />
+          </button>
+
+          <button
+            type="button"
+            className="btn-viewer-action"
+            onClick={() => setViewMode('2d')}
+            title="2D Catalog"
+            aria-label="2D Catalog"
+          >
+            <Icon name="list" size={20} />
+          </button>
+        </div>
       )}
 
       {/* Settings Modal */}
