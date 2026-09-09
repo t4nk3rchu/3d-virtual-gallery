@@ -41,7 +41,26 @@ export function FocusPanel({
     if (!audio) return;
     audio.play().catch(() => {});
     return () => { audio.pause(); };
-  }, [hasGuide]);
+  }, [hasGuide, artwork.audio_guide_file_id]);
+
+  // Keyboard navigation: Escape to exit, ArrowLeft/ArrowRight to cycle artworks
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isInfoOpen) {
+          setIsInfoOpen(false);
+        } else {
+          onClose();
+        }
+      } else if (e.key === 'ArrowLeft') {
+        onPreviousArtwork?.();
+      } else if (e.key === 'ArrowRight') {
+        onNextArtwork?.();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isInfoOpen, onClose, onPreviousArtwork, onNextArtwork]);
 
   const displayArtist =
     artwork.artist_profile?.name ||

@@ -18,4 +18,25 @@ describe('SettingsModal', () => {
     );
     expect(getByText(/Camera Control Mode/i)).toBeDefined();
   });
+
+  it('calls onClose when Escape key is pressed', () => {
+    let closed = false;
+    render(
+      <SettingsModal settings={DEFAULT_VIEWER_SETTINGS} onChange={() => {}} onClose={() => { closed = true; }} />
+    );
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(closed).toBe(true);
+  });
+
+  it('provides accessible aria-labels on all range slider inputs', () => {
+    const { container } = render(
+      <SettingsModal settings={DEFAULT_VIEWER_SETTINGS} onChange={() => {}} onClose={() => {}} />
+    );
+    const rangeInputs = container.querySelectorAll('input[type="range"]');
+    expect(rangeInputs.length).toBe(4);
+    for (const input of Array.from(rangeInputs)) {
+      expect(input.getAttribute('aria-label')).toBeTruthy();
+    }
+  });
 });
+

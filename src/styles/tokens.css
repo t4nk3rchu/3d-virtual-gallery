@@ -28,14 +28,18 @@
   /* ── text ────────────────────────────────────────────────────────────────── */
   --reda-cream: #ECE6DA;       /* bone — body on dark */
   --reda-cream-hi: #F5EFE1;    /* headlines on dark */
+  --reda-bone: #ECE6DA;        /* bone alias (canonical body on dark) */
+  --reda-bone-hi: #F5EFE1;     /* bone-hi alias (canonical headlines on dark) */
   --reda-ink: #241A10;         /* text on điệp */
   --reda-ink-2: #3A2C1C;
-  --reda-ink-muted: #6B5D42;   /* auth & light UI muted */
+  --reda-ink-muted: #6B5D42;   /* auth & light UI muted (≥4.5:1 on điệp) */
   --reda-muted-ink: #6B5D42;   /* muted text on điệp / light register (≥4.5:1) */
   --reda-label: #6B5220;       /* label on điệp */
   --reda-muted-hi: #CDBF9E;
   --reda-muted: #B0A78F;       /* stone — de-emphasized on dark (warm, ≥13px) */
+  --reda-stone: #B0A78F;       /* stone alias (canonical muted on dark, ≥4.5:1) */
   --reda-muted-2: #7C7563;
+  --reda-char-1: #1A140D;      /* panel dark surface alias */
   /* ── brand accent: a single gold ─────────────────────────────────────────── */
   --reda-gold: #C9A35B;
   --reda-gold-hi: #D9BB6E;
@@ -64,6 +68,7 @@
   --reda-warning-bg: #FBF6EE;
   --reda-warning-border: #E5D6B8;
   --reda-error: #8A2B22;
+  --reda-danger: #8A2B22;      /* danger alias → error */
   --reda-error-bg: #FBEAE8;
   --reda-error-border: #E8C5C5;
   /* ── frame material preview ──────────────────────────────────────────────── */
@@ -88,6 +93,7 @@
   /* ── type — Vietnamese-capable, Tranh Việt ───────────────────────────────── */
   --reda-display: 'UTM Dragon Fire', 'MJ Modern', Georgia, serif;
   --reda-text: 'MJ Modern', 'Merriweather', Georgia, serif;
+  --reda-serif: 'MJ Modern', 'Merriweather', Georgia, serif; /* serif reading alias */
   --reda-ui: 'Be Vietnam Pro', system-ui, 'Segoe UI', sans-serif;
   --reda-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
   /* ── radius/space ────────────────────────────────────────────────────────── */
