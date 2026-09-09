@@ -143,3 +143,28 @@ textarea.reda-field__control { resize: vertical; min-height: 60px; line-height: 
     transform: none !important;
   }
 }
+
+/* ===== Universal Focus Rings ===== */
+:focus-visible {
+  outline: 2px solid var(--reda-gold, #C9A35B);
+  outline-offset: 2px;
+}
+
+.reda-parch :focus-visible,
+.wb-sheet :focus-visible,
+.wb-insp :focus-visible {
+  outline: 2px solid var(--reda-gold-deep, #A9863F);
+  outline-offset: 2px;
+}
+
+/* ===== Universal Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
