@@ -410,13 +410,16 @@ export async function updateHotspot(
   id: string,
   input: Partial<Omit<ArtworkHotspotInput, 'artwork_id'>>
 ): Promise<ArtworkHotspot | null> {
-  const fields = [
+  const fields: Array<[string, unknown]> = [
     ['title', input.title],
     ['description', input.description],
     ['audio_timestamp_seconds', input.audio_timestamp_seconds ?? null],
     ['audio_timestamp_end_seconds', input.audio_timestamp_end_seconds ?? null],
     ['audio_file_id', input.audio_file_id ?? null],
-  ] as const;
+  ];
+  // Position is optional — only updated when provided, so a text-only save doesn't move the pin.
+  if (input.x_percent !== undefined) fields.push(['x_percent', input.x_percent]);
+  if (input.y_percent !== undefined) fields.push(['y_percent', input.y_percent]);
   const sets = fields.map(([col]) => `${col} = ?`).join(', ');
   const values = fields.map(([, v]) => v);
   await db.prepare(`UPDATE artwork_hotspots SET ${sets} WHERE id = ?`).bind(...values, id).run();

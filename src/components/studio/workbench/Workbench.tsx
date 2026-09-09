@@ -282,8 +282,10 @@ export function Workbench({
           }
           isTeam={isTeam}
           onHotspotsUpdated={() => {
+            // Only refresh data — the editor stays open. It closes solely via
+            // "Done Editing Hotspots" or the X (onClose), so save/delete/undo
+            // don't dismiss it mid-edit.
             fetchExhibition();
-            setEditingHotspotArtwork(null);
           }}
           onClose={() => setEditingHotspotArtwork(null)}
         />

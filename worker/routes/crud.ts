@@ -338,6 +338,8 @@ export async function handleHotspotById(
       audio_timestamp_seconds: (body.audio_timestamp_seconds as number) ?? null,
       audio_timestamp_end_seconds: (body.audio_timestamp_end_seconds as number) ?? null,
       audio_file_id: cleanAudioId,
+      ...(typeof body.x_percent === 'number' ? { x_percent: body.x_percent } : {}),
+      ...(typeof body.y_percent === 'number' ? { y_percent: body.y_percent } : {}),
     });
     return updated ? json(updated) : json({ error: 'Not found' }, 404);
   }

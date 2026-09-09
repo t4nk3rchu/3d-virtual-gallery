@@ -31,8 +31,27 @@ export function HotspotEditor({
   const [saving, setSaving] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Just-deleted hotspot, kept briefly so the deletion can be undone (re-created).
+  const [undoHotspot, setUndoHotspot] = useState<ArtworkHotspot | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Track the previously-selected hotspot id so the effect only fires on change
   const prevSelectedId = useRef<string | null>(null);
+
+  // Clear the pending undo timer if the editor unmounts.
+  useEffect(() => () => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); }, []);
+
+  // Drag-to-reposition state for the currently-selected hotspot pin.
+  const imageWrapperRef = useRef<HTMLDivElement | null>(null);
+  const [dragXY, setDragXY] = useState<{ x: number; y: number } | null>(null);
+  const draggingRef = useRef(false);
+
+  const pointerToPercent = (clientX: number, clientY: number) => {
+    const rect = imageWrapperRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0 || rect.height === 0) return null;
+    const x = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
+    return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
+  };
 
   const initialFrameConfig: FrameConfig = (() => {
     try {
@@ -99,6 +118,7 @@ export function HotspotEditor({
     const clampedY = Math.max(0, Math.min(100, Math.round(y * 10) / 10));
 
     setSelectedHotspot(null);
+    setDragXY(null);
     setNewPin({ x: clampedX, y: clampedY });
     setIsConfirmingDelete(false);
     setTitle('');
@@ -113,6 +133,7 @@ export function HotspotEditor({
   useEffect(() => {
     if (!selectedHotspot || selectedHotspot.id === prevSelectedId.current) return;
     prevSelectedId.current = selectedHotspot.id;
+    setDragXY(null);
     setIsConfirmingDelete(false);
     setTitle(selectedHotspot.title);
     setDescription(selectedHotspot.description);
@@ -141,6 +162,9 @@ export function HotspotEditor({
           audio_timestamp_seconds: audioTimestamp.trim() ? parseFloat(audioTimestamp) : null,
           audio_timestamp_end_seconds: audioTimestampEnd.trim() ? parseFloat(audioTimestampEnd) : null,
           audio_file_id: resolvedAudioId || null,
+          // Persist the (possibly dragged) pin position.
+          x_percent: dragXY?.x ?? selectedHotspot.x_percent,
+          y_percent: dragXY?.y ?? selectedHotspot.y_percent,
         }),
       });
       if (!res.ok) { setError(await res.text()); return; }
@@ -208,6 +232,7 @@ export function HotspotEditor({
   };
 
   const handleDeleteHotspot = async (id: string) => {
+    const removed = hotspots.find((h) => h.id === id) ?? null;
     setSaving(true);
     setError(null);
     try {
@@ -218,6 +243,13 @@ export function HotspotEditor({
       if (res.ok) {
         onHotspotsUpdated(hotspots.filter((h) => h.id !== id));
         setSelectedHotspot(null);
+        setIsConfirmingDelete(false);
+        // Offer an undo window: keep the deleted hotspot's data for a few seconds.
+        if (removed) {
+          setUndoHotspot(removed);
+          if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+          undoTimerRef.current = setTimeout(() => setUndoHotspot(null), 6000);
+        }
       } else {
         setError('Failed to delete hotspot.');
       }
@@ -225,6 +257,40 @@ export function HotspotEditor({
       setError('Network error deleting hotspot.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Re-create the just-deleted hotspot (new id) — restores position, text, and audio.
+  const handleUndoDelete = async () => {
+    const h = undoHotspot;
+    if (!h) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoHotspot(null);
+    setError(null);
+    try {
+      const res = await fetch('/api/hotspots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          artwork_id: artwork.id,
+          x_percent: h.x_percent,
+          y_percent: h.y_percent,
+          title: h.title,
+          description: h.description,
+          audio_timestamp_seconds: h.audio_timestamp_seconds ?? null,
+          audio_timestamp_end_seconds: h.audio_timestamp_end_seconds ?? null,
+          audio_file_id: h.audio_file_id ?? null,
+        }),
+      });
+      if (res.ok) {
+        const restored = (await res.json()) as ArtworkHotspot;
+        onHotspotsUpdated([...hotspots, restored]);
+      } else {
+        setError('Failed to restore hotspot.');
+      }
+    } catch {
+      setError('Network error restoring hotspot.');
     }
   };
 
@@ -320,7 +386,7 @@ export function HotspotEditor({
               Click anywhere on the artwork image to drop a new interpretive hotspot pin.
             </p>
             {imgSrc ? (
-              <div className="hotspot-image-wrapper" onClick={handleImageClick}>
+              <div className="hotspot-image-wrapper" ref={imageWrapperRef} onClick={handleImageClick}>
                 <img
                   src={imgSrc}
                   alt={artwork.title}
@@ -343,8 +409,8 @@ export function HotspotEditor({
                       className={`hotspot-pin ${isSelected ? 'selected on' : ''}`}
                       style={{
                         position: 'absolute',
-                        left: `${h.x_percent}%`,
-                        top: `${h.y_percent}%`,
+                        left: `${isSelected && dragXY ? dragXY.x : h.x_percent}%`,
+                        top: `${isSelected && dragXY ? dragXY.y : h.y_percent}%`,
                         transform: 'translate(-50%, -50%)',
                         width: isSelected ? '28px' : '22px',
                         height: isSelected ? '28px' : '22px',
@@ -354,7 +420,8 @@ export function HotspotEditor({
                         boxShadow: isSelected
                           ? '0 0 0 3px rgba(78, 114, 134, 0.4), 0 3px 8px rgba(0,0,0,0.5)'
                           : '0 2px 6px rgba(0,0,0,0.4)',
-                        cursor: 'pointer',
+                        cursor: isSelected ? 'grab' : 'pointer',
+                        touchAction: 'none',
                         padding: 0,
                         zIndex: isSelected ? 12 : 10,
                       }}
@@ -363,7 +430,24 @@ export function HotspotEditor({
                         setNewPin(null);
                         setSelectedHotspot(h);
                       }}
-                      title={h.title}
+                      onPointerDown={(e) => {
+                        // Only the selected pin is draggable; others just select on click.
+                        if (!isSelected) return;
+                        e.stopPropagation();
+                        draggingRef.current = true;
+                        try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+                      }}
+                      onPointerMove={(e) => {
+                        if (!draggingRef.current || !isSelected) return;
+                        const p = pointerToPercent(e.clientX, e.clientY);
+                        if (p) setDragXY(p);
+                      }}
+                      onPointerUp={(e) => {
+                        if (!draggingRef.current) return;
+                        draggingRef.current = false;
+                        try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+                      }}
+                      title={isSelected ? 'Drag to reposition' : h.title}
                     >
                       <span className="hotspot-pin__dot" />
                     </button>
@@ -524,7 +608,10 @@ export function HotspotEditor({
               <form onSubmit={handleUpdateHotspot} className="hotspot-pin-form">
                 <h3>Edit Hotspot</h3>
                 <p className="coords-readout">
-                  Pin at: X: {selectedHotspot.x_percent}%, Y: {selectedHotspot.y_percent}%
+                  Pin at: X: {dragXY?.x ?? selectedHotspot.x_percent}%, Y: {dragXY?.y ?? selectedHotspot.y_percent}%
+                </p>
+                <p className="hint" style={{ marginTop: '-2px' }}>
+                  Drag the highlighted pin on the image to reposition it, then Save Changes.
                 </p>
 
                 <div className="form-group">
@@ -650,6 +737,21 @@ export function HotspotEditor({
             )}
           </div>
         </div>
+
+        {undoHotspot && (
+          <div className="hotspot-undo-bar" role="status" aria-live="polite">
+            <span className="hotspot-undo-bar__msg">
+              Deleted “{undoHotspot.title || 'hotspot'}”
+            </span>
+            <button
+              type="button"
+              className="hotspot-undo-bar__btn"
+              onClick={handleUndoDelete}
+            >
+              <Icon name="reset" size={13} /> Undo
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
