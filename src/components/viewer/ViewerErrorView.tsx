@@ -15,23 +15,20 @@ export function ViewerErrorView({
   message,
   onRetry,
 }: ViewerErrorViewProps) {
-  let kicker = 'Reda Archival Register · Error 404';
-  let defaultTitle = 'Exhibition Folio Not Found';
+  let defaultTitle = 'Không tìm thấy triển lãm';
   let defaultMessage =
-    'The requested exhibition link does not correspond to an active exhibition folio in the gallery vault.';
+    'Liên kết triển lãm không tồn tại hoặc đã được chuyển sang phòng trưng bày khác.';
   let iconName: 'info' | 'lock' | 'refresh' = 'info';
 
   if (type === 'private') {
-    kicker = 'Curatorial Salon · Access Required';
-    defaultTitle = 'Private Exhibition in Curation';
+    defaultTitle = 'Triển lãm riêng tư';
     defaultMessage =
-      'This exhibition folio is currently unpublished and accessible only to authorized estate curators.';
+      'Triển lãm này hiện đang trong quá trình chuẩn bị hoặc chỉ mở cho người được ủy quyền.';
     iconName = 'lock';
   } else if (type === 'network_error') {
-    kicker = 'Connection Degraded';
-    defaultTitle = 'Archival Vault Unreachable';
+    defaultTitle = 'Lỗi kết nối không gian';
     defaultMessage =
-      'Unable to stream exhibition assets from the vault. Please verify your connection and try again.';
+      'Không thể tải dữ liệu không gian triển lãm. Vui lòng kiểm tra đường truyền và thử lại.';
     iconName = 'refresh';
   }
 
@@ -49,8 +46,6 @@ export function ViewerErrorView({
           <Icon name={iconName} size={28} />
         </div>
 
-        <span className="viewer-error-card__kicker">{kicker}</span>
-
         <h1 className="viewer-error-card__title">{displayTitle}</h1>
 
         <p className="viewer-error-card__message">{displayMessage}</p>
@@ -60,21 +55,21 @@ export function ViewerErrorView({
           {type === 'not_found' && (
             <>
               <a href="/" className="btn btn--primary viewer-error-btn">
-                Return to Safety
+                Quay lại trang chủ
               </a>
-              <a href="/login" className="btn btn--secondary viewer-error-btn">
-                Curator Atelier Login
+              <a href="/studio" className="btn btn--secondary viewer-error-btn">
+                Đăng nhập Studio
               </a>
             </>
           )}
 
           {type === 'private' && (
             <>
-              <a href="/login" className="btn btn--primary viewer-error-btn">
-                Sign In with Curator Credentials <Icon name="chevronRight" size={14} />
+              <a href="/studio" className="btn btn--primary viewer-error-btn">
+                Đăng nhập Studio <Icon name="chevronRight" size={14} />
               </a>
               <a href="/" className="btn btn--secondary viewer-error-btn">
-                Return to Safety
+                Quay lại trang chủ
               </a>
             </>
           )}
@@ -87,11 +82,11 @@ export function ViewerErrorView({
                   onClick={onRetry}
                   className="btn btn--primary viewer-error-btn"
                 >
-                  <Icon name="refresh" size={14} /> Retry Connection
+                  <Icon name="refresh" size={14} /> Thử lại kết nối
                 </button>
               )}
               <a href="/" className="btn btn--secondary viewer-error-btn">
-                Return to Safety
+                Quay lại trang chủ
               </a>
             </>
           )}

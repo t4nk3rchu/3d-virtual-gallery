@@ -3,29 +3,30 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ViewerErrorView } from './ViewerErrorView';
 
 describe('ViewerErrorView', () => {
-  it('renders 404 not_found error state with return buttons', () => {
-    render(<ViewerErrorView type="not_found" />);
+  it('renders 404 not_found error state with return buttons and no kicker element', () => {
+    const { container } = render(<ViewerErrorView type="not_found" />);
 
-    expect(screen.getByText(/ERROR 404/i)).toBeInTheDocument();
-    expect(screen.getByText('Exhibition Folio Not Found')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Return to Safety/i })).toHaveAttribute('href', '/');
-    expect(screen.getByRole('link', { name: /Curator Atelier Login/i })).toHaveAttribute('href', '/login');
+    expect(container.querySelector('.viewer-error-card__kicker')).toBeNull();
+    expect(screen.getByText(/Exhibition Not Found|Không tìm thấy/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Return to Home|Quay lại/i })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: /Studio Login|Đăng nhập/i })).toHaveAttribute('href', '/studio');
   });
 
-  it('renders 403 private salon error state with sign in CTA', () => {
-    render(<ViewerErrorView type="private" />);
+  it('renders 403 private salon error state with sign in CTA and no kicker', () => {
+    const { container } = render(<ViewerErrorView type="private" />);
 
-    expect(screen.getByText(/ACCESS REQUIRED/i)).toBeInTheDocument();
-    expect(screen.getByText('Private Exhibition in Curation')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Sign In with Curator Credentials/i })).toHaveAttribute('href', '/login');
+    expect(container.querySelector('.viewer-error-card__kicker')).toBeNull();
+    expect(screen.getByText(/Private Exhibition|Triển lãm riêng tư/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Sign In|Đăng nhập/i })).toHaveAttribute('href', '/studio');
   });
 
   it('renders network error with retry button and calls onRetry when clicked', () => {
     const onRetry = vi.fn();
-    render(<ViewerErrorView type="network_error" onRetry={onRetry} />);
+    const { container } = render(<ViewerErrorView type="network_error" onRetry={onRetry} />);
 
-    expect(screen.getByText('Archival Vault Unreachable')).toBeInTheDocument();
-    const retryBtn = screen.getByRole('button', { name: /Retry Connection/i });
+    expect(container.querySelector('.viewer-error-card__kicker')).toBeNull();
+    expect(screen.getByText(/Connection Error|Lỗi kết nối/i)).toBeInTheDocument();
+    const retryBtn = screen.getByRole('button', { name: /Retry|Thử lại/i });
     fireEvent.click(retryBtn);
     expect(onRetry).toHaveBeenCalledTimes(1);
   });

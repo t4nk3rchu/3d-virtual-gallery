@@ -72,10 +72,6 @@ export function LoadingCurtain({
           </p>
         )}
 
-        <span className="loading-curtain__kicker">
-          Reda Archival Gallery · Curated Space
-        </span>
-
         {/* Progress & Stage Section */}
         <div className="loading-curtain__progress-section">
           <div className="loading-curtain__progress-header">

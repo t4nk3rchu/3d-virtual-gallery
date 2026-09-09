@@ -26,6 +26,7 @@ describe('LoadingCurtain', () => {
     expect(screen.getByText(/Curated by Elena Rostova/i)).toBeInTheDocument();
     expect(screen.getByText('25%')).toBeInTheDocument();
     expect(screen.getByText('Opening Curatorial Archive…')).toBeInTheDocument();
+    expect(screen.queryByText(/Reda Archival Gallery/i)).not.toBeInTheDocument();
   });
 
   it('updates stage phrases as progress increases', () => {

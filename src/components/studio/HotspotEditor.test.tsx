@@ -78,4 +78,37 @@ describe('HotspotEditor', () => {
     expect(buttons[1].textContent).toMatch(/Delete/i);
     expect(buttons[2].textContent).toMatch(/Save Changes/i);
   });
+
+  it('requires two-step confirmation before deleting a hotspot', async () => {
+    const onHotspotsUpdated = vi.fn();
+    // mock global fetch
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+
+    render(
+      <HotspotEditor
+        artwork={mockArtwork}
+        hotspots={mockHotspots}
+        onHotspotsUpdated={onHotspotsUpdated}
+        onClose={vi.fn()}
+      />
+    );
+
+    const pin = screen.getByTitle('Testing hotspot point');
+    fireEvent.click(pin);
+
+    const deleteBtn = screen.getByRole('button', { name: /^Delete$/i });
+    fireEvent.click(deleteBtn);
+
+    // After first click, should not have called DELETE fetch yet, but show confirm prompt
+    expect(global.fetch).not.toHaveBeenCalledWith(expect.stringContaining('/api/hotspots/hs-1'), expect.anything());
+    const confirmDeleteBtn = screen.getByRole('button', { name: /Confirm Delete|Are you sure/i });
+    expect(confirmDeleteBtn).toBeTruthy();
+
+    // Clicking confirm delete executes the deletion
+    fireEvent.click(confirmDeleteBtn);
+    expect(global.fetch).toHaveBeenCalledWith('/api/hotspots/hs-1', expect.objectContaining({ method: 'DELETE' }));
+
+    global.fetch = originalFetch;
+  });
 });

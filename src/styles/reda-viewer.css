@@ -625,8 +625,7 @@
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--reda-gold);
-  background: var(--reda-glass);
-  backdrop-filter: blur(8px);
+  background: var(--reda-panel-bg);
   padding: 8px 14px;
   border-radius: var(--reda-radius-pill);
   border: 1px solid rgba(201, 163, 91, 0.3);
@@ -721,12 +720,11 @@
   font-family: var(--reda-ui);
   font-size: 13px;
   color: var(--reda-cream-hi);
-  background: rgba(14, 13, 10, 0.75);
+  background: var(--reda-panel-bg);
   border: 1px solid rgba(201, 163, 91, 0.28);
   border-radius: var(--reda-radius-pill);
   padding: 9px 18px;
   min-height: 44px;
-  backdrop-filter: blur(8px);
 }
 
 .intro-skip-btn {
@@ -892,9 +890,7 @@
   gap: 8px;
   flex-wrap: wrap;
   justify-content: center;
-  background: var(--reda-glass);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--reda-panel-bg);
   border: 1px solid rgba(201, 163, 91, 0.28);
   border-radius: var(--reda-radius-pill);
   padding: 8px 14px;
@@ -1070,9 +1066,7 @@
 
 .artwork-hover-tooltip {
   position: fixed;
-  background: var(--reda-glass-2);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--reda-panel-bg);
   border: 1px solid rgba(201, 163, 91, 0.3);
   border-left: 3px solid var(--reda-gold);
   border-radius: var(--reda-radius);
@@ -1267,9 +1261,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--reda-cream-hi);
-  background: rgba(14, 10, 5, 0.72);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--reda-panel-bg);
   border: 1px solid rgba(201, 163, 91, 0.3);
   border-radius: var(--reda-radius);
   padding: 8px 14px;
@@ -1290,9 +1282,7 @@
   min-width: 44px;
   min-height: 44px;
   border-radius: 50%;
-  background: rgba(14, 10, 5, 0.72);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--reda-panel-bg);
   border: 1px solid rgba(201, 163, 91, 0.3);
   color: var(--reda-gold);
   cursor: pointer;
@@ -1944,8 +1934,6 @@
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
   transition: all 0.2s ease;
 }
 
@@ -1993,8 +1981,7 @@
   justify-content: center;
   gap: 6px;
   padding: 6px 8px;
-  background: rgba(14, 10, 5, 0.85);
-  backdrop-filter: blur(6px);
+  background: var(--reda-panel-bg);
   border: 1px solid rgba(201, 163, 91, 0.28);
   border-radius: var(--reda-radius-pill);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);

@@ -439,45 +439,49 @@ export function ArtworkForm({
       )}
 
         {/* Artwork Type Selection */}
-        <div className="form-group">
-          <label className="form-label">Artwork Medium Type</label>
-          <div className="type-selector medium">
+        <div>
+          <div className="flabel">Loại tác phẩm / Artwork Medium Type</div>
+          <div className="medium" role="radiogroup" aria-label="Artwork Medium Type">
             <button
               type="button"
-              className={`type-btn med ${artworkType === 'IMAGE_2D' ? 'active on' : ''}`}
+              className={`med ${artworkType === 'IMAGE_2D' ? 'on active' : ''}`}
               onClick={() => setArtworkType('IMAGE_2D')}
             >
-              <Icon name="frame" /> 2D Painting / Image
+              <div className="g"><Icon name="frame" size={15} /></div>
+              <div className="t">2D Painting / Image</div>
             </button>
             <button
               type="button"
-              className={`type-btn med ${artworkType === 'VIDEO' ? 'active on' : ''}`}
+              className={`med ${artworkType === 'VIDEO' ? 'on active' : ''}`}
               onClick={() => setArtworkType('VIDEO')}
             >
-              <Icon name="film" /> Video (YouTube)
+              <div className="g"><Icon name="film" size={15} /></div>
+              <div className="t">Video</div>
+              <div className="s">YouTube</div>
             </button>
             <button
               type="button"
-              className="type-btn med dis type-btn--disabled"
+              className="med dis"
               disabled
               title="3D Object Model — coming in a future update"
             >
-              <Icon name="cube" /> 3D Object Model
-              <span style={{ display: 'block', fontSize: '9px', letterSpacing: '.08em', opacity: 0.7, marginTop: '2px' }}>Under Construction</span>
+              <div className="g"><Icon name="cube" size={15} /></div>
+              <div className="t">3D Model</div>
+              <div className="s">Coming Soon</div>
             </button>
           </div>
         </div>
 
         {/* Media Input based on Type */}
         {artworkType === 'IMAGE_2D' && (
-          <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <label htmlFor="art-drive-img" className="form-label" style={{ marginBottom: 0 }}>
-                Google Drive Image Link or File ID
-              </label>
+          <div style={{ marginTop: '12px' }}>
+            <div className="flabel">
+              <span>Google Drive Image Link or File ID</span>
               <DriveFilePicker
                 mimeTypes="image/png,image/jpeg,image/webp,image/gif"
                 isTeam={isTeam}
+                buttonLabel="Pick from Drive"
+                className="tinybtn"
                 onPicked={(fileId) => setDriveInput(fileId)}
               />
             </div>
@@ -486,21 +490,21 @@ export function ArtworkForm({
               type="text"
               value={driveInput}
               onChange={(e) => setDriveInput(e.target.value)}
-              placeholder="https://drive.google.com/file/d/1A2B3C... or bare file ID"
+              placeholder="https://drive.google.com/file/d/... or bare file ID"
               required
-              className="input"
+              className="input mono"
             />
-            <p className="hint">
+            <div className="hint">
               Ensure the file is shared with the Reda Service Account in Google Drive.
-            </p>
+            </div>
           </div>
         )}
 
         {artworkType === 'VIDEO' && (
-          <div className="form-group">
-            <label htmlFor="art-youtube" className="form-label">
-              YouTube Video Link or Video ID
-            </label>
+          <div style={{ marginTop: '12px' }}>
+            <div className="flabel">
+              <span>YouTube Video Link or Video ID</span>
+            </div>
             <input
               id="art-youtube"
               type="text"
@@ -508,14 +512,14 @@ export function ArtworkForm({
               onChange={(e) => setYoutubeInput(e.target.value)}
               placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
               required
-              className="input"
+              className="input mono"
             />
             {parsedYoutubeId && (
-              <div className="media-preview" style={{ marginTop: '10px' }}>
+              <div style={{ marginTop: '10px', borderRadius: 'var(--reda-radius)', overflow: 'hidden' }}>
                 <img
                   src={`https://img.youtube.com/vi/${parsedYoutubeId}/hqdefault.jpg`}
                   alt="YouTube Video Preview"
-                  className="thumbnail-preview"
+                  style={{ width: '100%', maxHeight: '160px', objectFit: 'cover', display: 'block' }}
                 />
               </div>
             )}
@@ -523,14 +527,14 @@ export function ArtworkForm({
         )}
 
         {/* Optional Audio Guide */}
-        <div className="form-group">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-            <label htmlFor="art-audio-guide" className="form-label" style={{ marginBottom: 0 }}>
-              Audio Guide Narration (Optional Google Drive File ID)
-            </label>
+        <div style={{ marginTop: '12px' }}>
+          <div className="flabel">
+            <span>Audio Guide Narration (Optional Google Drive File ID)</span>
             <DriveFilePicker
               mimeTypes="audio/mp3,audio/mpeg,audio/wav,audio/ogg"
               isTeam={isTeam}
+              buttonLabel="Pick from Drive"
+              className="tinybtn"
               onPicked={(fileId) => setAudioGuideInput(fileId)}
             />
           </div>
@@ -540,19 +544,17 @@ export function ArtworkForm({
             value={audioGuideInput}
             onChange={(e) => setAudioGuideInput(e.target.value)}
             placeholder="Google Drive link or ID for optional voiceover / audio guide"
-            className="input"
+            className="input mono"
           />
         </div>
 
         {/* Frame & Placard Configuration (for IMAGE_2D and VIDEO) */}
         {(artworkType === 'IMAGE_2D' || artworkType === 'VIDEO') && (
-          <div className="studio-card__subgroup">
-            <label className="form-label" style={{ fontWeight: 600, color: 'var(--reda-ink)' }}>
-              Frame &amp; Placard Settings
-            </label>
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="frame-type" className="form-label">Frame Material</label>
+          <div className="fsec">
+            <div className="h">Frame &amp; Placard Settings</div>
+            <div className="grid2">
+              <div>
+                <label htmlFor="frame-type" className="sublbl">Frame Material</label>
                 <select
                   id="frame-type"
                   value={frameConfig.frameType}
@@ -573,8 +575,8 @@ export function ArtworkForm({
                 </select>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="frame-width" className="form-label">Frame Width (m)</label>
+              <div>
+                <label htmlFor="frame-width" className="sublbl">Frame Width (m)</label>
                 <input
                   id="frame-width"
                   type="number"
@@ -593,34 +595,36 @@ export function ArtworkForm({
               </div>
             </div>
 
-            <div className="form-group checkbox-group" style={{ display: 'flex', alignItems: 'center', marginTop: '4px' }}>
-              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={frameConfig.showPlacard}
-                  onChange={(e) =>
-                    setFrameConfig({
-                      ...frameConfig,
-                      showPlacard: e.target.checked,
-                    })
-                  }
-                />
+            <div className="check">
+              <input
+                type="checkbox"
+                id="chk-placard"
+                checked={frameConfig.showPlacard}
+                onChange={(e) =>
+                  setFrameConfig({
+                    ...frameConfig,
+                    showPlacard: e.target.checked,
+                  })
+                }
+              />
+              <label htmlFor="chk-placard" style={{ cursor: 'pointer' }}>
                 Display Wall Placard under artwork
               </label>
             </div>
 
-            <div className="form-group checkbox-group" style={{ display: 'flex', alignItems: 'center' }}>
-              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={frameConfig.allowTilt !== false}
-                  onChange={(e) =>
-                    setFrameConfig({
-                      ...frameConfig,
-                      allowTilt: e.target.checked,
-                    })
-                  }
-                />
+            <div className="check">
+              <input
+                type="checkbox"
+                id="chk-tilt"
+                checked={frameConfig.allowTilt !== false}
+                onChange={(e) =>
+                  setFrameConfig({
+                    ...frameConfig,
+                    allowTilt: e.target.checked,
+                  })
+                }
+              />
+              <label htmlFor="chk-tilt" style={{ cursor: 'pointer' }}>
                 Enable 3D Perspective Tilt in Inspect Mode
               </label>
             </div>
@@ -628,13 +632,11 @@ export function ArtworkForm({
         )}
 
         {/* Metadata Section — Artwork Info */}
-        <div className="studio-card__subgroup">
-          <label className="form-label" style={{ fontWeight: 600, color: 'var(--reda-ink)' }}>
-            Artwork Info
-          </label>
+        <div className="fsec">
+          <div className="h">Artwork Info</div>
 
-          <div className="form-group">
-            <label htmlFor="art-title" className="form-label">Title *</label>
+          <div>
+            <label htmlFor="art-title" className="sublbl">Title *</label>
             <input
               id="art-title"
               type="text"
@@ -647,80 +649,80 @@ export function ArtworkForm({
           </div>
 
           {artists.length > 0 && (
-          <div className="form-group">
-            <label htmlFor="art-artist-profile" className="form-label">
-              Link to Exhibition Artist Profile
-            </label>
-            <select
-              id="art-artist-profile"
-              className="input select"
-              value={artistId}
-              onChange={(e) => {
-                const selectedId = e.target.value;
-                setArtistId(selectedId);
-                const matched = artists.find((a) => a.id === selectedId);
-                if (matched) {
-                  setArtist(matched.name);
-                }
-              }}
-            >
-              <option value="">-- No linked artist profile --</option>
-              {artists.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name} {a.life_dates ? `(${a.life_dates})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+            <div style={{ marginTop: '12px' }}>
+              <label htmlFor="art-artist-profile" className="sublbl">
+                Link to Exhibition Artist Profile
+              </label>
+              <select
+                id="art-artist-profile"
+                className="input select"
+                value={artistId}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  setArtistId(selectedId);
+                  const matched = artists.find((a) => a.id === selectedId);
+                  if (matched) {
+                    setArtist(matched.name);
+                  }
+                }}
+              >
+                <option value="">-- No linked artist profile --</option>
+                {artists.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} {a.life_dates ? `(${a.life_dates})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="art-medium" className="form-label">Medium</label>
-            <input
-              id="art-medium"
-              type="text"
-              value={medium}
-              onChange={(e) => setMedium(e.target.value)}
-              placeholder="e.g. Oil on linen, Digital canvas"
-              className="input"
-            />
+          <div className="grid3" style={{ marginTop: '12px' }}>
+            <div>
+              <label htmlFor="art-medium" className="sublbl">Medium</label>
+              <input
+                id="art-medium"
+                type="text"
+                value={medium}
+                onChange={(e) => setMedium(e.target.value)}
+                placeholder="e.g. Oil on linen, Digital canvas"
+                className="input"
+              />
+            </div>
+            <div>
+              <label htmlFor="art-year" className="sublbl">Year</label>
+              <input
+                id="art-year"
+                type="text"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                placeholder="e.g. 2024"
+                className="input"
+              />
+            </div>
+            <div>
+              <label htmlFor="art-dims" className="sublbl">Physical Dimensions</label>
+              <input
+                id="art-dims"
+                type="text"
+                value={dimensions}
+                onChange={(e) => setDimensions(e.target.value)}
+                placeholder="e.g. 120 × 90 cm"
+                className="input"
+              />
+            </div>
           </div>
-          <div className="form-group">
-            <label htmlFor="art-year" className="form-label">Year</label>
-            <input
-              id="art-year"
-              type="text"
-              value={year}
-              onChange={(e) => setYear(e.target.value)}
-              placeholder="e.g. 2024"
-              className="input"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="art-dims" className="form-label">Physical Dimensions</label>
-            <input
-              id="art-dims"
-              type="text"
-              value={dimensions}
-              onChange={(e) => setDimensions(e.target.value)}
-              placeholder="e.g. 120 × 90 cm"
-              className="input"
-            />
-          </div>
-        </div>
 
-        <div className="form-group">
-          <label htmlFor="art-desc" className="form-label">Description / Curator Statement</label>
-          <textarea
-            id="art-desc"
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Background, historical notes, or thematic context displayed in focus panel"
-            className="input textarea"
-          />
-        </div>
+          <div style={{ marginTop: '12px' }}>
+            <label htmlFor="art-desc" className="sublbl">Description / Curator Statement</label>
+            <textarea
+              id="art-desc"
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Background, historical notes, or thematic context displayed in focus panel"
+              className="input textarea"
+            />
+          </div>
         </div>
 
         {error && <p className="error" role="alert">{error}</p>}

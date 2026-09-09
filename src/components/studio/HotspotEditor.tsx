@@ -29,6 +29,7 @@ export function HotspotEditor({
   const [audioTimestampEnd, setAudioTimestampEnd] = useState<string>('');
   const [audioFileId, setAudioFileId] = useState<string>('');
   const [saving, setSaving] = useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Track the previously-selected hotspot id so the effect only fires on change
   const prevSelectedId = useRef<string | null>(null);
@@ -99,6 +100,7 @@ export function HotspotEditor({
 
     setSelectedHotspot(null);
     setNewPin({ x: clampedX, y: clampedY });
+    setIsConfirmingDelete(false);
     setTitle('');
     setDescription('');
     setAudioTimestamp('');
@@ -111,6 +113,7 @@ export function HotspotEditor({
   useEffect(() => {
     if (!selectedHotspot || selectedHotspot.id === prevSelectedId.current) return;
     prevSelectedId.current = selectedHotspot.id;
+    setIsConfirmingDelete(false);
     setTitle(selectedHotspot.title);
     setDescription(selectedHotspot.description);
     setAudioTimestamp(selectedHotspot.audio_timestamp_seconds != null ? String(selectedHotspot.audio_timestamp_seconds) : '');
@@ -607,7 +610,7 @@ export function HotspotEditor({
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => { setSelectedHotspot(null); prevSelectedId.current = null; }}
+                    onClick={() => { setSelectedHotspot(null); prevSelectedId.current = null; setIsConfirmingDelete(false); }}
                     style={{ borderRadius: 'var(--reda-radius-pill)' }}
                   >
                     Cancel
@@ -615,11 +618,17 @@ export function HotspotEditor({
                   <Button
                     type="button"
                     variant="danger"
-                    onClick={() => handleDeleteHotspot(selectedHotspot.id)}
+                    onClick={() => {
+                      if (!isConfirmingDelete) {
+                        setIsConfirmingDelete(true);
+                      } else {
+                        handleDeleteHotspot(selectedHotspot.id);
+                      }
+                    }}
                     disabled={saving}
                     style={{ borderRadius: 'var(--reda-radius-pill)' }}
                   >
-                    Delete
+                    {isConfirmingDelete ? 'Confirm Delete?' : 'Delete'}
                   </Button>
                   <Button
                     type="submit"
