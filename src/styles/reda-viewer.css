@@ -800,7 +800,7 @@
 
   .intro-video-tag {
     padding: 5px 10px;
-    font-size: 9.5px;
+    font-size: 11px;
     gap: 5px;
   }
 
@@ -2078,7 +2078,7 @@
 
 .carousel-counter-tag {
   font-family: var(--reda-mono);
-  font-size: 8.5px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2436,7 +2436,7 @@
   align-items: center;
   gap: 4px;
   font-family: var(--reda-mono);
-  font-size: 9.5px;
+  font-size: 11px;
   color: var(--reda-gold);
   margin-top: 6px;
 }
@@ -2455,11 +2455,11 @@
   }
 
   .inspect-lightbox__header .artist {
-    font-size: 10.5px;
+    font-size: 11px;
   }
 
   .inspect-artist-link {
-    font-size: 9px;
+    font-size: 11px;
     padding: 3px 8px;
     min-height: 26px;
     gap: 3px;
@@ -2470,7 +2470,7 @@
   }
 
   .inspect-lightbox__header-actions .btn {
-    font-size: 9.5px;
+    font-size: 11px;
     padding: 6px 10px;
     min-height: 38px;
     gap: 4px;
@@ -2491,21 +2491,21 @@
 
   .inspect-btn-reset {
     padding: 5px 8px;
-    font-size: 10px;
+    font-size: 11px;
     min-height: 32px;
     gap: 3px;
   }
 
   .inspect-btn-tilt {
     padding: 5px 8px;
-    font-size: 10px;
+    font-size: 11px;
     min-height: 32px;
     gap: 3px;
   }
 
   .inspect-nav-btn {
     padding: 5px 8px;
-    font-size: 10px;
+    font-size: 11px;
     min-height: 32px;
     gap: 3px;
   }
@@ -2518,11 +2518,11 @@
   }
 
   .carousel-counter-tag {
-    font-size: 7.5px;
+    font-size: 10.5px;
   }
 
   .carousel-counter-title {
-    font-size: 9.5px;
+    font-size: 11px;
     max-width: 90px;
   }
 
@@ -2559,7 +2559,7 @@
   }
 
   .sidebar-subtitle {
-    font-size: 10px;
+    font-size: 11px;
     margin: 4px 0 8px;
   }
 
@@ -2571,7 +2571,7 @@
   }
 
   .item-badge {
-    font-size: 9.5px;
+    font-size: 10.5px;
     padding: 1px 4px;
   }
 
@@ -3359,7 +3359,7 @@
   }
 
   .settings-section h3 {
-    font-size: 9.5px;
+    font-size: 11px;
     margin-bottom: 8px;
   }
 
@@ -3374,7 +3374,7 @@
   }
 
   .settings-toggle-card small {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .settings-toggles-grid {
@@ -3415,12 +3415,12 @@
   }
 
   .settings-slider-header {
-    font-size: 10.5px;
+    font-size: 11px;
     margin-bottom: 4px;
   }
 
   .slider-labels {
-    font-size: 8.5px;
+    font-size: 10.5px;
   }
 
   .settings-modal__footer {

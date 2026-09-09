@@ -123,6 +123,7 @@ export function initScene(canvas: HTMLCanvasElement, opts: InitSceneOptions = {}
   };
 
   const shouldRender = (): boolean => {
+    if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) return false;
     if (!opts.renderOnDemand) return true;
     if (cameraMoved()) {
       renderUntil = performance.now() + COOLDOWN_MS;

@@ -34,6 +34,20 @@ export function InspectDesktopSidebar({
     audio?.play().catch(() => {});
     return () => { audio?.pause(); };
   }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setCardPos((prev) => {
+        if (!prev) return null;
+        return {
+          x: Math.max(10, Math.min(window.innerWidth - 350, prev.x)),
+          y: Math.max(70, Math.min(window.innerHeight - 180, prev.y)),
+        };
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const dragOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {

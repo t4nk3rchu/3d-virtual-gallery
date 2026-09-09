@@ -568,7 +568,7 @@
 .studio-card .form-label {
   color: var(--reda-label);
   font-family: var(--reda-ui);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: .09em;
   text-transform: uppercase;
@@ -646,7 +646,7 @@
 .form-label {
   display: block;
   font-family: var(--reda-ui);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: .09em;
   text-transform: uppercase;
@@ -698,7 +698,7 @@ textarea.input {
 /* ---- badges ---- */
 .badge {
   font-family: var(--reda-ui);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -1673,7 +1673,7 @@ textarea.input {
 
 .studio-loading__kicker {
   font-family: var(--reda-ui);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;

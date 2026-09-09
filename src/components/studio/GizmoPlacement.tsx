@@ -345,6 +345,7 @@ export function GizmoPlacement({
 
     let disposed = false;
     let sceneHandle: import('../../lib/babylon/engine').SceneHandle | null = null;
+    let resizeObserver: ResizeObserver | null = null;
 
     (async () => {
       try {
@@ -354,8 +355,23 @@ export function GizmoPlacement({
         if (disposed || !canvasRef.current) return;
 
         sceneHandle = initScene(canvasRef.current);
-        const { scene } = sceneHandle;
+        const { scene, engine } = sceneHandle;
         sceneRef.current = scene;
+
+        // Auto-resize viewport whenever container changes size or unhides
+        const container = canvasRef.current.parentElement;
+        if (container && typeof ResizeObserver !== 'undefined') {
+          resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+              if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+                if (engine && !engine.isDisposed) {
+                  engine.resize();
+                }
+              }
+            }
+          });
+          resizeObserver.observe(container);
+        }
 
       // Authoring camera: ArcRotateCamera allows orbiting & panning
       const camera = new ArcRotateCamera(
@@ -625,6 +641,7 @@ export function GizmoPlacement({
       disposed = true;
       setSceneReady(false);
       sceneRef.current = null;
+      resizeObserver?.disconnect();
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
@@ -935,6 +952,7 @@ export function GizmoPlacement({
                 type="button"
                 variant="ghost"
                 size="sm"
+                className="gizmo-unfocus-btn"
                 onClick={() => selectArtwork(null)}
                 title="Unfocus / Deselect (Esc)"
               >

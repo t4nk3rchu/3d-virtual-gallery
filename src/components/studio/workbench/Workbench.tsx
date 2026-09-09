@@ -168,7 +168,7 @@ export function Workbench({
         )}
 
         {/* Center: Setup Sheet, Artist Bio Preview, or 3D Viewport */}
-        {tool === 'setup' ? (
+        {tool === 'setup' && (
           <SetupSheet
             exhibition={exhibition}
             rooms={rooms}
@@ -176,7 +176,9 @@ export function Workbench({
             onSaved={fetchExhibition}
             onManageArtists={() => setTool('artists')}
           />
-        ) : tool === 'artists' ? (
+        )}
+
+        {tool === 'artists' && (
           <div
             style={{
               position: 'relative',
@@ -218,52 +220,57 @@ export function Workbench({
               />
             )}
           </div>
-        ) : (
-          <div className="wb-view">
-            <div className="badge-mode">
-              {mode === 'waypoints'
-                ? 'Waypoints mode · Visitor Path & Start'
-                : 'Artworks mode · Placement'}
-            </div>
-            {exhibition.room && (
-              <GizmoPlacement
-                embedded
-                room={exhibition.room}
-                artworks={exhibition.artworks ?? []}
-                exhibitionId={exhibitionId}
-                settingsJson={exhibition.settings_json}
-                workbenchMode={mode}
-                initialSelectedArtworkId={
-                  selectedArtworkId && selectedArtworkId !== 'new'
-                    ? selectedArtworkId
-                    : undefined
-                }
-                onSelectArtwork={(id) => setSelectedArtworkId(id)}
-                onArtworkTransformSaved={() => fetchExhibition()}
-                onSpawnPointSaved={() => fetchExhibition()}
-                onClose={() => {}}
-              />
-            )}
-
-            {/* Artwork Inspector Overlay directly over 3D Scene */}
-            {tool === 'curate' && selectedArtworkId && (
-              <Inspector
-                width={inspectorWidth}
-                exhibitionId={exhibitionId}
-                selected={selectedArtworkId}
-                artworks={exhibition.artworks ?? []}
-                artists={exhibition.artists ?? []}
-                isTeam={isTeam}
-                onResizeStart={startResizing}
-                onEditHotspots={(art) => setEditingHotspotArtwork(art)}
-                onSaved={() => {
-                  fetchExhibition();
-                }}
-                onDeselect={() => setSelectedArtworkId(null)}
-              />
-            )}
-          </div>
         )}
+
+        <div
+          className="wb-view"
+          style={{
+            display: tool === 'curate' || tool === 'rooms' ? 'block' : 'none',
+          }}
+        >
+          <div className="badge-mode">
+            {mode === 'waypoints'
+              ? 'Waypoints mode · Visitor Path & Start'
+              : 'Artworks mode · Placement'}
+          </div>
+          {exhibition.room && (
+            <GizmoPlacement
+              embedded
+              room={exhibition.room}
+              artworks={exhibition.artworks ?? []}
+              exhibitionId={exhibitionId}
+              settingsJson={exhibition.settings_json}
+              workbenchMode={mode}
+              initialSelectedArtworkId={
+                selectedArtworkId && selectedArtworkId !== 'new'
+                  ? selectedArtworkId
+                  : undefined
+              }
+              onSelectArtwork={(id) => setSelectedArtworkId(id)}
+              onArtworkTransformSaved={() => fetchExhibition()}
+              onSpawnPointSaved={() => fetchExhibition()}
+              onClose={() => {}}
+            />
+          )}
+
+          {/* Artwork Inspector Overlay directly over 3D Scene */}
+          {tool === 'curate' && selectedArtworkId && (
+            <Inspector
+              width={inspectorWidth}
+              exhibitionId={exhibitionId}
+              selected={selectedArtworkId}
+              artworks={exhibition.artworks ?? []}
+              artists={exhibition.artists ?? []}
+              isTeam={isTeam}
+              onResizeStart={startResizing}
+              onEditHotspots={(art) => setEditingHotspotArtwork(art)}
+              onSaved={() => {
+                fetchExhibition();
+              }}
+              onDeselect={() => setSelectedArtworkId(null)}
+            />
+          )}
+        </div>
       </div>
 
       {/* Hotspot Editor Modal */}
