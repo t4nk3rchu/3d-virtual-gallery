@@ -13,6 +13,7 @@ import { SetupSheet } from './SetupSheet';
 import { HotspotEditor } from '../HotspotEditor';
 import { Icon } from '../../ui';
 import { registerMediaTokens } from '../../../lib/media/media-tokens';
+import { useToast } from '../../../context/ToastContext';
 
 export function Workbench({
   exhibitionId,
@@ -23,6 +24,7 @@ export function Workbench({
   isTeam?: boolean;
   onBack(): void;
 }) {
+  const toast = useToast();
   const [exhibition, setExhibition] = useState<ExhibitionDetail | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [tool, setTool] = useState<Tool>('curate');
@@ -77,7 +79,24 @@ export function Workbench({
         credentials: 'include',
         body: JSON.stringify({ is_published: v }),
       });
-      if (res.ok) setExhibition({ ...exhibition, is_published: v });
+      if (res.ok) {
+        setExhibition({ ...exhibition, is_published: v });
+        if (v === 1) {
+          toast.publish('Triển lãm đã được xuất bản công khai.', {
+            title: 'Xuất bản thành công',
+            action: {
+              label: 'Xem trực tiếp',
+              onClick: () => window.open(`/e/${exhibition.slug}`, '_blank'),
+            },
+          });
+        } else {
+          toast.info('Triển lãm đã chuyển về chế độ bản nháp (Unpublished).');
+        }
+      } else {
+        toast.error('Không thể cập nhật trạng thái xuất bản.');
+      }
+    } catch {
+      toast.error('Lỗi kết nối khi cập nhật trạng thái xuất bản.');
     } finally {
       setSaving(false);
     }
@@ -114,7 +133,16 @@ export function Workbench({
               : '60px 232px 1fr',
         }}
       >
-        <ToolRail active={tool} onChange={setTool} />
+        <ToolRail
+          active={tool}
+          onChange={(t) => {
+            setTool(t);
+            if (t !== 'curate') setSelectedArtworkId(null);
+            if (t !== 'artists') setSelectedArtistId(null);
+          }}
+        />
+
+        {/* Left Drawer / Pane (curate, artists, rooms) */}
         {tool === 'curate' && (
           <ArtworksPane
             artworks={exhibition.artworks ?? []}
@@ -145,13 +173,22 @@ export function Workbench({
                   className="wb-li"
                   aria-selected={r.id === (exhibition.room_id || exhibition.room?.id)}
                   onClick={async () => {
-                    await fetch(`/api/exhibitions/${exhibitionId}`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      credentials: 'include',
-                      body: JSON.stringify({ room_id: r.id }),
-                    });
-                    fetchExhibition();
+                    try {
+                      const res = await fetch(`/api/exhibitions/${exhibitionId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ room_id: r.id }),
+                      });
+                      if (res.ok) {
+                        toast.success(`Đã đổi không gian sang "${r.name}".`);
+                        fetchExhibition();
+                      } else {
+                        toast.error('Không thể đổi phòng trưng bày.');
+                      }
+                    } catch {
+                      toast.error('Lỗi mạng khi đổi phòng trưng bày.');
+                    }
                   }}
                 >
                   <span className="pf">

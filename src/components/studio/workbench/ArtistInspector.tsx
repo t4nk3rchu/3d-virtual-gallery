@@ -4,6 +4,7 @@ import { extractGoogleDriveFileId, getImageUrl } from '../../../lib/media/gdrive
 import { isArtworkPlaced } from '../../../lib/studio/artwork-placement';
 import { DriveFilePicker } from '../DriveFilePicker';
 import { Icon, Button, TextField, TextArea } from '../../ui';
+import { useToast } from '../../../context/ToastContext';
 
 interface ArtistInspectorProps {
   width?: number;
@@ -30,6 +31,7 @@ export function ArtistInspector({
   onDeselect,
   onSelectArtwork,
 }: ArtistInspectorProps) {
+  const toast = useToast();
   const isNew = selectedId === 'new';
   const existingArtist = isNew ? null : artists.find((a) => a.id === selectedId) ?? null;
 
@@ -40,7 +42,6 @@ export function ArtistInspector({
   const [contactInfo, setContactInfo] = useState('');
   const [portraitInput, setPortraitInput] = useState('');
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (existingArtist) {
@@ -58,17 +59,14 @@ export function ArtistInspector({
       setContactInfo('');
       setPortraitInput('');
     }
-    setError(null);
-  }, [selectedId, existingArtist?.id]);
+  }, [existingArtist, selectedId]);
 
   if (!selectedId) {
     return null;
   }
 
-  const parsedPortraitId = portraitInput.trim()
-    ? extractGoogleDriveFileId(portraitInput.trim()) || portraitInput.trim()
-    : null;
-  const portraitUrl = parsedPortraitId ? getImageUrl(parsedPortraitId) : null;
+  const parsedPortraitId = extractGoogleDriveFileId(portraitInput) || portraitInput.trim();
+  const portraitUrl = parsedPortraitId ? getImageUrl(parsedPortraitId, 'thumbnail') : null;
 
   const assignedWorks = existingArtist
     ? artworks.filter(
@@ -79,12 +77,11 @@ export function ArtistInspector({
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Artist name is required.');
+      toast.error('Tên họa sĩ không được để trống.');
       return;
     }
 
     setSaving(true);
-    setError(null);
 
     const payload = {
       name: name.trim(),
@@ -104,9 +101,10 @@ export function ArtistInspector({
           body: JSON.stringify(payload),
         });
         if (!res.ok) {
-          setError(await res.text());
+          toast.error(`Lỗi tạo hồ sơ: ${await res.text()}`);
           return;
         }
+        toast.success(`Đã thêm hồ sơ họa sĩ "${name.trim()}".`);
       } else if (existingArtist) {
         const res = await fetch(`/api/artists/${existingArtist.id}`, {
           method: 'PUT',
@@ -115,13 +113,14 @@ export function ArtistInspector({
           body: JSON.stringify(payload),
         });
         if (!res.ok) {
-          setError(await res.text());
+          toast.error(`Lỗi cập nhật hồ sơ: ${await res.text()}`);
           return;
         }
+        toast.success(`Đã lưu thay đổi hồ sơ họa sĩ "${name.trim()}".`);
       }
       onSaved();
     } catch {
-      setError('Network error while saving artist profile.');
+      toast.error('Lỗi kết nối khi lưu hồ sơ họa sĩ.');
     } finally {
       setSaving(false);
     }
@@ -132,20 +131,20 @@ export function ArtistInspector({
     if (!confirm(`Are you sure you want to delete profile for "${existingArtist.name}"?`)) return;
 
     setSaving(true);
-    setError(null);
     try {
       const res = await fetch(`/api/artists/${existingArtist.id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
       if (!res.ok) {
-        setError(await res.text());
+        toast.error(`Lỗi xóa họa sĩ: ${await res.text()}`);
         return;
       }
+      toast.info(`Đã xóa hồ sơ họa sĩ "${existingArtist.name}".`);
       onDeselect();
       onSaved();
     } catch {
-      setError('Network error while deleting artist.');
+      toast.error('Lỗi kết nối khi xóa hồ sơ họa sĩ.');
     } finally {
       setSaving(false);
     }
@@ -158,10 +157,9 @@ export function ArtistInspector({
         width: width ? `${width}px` : undefined,
         position: 'relative',
         height: '100%',
-        right: 'auto',
-        top: 'auto',
-        bottom: 'auto',
-        flexShrink: 0,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
       {onResizeStart && (
@@ -173,8 +171,12 @@ export function ArtistInspector({
       )}
       <div className="ih" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div className="k">Artist profile</div>
-          <h3>{existingArtist?.name || 'New artist'}</h3>
+          <h3>{isNew ? 'New Artist Profile' : existingArtist?.name}</h3>
+          <div className="ih-sub">
+            {isNew
+              ? 'Add artist bio and attribution details'
+              : existingArtist?.life_dates || 'Artist Portfolio & Bio'}
+          </div>
         </div>
         <button
           type="button"
@@ -186,7 +188,10 @@ export function ArtistInspector({
             border: 'none',
             color: 'var(--reda-ink-2)',
             cursor: 'pointer',
-            padding: '4px',
+            width: '44px',
+            height: '44px',
+            minWidth: '44px',
+            minHeight: '44px',
             borderRadius: 'var(--reda-radius)',
             display: 'inline-flex',
             alignItems: 'center',
@@ -199,12 +204,6 @@ export function ArtistInspector({
       </div>
       <div className="body">
         <form onSubmit={handleSave} className="artwork-form">
-          {error && (
-            <p className="error" role="alert" style={{ marginBottom: '12px' }}>
-              {error}
-            </p>
-          )}
-
           {/* Portrait Picker & Preview */}
           <div style={{ display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '16px' }}>
             <div className="portrait">

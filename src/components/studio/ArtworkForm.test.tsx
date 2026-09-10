@@ -2,10 +2,21 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { ArtworkForm } from './ArtworkForm';
+import { ToastProvider } from '../../context/ToastContext';
+import { ToastContainer } from '../ui';
+
+function renderWithToast(ui: React.ReactElement) {
+  return render(
+    <ToastProvider>
+      {ui}
+      <ToastContainer />
+    </ToastProvider>
+  );
+}
 
 describe('ArtworkForm', () => {
   it('renders ArtworkForm fields when artwork prop is provided', () => {
-    render(
+    renderWithToast(
       <ArtworkForm
         artwork="new"
         exhibitionId="exh-1"
@@ -20,7 +31,7 @@ describe('ArtworkForm', () => {
   });
 
   it('renders Frame & Placard settings for Video artworks', async () => {
-    render(
+    renderWithToast(
       <ArtworkForm
         artwork={{
           id: 'v1',
@@ -56,7 +67,7 @@ describe('ArtworkForm', () => {
   });
 
   it('orders footer actions as Cancel -> Delete -> Save Changes when embedded in inspector', () => {
-    render(
+    renderWithToast(
       <ArtworkForm
         artwork={{
           id: 'art-1',

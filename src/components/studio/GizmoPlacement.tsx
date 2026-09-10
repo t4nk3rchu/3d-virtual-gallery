@@ -37,6 +37,7 @@ import {
   type StudioKeybindings,
 } from './StudioSettingsSidebar';
 import { Icon, Button } from '../ui';
+import { useToast } from '../../context/ToastContext';
 
 interface GizmoPlacementProps {
   room: Room;
@@ -67,6 +68,7 @@ export function GizmoPlacement({
   onSpawnPointSaved,
   onClose,
 }: GizmoPlacementProps) {
+  const toast = useToast();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const workbenchModeRef = useRef(workbenchMode);
   workbenchModeRef.current = workbenchMode;
@@ -103,7 +105,6 @@ export function GizmoPlacement({
     rotation: [0, 0, 0],
     scale: [1, 1, 1],
   });
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const meshesMapRef = useRef<Map<string, AbstractMesh>>(new Map());
   const spawnBeaconMeshRef = useRef<Mesh | null>(null);
@@ -124,23 +125,28 @@ export function GizmoPlacement({
       const spawn = getSpawnPointFromBeacon(beaconMesh);
       const updatedSettings = serializeSpawnPoint(spawn, settingsJsonRef.current);
       settingsJsonRef.current = updatedSettings;
-      setStatusMessage(`Start Point saved: (${spawn.position[0]}, ${spawn.position[1]}, ${spawn.position[2]})`);
 
       if (exhibitionId) {
         try {
-          await fetch(`/api/exhibitions/${exhibitionId}`, {
+          const res = await fetch(`/api/exhibitions/${exhibitionId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({ settings_json: updatedSettings }),
           });
-          onSpawnPointSavedRef.current?.(spawn);
+          if (res.ok) {
+            toast.success(`Đã lưu điểm xuất phát: (${spawn.position[0]}, ${spawn.position[1]}, ${spawn.position[2]})`, { duration: 2500 });
+            onSpawnPointSavedRef.current?.(spawn);
+          } else {
+            toast.error('Không thể lưu điểm xuất phát.');
+          }
         } catch (err) {
           console.error('[studio-gizmo] Failed to save start point:', err);
+          toast.error('Lỗi kết nối khi lưu điểm xuất phát.');
         }
       }
     },
-    [exhibitionId]
+    [exhibitionId, toast]
   );
 
   const persistSpawnPointRef = useRef(persistSpawnPoint);
@@ -242,7 +248,6 @@ export function GizmoPlacement({
   const selectArtwork = useCallback(
     (id: string | null, notifyParent = true) => {
       setSelectedArtworkId(id);
-      setStatusMessage(null);
       if (notifyParent) {
         onSelectArtworkRef.current?.(id === '__spawn_beacon__' ? null : id);
       }
@@ -1031,7 +1036,6 @@ export function GizmoPlacement({
               Click any artwork on the wall to position, scale, or rotate it. Switch to <b>Waypoints</b> above to adjust visitor start point.
             </p>
           )}
-          {statusMessage && <p className="status-msg">{statusMessage}</p>}
           <p className="hud-hint">
             <b>Middle-drag</b>: Orbit · <b>Right-drag</b>: Move object (or pan when unfocused) · <b>Left-click</b>: Select · <b>WASD</b>: Roam · <b>Esc</b>: Unfocus
           </p>

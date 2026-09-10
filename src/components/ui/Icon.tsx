@@ -40,6 +40,8 @@ import {
   Sun,
   Moon,
   ArrowRight,
+  Check,
+  AlertTriangle,
   type LucideProps,
   type LucideIcon,
 } from 'lucide-react';
@@ -111,6 +113,8 @@ export const ICONS: Record<string, LucideIcon | ComponentType<LucideProps>> = {
   moon: Moon,
   arrowRight: ArrowRight,
   'arrow-right': ArrowRight,
+  check: Check,
+  alertTriangle: AlertTriangle,
 } as const;
 
 export type IconName =
@@ -156,7 +160,9 @@ export type IconName =
   | 'sun'
   | 'moon'
   | 'arrowRight'
-  | 'arrow-right';
+  | 'arrow-right'
+  | 'check'
+  | 'alertTriangle';
 
 export interface IconProps {
   name: IconName;

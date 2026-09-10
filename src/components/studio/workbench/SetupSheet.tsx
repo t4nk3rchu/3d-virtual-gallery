@@ -9,6 +9,7 @@ import {
 } from '../../../lib/studio/spawn-point';
 import { DriveFilePicker } from '../DriveFilePicker';
 import { TextField, TextArea, SelectField, SegmentedControl, Button, Icon } from '../../ui';
+import { useToast } from '../../../context/ToastContext';
 
 interface SetupSheetProps {
   exhibition: ExhibitionDetail;
@@ -25,6 +26,7 @@ export function SetupSheet({
   onSaved,
   onManageArtists,
 }: SetupSheetProps) {
+  const toast = useToast();
   let initialIntroTransition: IntroTransition = 'zoom_in';
   try {
     if (exhibition.settings_json) {
@@ -56,23 +58,34 @@ export function SetupSheet({
   });
 
   const [saving, setSaving] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTitle(exhibition.title);
+    setCuratorName(exhibition.curator_name ?? '');
+    setRoomId(exhibition.room_id || exhibition.room?.id || '');
+    setCurationType(exhibition.curation_type || 'solo');
+    setIntroVideoFileId(exhibition.intro_video_file_id ?? '');
+    setDescription(exhibition.description ?? '');
+  }, [exhibition]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!title.trim()) {
+      toast.error('Tiêu đề triển lãm không được để trống.');
+      return;
+    }
+
     setSaving(true);
-    setStatusMessage(null);
-    setError(null);
 
     try {
-      const existingSettings = (() => { try { return JSON.parse(exhibition.settings_json ?? '{}'); } catch { return {}; } })();
-      const mergedSettings: Record<string, unknown> = { ...existingSettings, introTransition };
-      if (ambientAudioFileId.trim()) {
-        mergedSettings.backgroundAudioFileId = ambientAudioFileId.trim();
-      } else {
-        delete mergedSettings.backgroundAudioFileId;
-      }
+      const existingSettings = exhibition.settings_json
+        ? JSON.parse(exhibition.settings_json)
+        : {};
+      const mergedSettings = {
+        ...existingSettings,
+        introTransition,
+        backgroundAudioFileId: extractGoogleDriveFileId(ambientAudioFileId) || ambientAudioFileId.trim() || undefined,
+      };
 
       const res = await fetch(`/api/exhibitions/${exhibition.id}`, {
         method: 'PUT',
@@ -81,7 +94,7 @@ export function SetupSheet({
         body: JSON.stringify({
           title: title.trim(),
           curator_name: curatorName.trim() || undefined,
-          room_id: roomId,
+          room_id: roomId || undefined,
           curation_type: curationType,
           intro_video_file_id: introVideoFileId.trim() || undefined,
           description: description.trim() || undefined,
@@ -90,13 +103,13 @@ export function SetupSheet({
       });
 
       if (res.ok) {
-        setStatusMessage('Exhibition settings saved.');
+        toast.success('Đã lưu cài đặt triển lãm thành công.');
         onSaved();
       } else {
-        setError(`Error saving: ${await res.text()}`);
+        toast.error(`Lỗi lưu cài đặt: ${await res.text()}`);
       }
     } catch {
-      setError('Network error while saving settings.');
+      toast.error('Lỗi kết nối khi lưu cài đặt triển lãm.');
     } finally {
       setSaving(false);
     }
@@ -124,17 +137,6 @@ export function SetupSheet({
               Public Link: <strong>/e/{exhibition.slug}</strong>
             </p>
           </div>
-
-          {statusMessage && (
-            <div style={{ background: 'var(--reda-success-bg)', color: 'var(--reda-success)', border: '1px solid var(--reda-success-border)', padding: '10px 14px', borderRadius: '4px', fontSize: '13px' }}>
-              {statusMessage}
-            </div>
-          )}
-          {error && (
-            <div style={{ background: 'var(--reda-error-bg)', color: 'var(--reda-error)', border: '1px solid var(--reda-error-border)', padding: '10px 14px', borderRadius: '4px', fontSize: '13px' }}>
-              {error}
-            </div>
-          )}
 
           <TextField
             id="setup-title"

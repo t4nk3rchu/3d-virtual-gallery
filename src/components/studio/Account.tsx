@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Icon } from '../ui';
+import { useToast } from '../../context/ToastContext';
 
 export interface CuratorUser {
   id: string;
@@ -15,12 +16,11 @@ export interface AccountProps {
 }
 
 export function Account({ user, onBack }: AccountProps) {
+  const toast = useToast();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const isMismatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
   const canSubmit =
@@ -34,8 +34,6 @@ export function Account({ user, onBack }: AccountProps) {
     if (!canSubmit) return;
 
     setLoading(true);
-    setError(null);
-    setSuccess(null);
 
     try {
       const res = await fetch('/api/auth/change-password', {
@@ -50,15 +48,15 @@ export function Account({ user, onBack }: AccountProps) {
 
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setSuccess('Password updated successfully.');
+        toast.success('Mật khẩu đã được cập nhật thành công.');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        setError(data.error || 'Failed to update password. Please check your current password.');
+        toast.error(data.error || 'Không thể đổi mật khẩu. Vui lòng kiểm tra mật khẩu hiện tại.');
       }
     } catch {
-      setError('A network error occurred. Please try again.');
+      toast.error('Lỗi kết nối khi đổi mật khẩu.');
     } finally {
       setLoading(false);
     }
@@ -132,20 +130,6 @@ export function Account({ user, onBack }: AccountProps) {
         {/* Security Panel */}
         <section className="account-panel" aria-labelledby="panel-security">
           <h2 className="account-panel-title" id="panel-security">Security</h2>
-
-          {error && (
-            <div className="account-alert account-alert--error" role="alert">
-              <Icon name="info" size={16} />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {success && (
-            <div className="account-alert account-alert--success" role="status">
-              <Icon name="info" size={16} />
-              <span>{success}</span>
-            </div>
-          )}
 
           <form onSubmit={handleChangePassword}>
             <div className="account-field">

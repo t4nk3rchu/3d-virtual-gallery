@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { HotspotEditor } from './HotspotEditor';
 import type { Artwork, ArtworkHotspot } from '../../types/schema';
+import { ToastProvider } from '../../context/ToastContext';
+import { ToastContainer } from '../ui';
 
 const mockArtwork: Artwork = {
   id: 'art-1',
@@ -37,9 +39,18 @@ const mockHotspots: ArtworkHotspot[] = [
   },
 ];
 
+function renderWithToast(ui: React.ReactElement) {
+  return render(
+    <ToastProvider>
+      {ui}
+      <ToastContainer />
+    </ToastProvider>
+  );
+}
+
 describe('HotspotEditor', () => {
   it('renders modal header and close button with circular styling pattern', () => {
-    render(
+    renderWithToast(
       <HotspotEditor
         artwork={mockArtwork}
         hotspots={mockHotspots}
@@ -54,7 +65,7 @@ describe('HotspotEditor', () => {
   });
 
   it('orders action buttons as Cancel -> Delete -> Save Changes when editing a hotspot', () => {
-    render(
+    renderWithToast(
       <HotspotEditor
         artwork={mockArtwork}
         hotspots={mockHotspots}
@@ -85,7 +96,7 @@ describe('HotspotEditor', () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
 
-    render(
+    renderWithToast(
       <HotspotEditor
         artwork={mockArtwork}
         hotspots={mockHotspots}
@@ -119,7 +130,7 @@ describe('HotspotEditor', () => {
       .fn()
       .mockResolvedValue({ ok: true, json: async () => ({ ...mockHotspots[0], id: 'hs-restored' }) });
 
-    render(
+    renderWithToast(
       <HotspotEditor
         artwork={mockArtwork}
         hotspots={mockHotspots}
@@ -152,7 +163,7 @@ describe('HotspotEditor', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...mockHotspots[0] }) });
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    render(
+    renderWithToast(
       <HotspotEditor
         artwork={mockArtwork}
         hotspots={mockHotspots}

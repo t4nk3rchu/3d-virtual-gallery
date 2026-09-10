@@ -2,6 +2,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Workbench } from './Workbench';
+import { ToastProvider } from '../../../context/ToastContext';
+import { ToastContainer } from '../../ui';
 
 const EX = {
   id: 'e1',
@@ -13,6 +15,15 @@ const EX = {
   artists: [],
   curation_type: 'solo',
 };
+
+function renderWithToast(ui: React.ReactElement) {
+  return render(
+    <ToastProvider>
+      {ui}
+      <ToastContainer />
+    </ToastProvider>
+  );
+}
 
 function stub() {
   vi.stubGlobal(
@@ -33,7 +44,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe('Workbench shell', () => {
   it('renders top bar, rail, viewport and status once loaded', async () => {
     stub();
-    const { container } = render(<Workbench exhibitionId="e1" onBack={() => {}} />);
+    const { container } = renderWithToast(<Workbench exhibitionId="e1" onBack={() => {}} />);
     expect(await screen.findByText('Testing GLB Room')).toBeTruthy();
     expect(container.querySelector('.wb-rail')).toBeTruthy();
     expect(container.querySelector('.wb-view')).toBeTruthy();
@@ -42,7 +53,7 @@ describe('Workbench shell', () => {
 
   it('switches mode via the pill', async () => {
     stub();
-    render(<Workbench exhibitionId="e1" onBack={() => {}} />);
+    renderWithToast(<Workbench exhibitionId="e1" onBack={() => {}} />);
     await screen.findByText('Testing GLB Room');
     const waypoints = screen.getByRole('button', { name: /Waypoints/i });
     await userEvent.click(waypoints);
@@ -51,7 +62,7 @@ describe('Workbench shell', () => {
 
   it('shows setup sheet directly without redundant mini-nav pane when tool is setup', async () => {
     stub();
-    const { container } = render(<Workbench exhibitionId="e1" onBack={() => {}} />);
+    const { container } = renderWithToast(<Workbench exhibitionId="e1" onBack={() => {}} />);
     await screen.findByText('Testing GLB Room');
     const setupToolBtn = screen.getByRole('button', { name: /Setup/i });
     await userEvent.click(setupToolBtn);

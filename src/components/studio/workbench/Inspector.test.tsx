@@ -2,6 +2,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Inspector } from './Inspector';
 import type { Artwork } from '../../../types/schema';
+import { ToastProvider } from '../../../context/ToastContext';
+import { ToastContainer } from '../../ui';
 
 const AW = {
   id: 'a1',
@@ -12,11 +14,20 @@ const AW = {
   order_index: 0,
 } as unknown as Artwork;
 
+function renderWithToast(ui: React.ReactElement) {
+  return render(
+    <ToastProvider>
+      {ui}
+      <ToastContainer />
+    </ToastProvider>
+  );
+}
+
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Inspector', () => {
   it('collapses when nothing is selected', () => {
-    const { container } = render(
+    const { container } = renderWithToast(
       <Inspector
         exhibitionId="e1"
         selected={null}
@@ -30,7 +41,7 @@ describe('Inspector', () => {
   });
 
   it('hosts the artwork form when a work is selected', () => {
-    const { container } = render(
+    const { container } = renderWithToast(
       <Inspector
         exhibitionId="e1"
         selected="a1"

@@ -5,6 +5,7 @@ import { HOTSPOT_TRANSITIONS, getHotspotAnimation } from '../../lib/viewer/hotsp
 import { HotspotTransitionPreview } from './HotspotTransitionPreview';
 import { DriveFilePicker } from './DriveFilePicker';
 import { Button, Icon } from '../ui';
+import { useToast } from '../../context/ToastContext';
 
 interface HotspotEditorProps {
   artwork: Artwork;
@@ -21,6 +22,7 @@ export function HotspotEditor({
   onHotspotsUpdated,
   onClose,
 }: HotspotEditorProps) {
+  const toast = useToast();
   const [selectedHotspot, setSelectedHotspot] = useState<ArtworkHotspot | null>(null);
   const [newPin, setNewPin] = useState<{ x: number; y: number } | null>(null);
   const [title, setTitle] = useState('');
@@ -30,7 +32,6 @@ export function HotspotEditor({
   const [audioFileId, setAudioFileId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   // Just-deleted hotspot, kept briefly so the deletion can be undone (re-created).
   const [undoHotspot, setUndoHotspot] = useState<ArtworkHotspot | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -126,7 +127,6 @@ export function HotspotEditor({
     setAudioTimestamp('');
     setAudioTimestampEnd('');
     setAudioFileId('');
-    setError(null);
   };
 
   // Populate edit fields when an existing hotspot is selected
@@ -140,14 +140,12 @@ export function HotspotEditor({
     setAudioTimestamp(selectedHotspot.audio_timestamp_seconds != null ? String(selectedHotspot.audio_timestamp_seconds) : '');
     setAudioTimestampEnd(selectedHotspot.audio_timestamp_end_seconds != null ? String(selectedHotspot.audio_timestamp_end_seconds) : '');
     setAudioFileId(selectedHotspot.audio_file_id ?? '');
-    setError(null);
   }, [selectedHotspot]);
 
   const handleUpdateHotspot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedHotspot) return;
     setSaving(true);
-    setError(null);
     const cleanAudioId = audioFileId.trim();
     const match = cleanAudioId.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || cleanAudioId.match(/id=([a-zA-Z0-9_-]+)/);
     const resolvedAudioId = match ? match[1] : cleanAudioId;
@@ -167,13 +165,17 @@ export function HotspotEditor({
           y_percent: dragXY?.y ?? selectedHotspot.y_percent,
         }),
       });
-      if (!res.ok) { setError(await res.text()); return; }
+      if (!res.ok) {
+        toast.error(`Lỗi cập nhật điểm chi tiết: ${await res.text()}`);
+        return;
+      }
       const updated = (await res.json()) as ArtworkHotspot;
       onHotspotsUpdated(hotspots.map((h) => (h.id === updated.id ? updated : h)));
       setSelectedHotspot(updated);
       prevSelectedId.current = updated.id;
+      toast.success(`Đã lưu thay đổi điểm chi tiết "${updated.title}".`);
     } catch {
-      setError('Failed to update hotspot.');
+      toast.error('Lỗi kết nối khi cập nhật điểm chi tiết.');
     } finally {
       setSaving(false);
     }
@@ -182,7 +184,6 @@ export function HotspotEditor({
   const handleCreateHotspot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPin) return;
-    setError(null);
     setSaving(true);
 
     const cleanAudioId = audioFileId.trim();
@@ -212,12 +213,13 @@ export function HotspotEditor({
       });
 
       if (!res.ok) {
-        setError(await res.text());
+        toast.error(`Lỗi tạo điểm chi tiết: ${await res.text()}`);
         return;
       }
 
       const created = (await res.json()) as ArtworkHotspot;
       onHotspotsUpdated([...hotspots, created]);
+      toast.success(`Đã thêm điểm chi tiết "${created.title || 'Detail'}".`);
       setNewPin(null);
       setTitle('');
       setDescription('');
@@ -225,7 +227,7 @@ export function HotspotEditor({
       setAudioTimestampEnd('');
       setAudioFileId('');
     } catch {
-      setError('Failed to create hotspot.');
+      toast.error('Lỗi kết nối khi tạo điểm chi tiết.');
     } finally {
       setSaving(false);
     }
@@ -234,7 +236,6 @@ export function HotspotEditor({
   const handleDeleteHotspot = async (id: string) => {
     const removed = hotspots.find((h) => h.id === id) ?? null;
     setSaving(true);
-    setError(null);
     try {
       const res = await fetch(`/api/hotspots/${id}`, {
         method: 'DELETE',
@@ -251,10 +252,10 @@ export function HotspotEditor({
           undoTimerRef.current = setTimeout(() => setUndoHotspot(null), 6000);
         }
       } else {
-        setError('Failed to delete hotspot.');
+        toast.error('Không thể xóa điểm chi tiết.');
       }
     } catch {
-      setError('Network error deleting hotspot.');
+      toast.error('Lỗi kết nối khi xóa điểm chi tiết.');
     } finally {
       setSaving(false);
     }
@@ -266,7 +267,6 @@ export function HotspotEditor({
     if (!h) return;
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     setUndoHotspot(null);
-    setError(null);
     try {
       const res = await fetch('/api/hotspots', {
         method: 'POST',
@@ -286,11 +286,12 @@ export function HotspotEditor({
       if (res.ok) {
         const restored = (await res.json()) as ArtworkHotspot;
         onHotspotsUpdated([...hotspots, restored]);
+        toast.success(`Đã khôi phục điểm chi tiết "${restored.title}".`);
       } else {
-        setError('Failed to restore hotspot.');
+        toast.error('Không thể khôi phục điểm chi tiết.');
       }
     } catch {
-      setError('Network error restoring hotspot.');
+      toast.error('Lỗi kết nối khi khôi phục điểm chi tiết.');
     }
   };
 
@@ -581,8 +582,6 @@ export function HotspotEditor({
                   </p>
                 </div>
 
-                {error && <p className="error">{error}</p>}
-
                 <div className="form-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '20px' }}>
                   <Button
                     type="button"
@@ -690,8 +689,6 @@ export function HotspotEditor({
                     className="input"
                   />
                 </div>
-
-                {error && <p className="error">{error}</p>}
 
                 <div className="form-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '20px' }}>
                   <Button

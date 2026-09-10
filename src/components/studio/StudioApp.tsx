@@ -38,6 +38,9 @@ function formatDateRange(start?: string | null, end?: string | null): string {
   return a || b;
 }
 
+import { ToastProvider } from '../../context/ToastContext';
+import { ToastContainer } from '../ui';
+
 export function StudioApp() {
   const [user, setUser] = useState<CuratorUser | null>(null);
   const [view, setView] = useState<CmsView>({ type: 'login' });
@@ -59,9 +62,13 @@ export function StudioApp() {
 
   if (checking) {
     return (
-      <div className="studio-loading reda-dark" role="status" aria-live="polite">
-        <div className="studio-loading__emblem-wrap">
-          <img src="/reda_logo.png" alt="Reda Gallery" className="studio-loading__emblem" />
+      <div className="studio-loading reda-parch" role="status" aria-live="polite">
+        <div className="studio-loading__emblem">
+          <img
+            src="/reda_logo.png"
+            alt="Reda Gallery"
+            style={{ width: '38px', height: '38px', objectFit: 'contain' }}
+          />
         </div>
         <div className="studio-loading__kicker">Reda Atelier</div>
         <div className="studio-loading__text">Connecting to Curator Vault…</div>
@@ -70,62 +77,71 @@ export function StudioApp() {
     );
   }
 
-  if (!user || view.type === 'login') {
-    return (
-      <Login
-        onLoggedIn={(u) => {
-          setUser(u);
-          setView({ type: 'dashboard' });
-        }}
-      />
-    );
-  }
+  const renderContent = () => {
+    if (!user || view.type === 'login') {
+      return (
+        <Login
+          onLoggedIn={(u) => {
+            setUser(u);
+            setView({ type: 'dashboard' });
+          }}
+        />
+      );
+    }
 
-  if (view.type === 'dashboard') {
-    return (
-      <Dashboard
-        user={user}
-        onEdit={(id) => setView({ type: 'editor', exhibitionId: id })}
-        onNew={() => setView({ type: 'new-exhibition' })}
-        onLogout={() => {
-          fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-          setUser(null);
-          setView({ type: 'login' });
-        }}
-        onAccount={() => setView({ type: 'account' })}
-      />
-    );
-  }
+    if (view.type === 'dashboard') {
+      return (
+        <Dashboard
+          user={user}
+          onEdit={(id) => setView({ type: 'editor', exhibitionId: id })}
+          onNew={() => setView({ type: 'new-exhibition' })}
+          onLogout={() => {
+            fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+            setUser(null);
+            setView({ type: 'login' });
+          }}
+          onAccount={() => setView({ type: 'account' })}
+        />
+      );
+    }
 
-  if (view.type === 'account') {
-    return (
-      <Account
-        user={user}
-        onBack={() => setView({ type: 'dashboard' })}
-      />
-    );
-  }
+    if (view.type === 'account') {
+      return (
+        <Account
+          user={user}
+          onBack={() => setView({ type: 'dashboard' })}
+        />
+      );
+    }
 
-  if (view.type === 'editor') {
-    return (
-      <Workbench
-        exhibitionId={view.exhibitionId}
-        isTeam={user.is_team}
-        onBack={() => setView({ type: 'dashboard' })}
-      />
-    );
-  }
+    if (view.type === 'editor') {
+      return (
+        <Workbench
+          exhibitionId={view.exhibitionId}
+          isTeam={user.is_team}
+          onBack={() => setView({ type: 'dashboard' })}
+        />
+      );
+    }
 
-  if (view.type === 'new-exhibition') {
-    return (
-      <NewExhibitionForm
-        onCreated={(id) => setView({ type: 'editor', exhibitionId: id })}
-        onCancel={() => setView({ type: 'dashboard' })}
-      />
-    );
-  }
+    if (view.type === 'new-exhibition') {
+      return (
+        <NewExhibitionForm
+          onCreated={(id) => setView({ type: 'editor', exhibitionId: id })}
+          onCancel={() => setView({ type: 'dashboard' })}
+        />
+      );
+    }
 
-  return null;
+    return null;
+  };
+
+  return (
+    <ToastProvider>
+      {renderContent()}
+      <ToastContainer />
+    </ToastProvider>
+  );
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────

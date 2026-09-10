@@ -2,6 +2,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ArtistInspector } from './ArtistInspector';
 import type { Artist } from '../../../types/schema';
+import { ToastProvider } from '../../../context/ToastContext';
+import { ToastContainer } from '../../ui';
 
 const MOCK_ARTIST: Artist = {
   id: 'art-1',
@@ -16,11 +18,20 @@ const MOCK_ARTIST: Artist = {
   created_at: 1000,
 };
 
+function renderWithToast(ui: React.ReactElement) {
+  return render(
+    <ToastProvider>
+      {ui}
+      <ToastContainer />
+    </ToastProvider>
+  );
+}
+
 afterEach(() => vi.unstubAllGlobals());
 
 describe('ArtistInspector', () => {
   it('collapses when no artist is selected', () => {
-    const { container } = render(
+    const { container } = renderWithToast(
       <ArtistInspector
         exhibitionId="exh-1"
         selectedId={null}
@@ -34,7 +45,7 @@ describe('ArtistInspector', () => {
   });
 
   it('renders artist form inline in inspector when an artist is selected', () => {
-    const { container } = render(
+    const { container } = renderWithToast(
       <ArtistInspector
         exhibitionId="exh-1"
         selectedId="art-1"
@@ -51,7 +62,7 @@ describe('ArtistInspector', () => {
   });
 
   it('renders new artist form inline in inspector when selectedId is "new"', () => {
-    const { container } = render(
+    const { container } = renderWithToast(
       <ArtistInspector
         exhibitionId="exh-1"
         selectedId="new"
@@ -61,7 +72,7 @@ describe('ArtistInspector', () => {
         onDeselect={vi.fn()}
       />
     );
-    expect(screen.getByText('New artist')).toBeDefined();
+    expect(screen.getByText('New Artist Profile')).toBeDefined();
     expect(screen.getByText('Add Artist')).toBeDefined();
     expect(container.querySelector('.studio-drawer')).toBeNull();
   });

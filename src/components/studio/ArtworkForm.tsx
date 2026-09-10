@@ -5,6 +5,7 @@ import { parseYouTubeVideoId, getYouTubeThumbnailUrl } from '../../lib/media/you
 import { isArtworkPlaced, setArtworkPlacement } from '../../lib/studio/artwork-placement';
 import { DriveFilePicker } from './DriveFilePicker';
 import { Icon, Button } from '../ui';
+import { useToast } from '../../context/ToastContext';
 
 interface ArtworkFormProps {
   exhibitionId: string;
@@ -29,6 +30,7 @@ export function ArtworkForm({
   onDelete,
   onCancel,
 }: ArtworkFormProps) {
+  const toast = useToast();
   const isEditing = Boolean(artwork && artwork !== 'new');
   const activeArtwork = artwork && artwork !== 'new' ? artwork : null;
 
@@ -61,27 +63,26 @@ export function ArtworkForm({
     showPlacard: true,
     allowTilt: true,
   };
-  if (activeArtwork?.frame_config_json) {
-    try {
-      initialFrameConfig = { allowTilt: true, ...JSON.parse(activeArtwork.frame_config_json) };
-    } catch {}
-  }
+  try {
+    if (activeArtwork?.frame_config_json) {
+      initialFrameConfig = {
+        ...initialFrameConfig,
+        ...JSON.parse(activeArtwork.frame_config_json),
+      };
+    }
+  } catch {}
+
   const [frameConfig, setFrameConfig] = useState<FrameConfig>(initialFrameConfig);
 
-  const [isPlaced, setIsPlaced] = useState<boolean>(
+  const [isPlaced, setIsPlaced] = useState<boolean>(() =>
     activeArtwork ? isArtworkPlaced(activeArtwork) : true
   );
 
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
+  // Synchronize state when selected artwork changes
   useEffect(() => {
     if (activeArtwork) {
-      setTitle(activeArtwork.title || '');
-      setArtist(activeArtwork.artist || '');
-      setArtistId(activeArtwork.artist_id || '');
-      setYear(activeArtwork.year || '');
-      setMedium(activeArtwork.medium || '');
       setDimensions(activeArtwork.dimensions || '');
       setDescription(activeArtwork.description || '');
       setArtworkType(activeArtwork.artwork_type || 'IMAGE_2D');
@@ -126,7 +127,6 @@ export function ArtworkForm({
         allowTilt: true,
       });
     }
-    setError(null);
   }, [artwork, activeArtwork?.id]);
 
   // Derived IDs
@@ -146,16 +146,17 @@ export function ArtworkForm({
         credentials: 'include',
       });
       if (res.ok) {
+        toast.info(`Đã gỡ bỏ tác phẩm "${activeArtwork.title || 'Untitled'}" khỏi triển lãm.`);
         if (onDelete) {
           onDelete(activeArtwork.id);
         } else {
           onCancel();
         }
       } else {
-        setError('Failed to delete artwork.');
+        toast.error('Không thể xóa tác phẩm.');
       }
     } catch {
-      setError('Network error while deleting artwork.');
+      toast.error('Lỗi kết nối khi xóa tác phẩm.');
     } finally {
       setSubmitting(false);
     }
@@ -163,7 +164,6 @@ export function ArtworkForm({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError(null);
 
     let mediaFileId: string | null = null;
     let youtubeVideoId: string | null = null;
@@ -176,10 +176,8 @@ export function ArtworkForm({
           ? input
           : null);
       if (!mediaFileId) {
-        setError(
-          `Please provide a Google Drive sharing link, file ID, or direct ${
-            artworkType === 'IMAGE_2D' ? 'image' : 'audio'
-          } URL.`
+        toast.error(
+          `Vui lòng cung cấp link hình ảnh hoặc Google Drive ID hợp lệ.`
         );
         return;
       }
@@ -188,7 +186,7 @@ export function ArtworkForm({
     if (artworkType === 'VIDEO') {
       youtubeVideoId = parseYouTubeVideoId(youtubeInput);
       if (!youtubeVideoId) {
-        setError('Please provide a valid YouTube video link or 11-character video ID.');
+        toast.error('Vui lòng cung cấp link YouTube hoặc video ID 11 ký tự hợp lệ.');
         return;
       }
     }
@@ -237,10 +235,11 @@ export function ArtworkForm({
       });
 
       if (!res.ok) {
-        setError(await res.text());
+        toast.error(`Lỗi lưu tác phẩm: ${await res.text()}`);
         return;
       }
 
+      toast.success(isEditing ? 'Đã lưu thay đổi tác phẩm.' : 'Đã thêm tác phẩm vào triển lãm.');
       if (isEditing) {
         onSaved({ ...(activeArtwork as Artwork), ...payload });
       } else {
@@ -248,7 +247,7 @@ export function ArtworkForm({
         onSaved(created);
       }
     } catch {
-      setError('Network error while saving artwork.');
+      toast.error('Lỗi kết nối khi lưu tác phẩm.');
     } finally {
       setSubmitting(false);
     }
@@ -725,7 +724,6 @@ export function ArtworkForm({
           </div>
         </div>
 
-        {error && <p className="error" role="alert">{error}</p>}
         {embedded && (
           <div
             className="artwork-form-actions"

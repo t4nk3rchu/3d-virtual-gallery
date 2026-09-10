@@ -1,0 +1,198 @@
+/* REDA Toast Notifications — "Tranh Việt" & Giấy Điệp / Sơn Mài world.
+   Crafted with Impeccable delight, accessible focus/motion, and token fidelity. */
+
+.reda-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 420px;
+  width: calc(100vw - 32px);
+  pointer-events: none;
+}
+
+@media (max-width: 600px) {
+  .reda-toast-container {
+    bottom: auto;
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    right: 16px;
+    left: 16px;
+    width: auto;
+  }
+}
+
+.reda-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--reda-radius-card, 8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.08);
+  font-family: var(--reda-ui, system-ui, sans-serif);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--reda-ink);
+  background: var(--reda-field, #F6EFDC);
+  border: 1px solid var(--reda-parch-border, #D9C9A6);
+  animation: toast-slide-in 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reda-toast {
+    animation: none;
+    transition: none;
+  }
+}
+
+.reda-toast__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  border-radius: 50%;
+  flex: none;
+  margin-top: 1px;
+}
+
+.reda-toast__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.reda-toast__title {
+  font-family: var(--reda-text, serif);
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--reda-ink);
+  margin: 0 0 2px 0;
+}
+
+.reda-toast__msg {
+  margin: 0;
+  color: var(--reda-ink-2, #3A2C1C);
+  word-break: break-word;
+}
+
+.reda-toast__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.reda-toast__action-btn {
+  background: var(--reda-son, #B23A22);
+  color: var(--reda-eggshell, #F6EFDC);
+  border: 1px solid var(--reda-son-hi, #C4442A);
+  font-family: var(--reda-ui);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: var(--reda-radius-pill, 9999px);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.reda-toast__action-btn:hover {
+  background: var(--reda-son-hi, #C4442A);
+}
+
+.reda-toast__close-btn {
+  background: none;
+  border: none;
+  color: var(--reda-muted-ink, #6B5D42);
+  cursor: pointer;
+  padding: 4px;
+  margin: -4px -4px 0 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.reda-toast__close-btn:hover {
+  color: var(--reda-ink);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* ── Type Variants ── */
+
+/* Success */
+.reda-toast--success {
+  border-left: 4px solid var(--reda-sage, #5E6B3B);
+}
+.reda-toast--success .reda-toast__icon {
+  background: var(--reda-success-bg, #E6EDE0);
+  color: var(--reda-success, #206030);
+}
+
+/* Error */
+.reda-toast--error {
+  border-left: 4px solid var(--reda-son, #B23A22);
+  background: #FDF9F7;
+}
+.reda-toast--error .reda-toast__icon {
+  background: rgba(178, 58, 34, 0.12);
+  color: var(--reda-son, #B23A22);
+}
+
+/* Info */
+.reda-toast--info {
+  border-left: 4px solid var(--reda-cham, #2E4A5A);
+}
+.reda-toast--info .reda-toast__icon {
+  background: rgba(46, 74, 90, 0.12);
+  color: var(--reda-cham, #2E4A5A);
+}
+
+/* Warning */
+.reda-toast--warning {
+  border-left: 4px solid var(--reda-gold-deep, #A9863F);
+}
+.reda-toast--warning .reda-toast__icon {
+  background: var(--reda-warning-bg, #FBF6EE);
+  color: var(--reda-warning, #885511);
+}
+
+/* Delight: Publish Celebration */
+.reda-toast--publish {
+  background: linear-gradient(135deg, var(--reda-parch-field, #F6EFDC) 0%, #FAF6ED 100%);
+  border: 1px solid var(--reda-gold, #C9A35B);
+  border-left: 5px solid var(--reda-gold-deep, #A9863F);
+  box-shadow: 0 12px 36px rgba(169, 134, 63, 0.18), 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+.reda-toast--publish .reda-toast__icon {
+  background: rgba(201, 163, 91, 0.22);
+  color: var(--reda-gold-deep, #A9863F);
+}
+.reda-toast--publish .reda-toast__title {
+  color: var(--reda-gold-deep, #A9863F);
+  font-family: var(--reda-display, serif);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}

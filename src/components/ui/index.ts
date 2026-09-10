@@ -9,3 +9,4 @@ export { SegmentedControl } from './SegmentedControl';
 export { Tabs } from './Tabs';
 export { Kicker, HairlineRule, SectionTitle, Panel } from './primitives';
 export { Plate, WallLabel } from './Plate';
+export { ToastContainer } from './ToastContainer';
