@@ -11,6 +11,7 @@ import { ArtistInspector } from './ArtistInspector';
 import { ArtistViewerPreview } from './ArtistViewerPreview';
 import { SetupSheet } from './SetupSheet';
 import { HotspotEditor } from '../HotspotEditor';
+import { ShareModal } from '../ShareModal';
 import { Icon } from '../../ui';
 import { registerMediaTokens } from '../../../lib/media/media-tokens';
 import { useToast } from '../../../context/ToastContext';
@@ -33,6 +34,7 @@ export function Workbench({
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null);
   const [editingHotspotArtwork, setEditingHotspotArtwork] = useState<Artwork | null>(null);
   const [inspectorWidth, setInspectorWidth] = useState(440);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const startResizing = (e: React.MouseEvent) => {
@@ -85,8 +87,8 @@ export function Workbench({
           toast.publish('Triển lãm đã được xuất bản công khai.', {
             title: 'Xuất bản thành công',
             action: {
-              label: 'Xem trực tiếp',
-              onClick: () => window.open(`/e/${exhibition.slug}`, '_blank'),
+              label: 'Chia sẻ / Xem',
+              onClick: () => setShareModalOpen(true),
             },
           });
         } else {
@@ -119,6 +121,7 @@ export function Workbench({
         saving={saving}
         onPublish={() => setPublished(1)}
         onUnpublish={() => setPublished(0)}
+        onShare={() => setShareModalOpen(true)}
         onBack={onBack}
         previewHref={`/e/${exhibition.slug}`}
       />
@@ -327,6 +330,13 @@ export function Workbench({
           onClose={() => setEditingHotspotArtwork(null)}
         />
       )}
+
+      <ShareModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        exhibitionTitle={exhibition.title}
+        slug={exhibition.slug}
+      />
 
       <StatusBar
         roomName={exhibition.room?.name ?? '—'}

@@ -8,6 +8,7 @@ import { Icon, Button, TextField, TextArea, SelectField } from '../ui';
 import { DriveFilePicker } from './DriveFilePicker';
 import { extractGoogleDriveFileId } from '../../lib/media/gdrive';
 import { Account } from './Account';
+import { ShareModal } from './ShareModal';
 
 type CmsView =
   | { type: 'login' }
@@ -412,6 +413,7 @@ function Dashboard({ user, onEdit, onNew, onLogout, onAccount }: DashboardProps)
   const [exhibitions, setExhibitions] = useState<ExhibitionDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [sharingExhibition, setSharingExhibition] = useState<ExhibitionDetail | null>(null);
 
   const fetchExhibitions = async () => {
     setLoading(true);
@@ -543,6 +545,16 @@ function Dashboard({ user, onEdit, onNew, onLogout, onAccount }: DashboardProps)
                 >
                   View 3D <Icon name="external" size={12} />
                 </a>
+                {!!ex.is_published && (
+                  <button
+                    type="button"
+                    className="a-share"
+                    onClick={() => setSharingExhibition(ex)}
+                    title={`Share ${ex.title}`}
+                  >
+                    <Icon name="share" size={13} /> Share
+                  </button>
+                )}
                 <button
                   type="button"
                   className={`a-del ${deletingId === ex.id ? 'armed' : ''}`}
@@ -577,6 +589,15 @@ function Dashboard({ user, onEdit, onNew, onLogout, onAccount }: DashboardProps)
             New exhibition
           </button>
         </div>
+      )}
+
+      {sharingExhibition && (
+        <ShareModal
+          isOpen={!!sharingExhibition}
+          onClose={() => setSharingExhibition(null)}
+          exhibitionTitle={sharingExhibition.title}
+          slug={sharingExhibition.slug}
+        />
       )}
     </div>
   );

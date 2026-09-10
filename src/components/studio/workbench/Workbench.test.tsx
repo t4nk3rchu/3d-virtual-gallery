@@ -71,4 +71,29 @@ describe('Workbench shell', () => {
     const sheetwrap = container.querySelector('.wb-sheetwrap');
     expect(sheetwrap).toBeTruthy();
   });
+
+  it('shows Share button when exhibition is published and opens ShareModal on click', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo) => {
+        const url = typeof input === 'string' ? input : (input as Request).url;
+        const body = url.includes('/api/rooms')
+          ? [{ id: 'r1', name: 'The Salon', is_public: 1 }]
+          : url.includes('/api/exhibitions/e1')
+          ? { ...EX, is_published: 1 }
+          : null;
+        return { ok: true, json: async () => body, text: async () => '' } as Response;
+      }),
+    );
+
+    renderWithToast(<Workbench exhibitionId="e1" onBack={() => {}} />);
+    await screen.findByText('Testing GLB Room');
+
+    const shareBtn = screen.getByRole('button', { name: /Share/i });
+    expect(shareBtn).toBeTruthy();
+
+    await userEvent.click(shareBtn);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByText('Share Exhibition')).toBeTruthy();
+  });
 });

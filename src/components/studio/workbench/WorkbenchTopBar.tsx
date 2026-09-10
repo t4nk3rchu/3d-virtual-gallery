@@ -15,6 +15,7 @@ export function WorkbenchTopBar({
   saving,
   onPublish,
   onUnpublish,
+  onShare,
   onBack,
   previewHref,
 }: {
@@ -25,6 +26,7 @@ export function WorkbenchTopBar({
   saving: boolean;
   onPublish(): void;
   onUnpublish(): void;
+  onShare?(): void;
   onBack(): void;
   previewHref: string;
 }) {
@@ -104,6 +106,11 @@ export function WorkbenchTopBar({
         >
           Preview <Icon name="external" size={12} />
         </a>
+        {isPublished && onShare && (
+          <Button variant="secondary" size="sm" onClick={onShare} title="Share Exhibition">
+            <Icon name="share" size={13} /> Share
+          </Button>
+        )}
         {isPublished ? (
           <Button variant="ghost" size="sm" disabled={saving} onClick={onUnpublish}>
             Unpublish

@@ -72,4 +72,21 @@ describe('Dashboard (redesigned)', () => {
     });
     expect(deleteFetch).toHaveBeenCalledWith('/api/exhibitions/e1', expect.objectContaining({ method: 'DELETE' }));
   });
+
+  it('renders Share button on published exhibition cards and opens ShareModal on click', async () => {
+    stubFetch({
+      '/api/auth/me': { id: 'u1', email: 'c@x.com', full_name: 'C', role: 'curator' },
+      '/api/exhibitions': [{ id: 'e1', title: 'Published Masterpiece', slug: 'masterpiece', is_published: 1 }],
+    });
+    render(<StudioApp />);
+    expect(await screen.findByText('Published Masterpiece')).toBeTruthy();
+
+    const shareBtn = screen.getByTitle('Share Published Masterpiece');
+    expect(shareBtn).toBeTruthy();
+
+    fireEvent.click(shareBtn);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByText('Share Exhibition')).toBeTruthy();
+    expect(screen.getAllByText('Published Masterpiece').length).toBeGreaterThanOrEqual(2);
+  });
 });

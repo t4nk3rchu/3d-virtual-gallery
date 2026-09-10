@@ -355,7 +355,8 @@
 }
 
 .dcard .acts .btn--secondary,
-.dcard .acts .a-view {
+.dcard .acts .a-view,
+.dcard .acts .a-share {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -369,12 +370,14 @@
   font-size: 13px;
   text-decoration: none;
   cursor: pointer;
-  transition: border-color 0.16s;
+  transition: border-color 0.16s, background 0.16s;
 }
 
 .dcard .acts .btn--secondary:hover,
-.dcard .acts .a-view:hover {
+.dcard .acts .a-view:hover,
+.dcard .acts .a-share:hover {
   border-color: var(--reda-gold-deep);
+  background: rgba(201, 163, 91, 0.08);
 }
 
 .dcard .acts .a-del {
