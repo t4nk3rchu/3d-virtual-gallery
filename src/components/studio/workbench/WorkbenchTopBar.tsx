@@ -107,7 +107,7 @@ export function WorkbenchTopBar({
           Preview <Icon name="external" size={12} />
         </a>
         {isPublished && onShare && (
-          <Button variant="secondary" size="sm" onClick={onShare} title="Share Exhibition">
+          <Button variant="ghost" size="sm" onClick={onShare} title="Share Exhibition">
             <Icon name="share" size={13} /> Share
           </Button>
         )}

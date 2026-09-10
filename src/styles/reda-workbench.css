@@ -328,68 +328,80 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 18px 16px;
+  padding: 12px 16px 14px;
   border-top: 1px solid var(--reda-parch-border);
 }
 
 .dcard .acts .btn--primary,
 .dcard .acts .a-edit {
   flex: 1;
+  min-height: 34px;
   background: var(--reda-son);
   border: 1px solid var(--reda-son-hi);
   color: var(--reda-eggshell) !important;
   border-radius: var(--reda-radius-pill, 999px);
-  padding: 8px 14px;
+  padding: 6px 14px;
   font-family: var(--reda-ui);
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12.5px;
   cursor: pointer;
   text-align: center;
-  transition: background 0.16s, transform 0.16s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.16s, transform 0.16s, box-shadow 0.16s;
+  box-shadow: 0 2px 6px rgba(178, 58, 34, 0.2);
+  white-space: nowrap;
 }
 
 .dcard .acts .btn--primary:hover,
 .dcard .acts .a-edit:hover {
   background: var(--reda-son-hi);
   transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(178, 58, 34, 0.3);
 }
 
 .dcard .acts .btn--secondary,
 .dcard .acts .a-view,
 .dcard .acts .a-share {
+  min-height: 34px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(36, 26, 16, 0.05);
+  gap: 5px;
+  background: rgba(36, 26, 16, 0.04);
   border: 1px solid var(--reda-parch-border);
   color: var(--reda-ink) !important;
   border-radius: var(--reda-radius-pill, 999px);
-  padding: 8px 14px;
+  padding: 6px 12px;
   font-family: var(--reda-ui);
   font-weight: 500;
-  font-size: 13px;
+  font-size: 12px;
   text-decoration: none;
   cursor: pointer;
-  transition: border-color 0.16s, background 0.16s;
+  white-space: nowrap;
+  transition: border-color 0.16s, background 0.16s, transform 0.16s;
 }
 
 .dcard .acts .btn--secondary:hover,
 .dcard .acts .a-view:hover,
 .dcard .acts .a-share:hover {
   border-color: var(--reda-gold-deep);
-  background: rgba(201, 163, 91, 0.08);
+  background: rgba(201, 163, 91, 0.12);
+  transform: translateY(-1px);
 }
 
 .dcard .acts .a-del {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
   border-radius: var(--reda-radius-pill, 999px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--reda-son);
   background: rgba(178, 58, 34, 0.08);
-  border: 1px solid rgba(178, 58, 34, 0.32);
+  border: 1px solid rgba(178, 58, 34, 0.28);
   cursor: pointer;
   transition: all 0.16s ease;
   padding: 0;
@@ -397,11 +409,14 @@
 }
 
 .dcard .acts .a-del:hover {
-  background: rgba(178, 58, 34, 0.16);
+  background: rgba(178, 58, 34, 0.18);
+  border-color: var(--reda-son);
+  transform: translateY(-1px);
 }
 
 .dcard .acts .a-del.armed {
   width: auto;
+  min-width: auto;
   padding: 0 12px;
   background: var(--reda-son);
   color: var(--reda-eggshell);

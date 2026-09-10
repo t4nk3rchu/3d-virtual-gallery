@@ -11,15 +11,25 @@ function ToastItem({
 }) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
+  const startTimer = () => {
     if (toast.duration && toast.duration > 0) {
+      if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         onDismiss(toast.id);
       }, toast.duration);
     }
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
+  };
+
+  const clearTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    startTimer();
+    return clearTimer;
   }, [toast.id, toast.duration, onDismiss]);
 
   const getIconName = (): IconName => {
@@ -31,7 +41,7 @@ function ToastItem({
       case 'warning':
         return 'alertTriangle';
       case 'publish':
-        return 'external';
+        return 'check';
       case 'info':
       default:
         return 'info';
@@ -45,6 +55,8 @@ function ToastItem({
       className={`reda-toast reda-toast--${toast.type}`}
       role={isAlert ? 'alert' : 'status'}
       aria-live={isAlert ? 'assertive' : 'polite'}
+      onMouseEnter={clearTimer}
+      onMouseLeave={startTimer}
     >
       <span className="reda-toast__icon" aria-hidden="true">
         <Icon name={getIconName()} size={15} />
