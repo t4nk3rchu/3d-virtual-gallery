@@ -58,7 +58,7 @@ export function ArtworkForm({
   let initialFrameConfig: FrameConfig = {
     frameType: 'wood',
     frameWidth: 0.05,
-    matWidth: 0.03,
+    matWidth: 0,
     matColor: '#FFFFFF',
     showPlacard: true,
     allowTilt: true,
@@ -94,14 +94,14 @@ export function ArtworkForm({
       let cfg: FrameConfig = {
         frameType: 'wood',
         frameWidth: 0.05,
-        matWidth: 0.03,
+        matWidth: 0,
         matColor: '#FFFFFF',
         showPlacard: true,
         allowTilt: true,
       };
       if (activeArtwork.frame_config_json) {
         try {
-          cfg = { allowTilt: true, ...JSON.parse(activeArtwork.frame_config_json) };
+          cfg = { allowTilt: true, ...JSON.parse(activeArtwork.frame_config_json), matWidth: 0 };
         } catch {}
       }
       setFrameConfig(cfg);
@@ -121,7 +121,7 @@ export function ArtworkForm({
       setFrameConfig({
         frameType: 'wood',
         frameWidth: 0.05,
-        matWidth: 0.03,
+        matWidth: 0,
         matColor: '#FFFFFF',
         showPlacard: true,
         allowTilt: true,
