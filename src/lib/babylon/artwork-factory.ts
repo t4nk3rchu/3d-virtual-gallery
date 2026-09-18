@@ -39,6 +39,7 @@ import { getImageUrl, proxyMediaUrl } from '../media/gdrive';
 import { getYouTubeThumbnailUrl } from '../media/youtube';
 import { calculateFrameDimensions, createProceduralFrame } from './frame-builder';
 import { deserializeTransform } from '../studio/transform';
+import { createModel3DArtwork } from './model3d-factory';
 
 function parseFrameConfig(json: string) {
   try {
@@ -294,6 +295,9 @@ export function createArtworkMesh(scene: Scene, artwork: Artwork, onTextureLoade
       return createImage2DArtwork(scene, artwork, onTextureLoaded);
     case 'VIDEO':
       return createVideoArtwork(scene, artwork, onTextureLoaded);
+    case 'MODEL_3D':
+      createModel3DArtwork(scene, artwork, onTextureLoaded);
+      return null;
     default:
       console.warn(`[artwork-factory] Unknown artwork type: ${(artwork as Artwork).artwork_type}`);
       onTextureLoaded?.();
