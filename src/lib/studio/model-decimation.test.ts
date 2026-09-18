@@ -29,7 +29,7 @@ async function makeDenseGlb(): Promise<ArrayBuffer> {
 describe('decimateGlb', () => {
   it('produces a smaller, valid GLB with fewer triangles', async () => {
     const dense = await makeDenseGlb();
-    const proxy = await decimateGlb(dense, { ratio: 0.5 });
+    const proxy = await decimateGlb(dense, { ratio: 0.5, error: 0.01 });
     expect(proxy.byteLength).toBeGreaterThan(0);
     // Re-read the proxy to confirm it is a valid GLB. The proxy is
     // Draco-compressed, so the reading WebIO needs the Draco decoder too.

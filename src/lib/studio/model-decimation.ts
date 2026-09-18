@@ -17,7 +17,10 @@ async function getIO(): Promise<WebIO> {
       return new WebIO()
         .registerExtensions(KHRONOS_EXTENSIONS)
         .registerDependencies({ 'draco3d.decoder': decoder, 'draco3d.encoder': encoder });
-    })();
+    })().catch((err) => {
+      ioPromise = null;
+      throw err;
+    });
   }
   return ioPromise;
 }
@@ -25,7 +28,7 @@ async function getIO(): Promise<WebIO> {
 export interface DecimateOptions {
   /** Target fraction of triangles to keep (0-1). Default 0.5. */
   ratio?: number;
-  /** Max simplification error (0-1). Default 0.01. */
+  /** Max simplification error (0-1). Default 0.001. */
   error?: number;
 }
 
@@ -41,7 +44,7 @@ export async function decimateGlb(input: ArrayBuffer, opts: DecimateOptions = {}
   await doc.transform(
     dedup(),
     weld(),
-    simplify({ simplifier: MeshoptSimplifier, ratio: opts.ratio ?? 0.5, error: opts.error ?? 0.01 }),
+    simplify({ simplifier: MeshoptSimplifier, ratio: opts.ratio ?? 0.5, error: opts.error ?? 0.001 }),
     prune(),
     draco(),
   );
