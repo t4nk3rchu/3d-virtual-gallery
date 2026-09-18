@@ -14,6 +14,7 @@ const mockHotspots: ArtworkHotspot[] = [
     audio_timestamp_seconds: null,
     audio_timestamp_end_seconds: null,
     audio_file_id: null,
+    anchor_3d_json: null,
   },
   {
     id: 'hs-2',
@@ -25,6 +26,7 @@ const mockHotspots: ArtworkHotspot[] = [
     audio_timestamp_seconds: null,
     audio_timestamp_end_seconds: null,
     audio_file_id: null,
+    anchor_3d_json: null,
   },
 ];
 

@@ -18,6 +18,7 @@ describe('artwork-placement helpers', () => {
     description: null,
     artwork_type: 'IMAGE_2D',
     media_file_id: 'file-123',
+    model_proxy_file_id: null,
     youtube_video_id: null,
     audio_guide_file_id: null,
     transform_json: JSON.stringify({

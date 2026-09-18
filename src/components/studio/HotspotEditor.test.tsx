@@ -17,6 +17,7 @@ const mockArtwork: Artwork = {
   description: null,
   artwork_type: 'IMAGE_2D',
   media_file_id: 'img-1',
+  model_proxy_file_id: null,
   youtube_video_id: null,
   audio_guide_file_id: null,
   transform_json: '{}',
@@ -36,6 +37,7 @@ const mockHotspots: ArtworkHotspot[] = [
     audio_timestamp_seconds: null,
     audio_timestamp_end_seconds: null,
     audio_file_id: null,
+    anchor_3d_json: null,
   },
 ];
 

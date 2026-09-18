@@ -22,6 +22,7 @@ describe('HotspotOverlay', () => {
       audio_timestamp_seconds: 42.5,
       audio_timestamp_end_seconds: null,
       audio_file_id: null,
+      anchor_3d_json: null,
     },
     {
       id: 'hs2',
@@ -33,6 +34,7 @@ describe('HotspotOverlay', () => {
       audio_timestamp_seconds: null,
       audio_timestamp_end_seconds: null,
       audio_file_id: null,
+      anchor_3d_json: null,
     },
   ];
 
@@ -81,6 +83,7 @@ describe('ArtworkHoverTooltip', () => {
     description: 'Post-impressionist masterpiece',
     artwork_type: 'IMAGE_2D',
     media_file_id: 'drive123',
+    model_proxy_file_id: null,
     youtube_video_id: null,
     audio_guide_file_id: null,
     transform_json: '{"position":[0,1.5,0],"rotation":[0,0,0],"scale":[1,1,1]}',
@@ -117,6 +120,7 @@ describe('FocusPanel', () => {
     description: 'Iconic portrait with an enigmatic smile.',
     artwork_type: 'IMAGE_2D',
     media_file_id: 'drive123',
+    model_proxy_file_id: null,
     youtube_video_id: null,
     audio_guide_file_id: null,
     transform_json: '{"position":[0,1.5,0],"rotation":[0,0,0],"scale":[1,1,1]}',
