@@ -4,6 +4,7 @@ import { getImageUrl, proxyMediaUrl } from '../../lib/media/gdrive';
 import { HOTSPOT_TRANSITIONS, getHotspotAnimation } from '../../lib/viewer/hotspot-animations';
 import { HotspotTransitionPreview } from './HotspotTransitionPreview';
 import { DriveFilePicker } from './DriveFilePicker';
+import { Model3DHotspotEditor } from './Model3DHotspotEditor';
 import { Button, Icon } from '../ui';
 import { useToast } from '../../context/ToastContext';
 
@@ -23,8 +24,13 @@ export function HotspotEditor({
   onClose,
 }: HotspotEditorProps) {
   const toast = useToast();
+  const is3D = artwork.artwork_type === 'MODEL_3D';
   const [selectedHotspot, setSelectedHotspot] = useState<ArtworkHotspot | null>(null);
   const [newPin, setNewPin] = useState<{ x: number; y: number } | null>(null);
+  // MODEL_3D: pending anchor captured from a click-to-drop on the model surface,
+  // and the anchor currently attached to the hotspot being edited.
+  const [pendingAnchorJson, setPendingAnchorJson] = useState<string | null>(null);
+  const [editAnchorJson, setEditAnchorJson] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [audioTimestamp, setAudioTimestamp] = useState<string>('');
@@ -140,7 +146,26 @@ export function HotspotEditor({
     setAudioTimestamp(selectedHotspot.audio_timestamp_seconds != null ? String(selectedHotspot.audio_timestamp_seconds) : '');
     setAudioTimestampEnd(selectedHotspot.audio_timestamp_end_seconds != null ? String(selectedHotspot.audio_timestamp_end_seconds) : '');
     setAudioFileId(selectedHotspot.audio_file_id ?? '');
+    setEditAnchorJson(selectedHotspot.anchor_3d_json ?? null);
   }, [selectedHotspot]);
+
+  // MODEL_3D: a click on the model surface either opens the "new hotspot" form
+  // (no hotspot currently selected) or repositions the anchor for the hotspot
+  // being edited — mirroring the 2D drag-to-reposition behavior.
+  const handleDropHotspot3D = (anchorJson: string) => {
+    if (selectedHotspot) {
+      setEditAnchorJson(anchorJson);
+      return;
+    }
+    setSelectedHotspot(null);
+    setPendingAnchorJson(anchorJson);
+    setIsConfirmingDelete(false);
+    setTitle('');
+    setDescription('');
+    setAudioTimestamp('');
+    setAudioTimestampEnd('');
+    setAudioFileId('');
+  };
 
   const handleUpdateHotspot = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,9 +185,15 @@ export function HotspotEditor({
           audio_timestamp_seconds: audioTimestamp.trim() ? parseFloat(audioTimestamp) : null,
           audio_timestamp_end_seconds: audioTimestampEnd.trim() ? parseFloat(audioTimestampEnd) : null,
           audio_file_id: resolvedAudioId || null,
-          // Persist the (possibly dragged) pin position.
-          x_percent: dragXY?.x ?? selectedHotspot.x_percent,
-          y_percent: dragXY?.y ?? selectedHotspot.y_percent,
+          ...(is3D
+            ? // Persist the (possibly re-dropped) 3D anchor; fall back to the
+              // existing one so a text-only save doesn't clear it.
+              { anchor_3d_json: editAnchorJson ?? selectedHotspot.anchor_3d_json }
+            : {
+                // Persist the (possibly dragged) pin position.
+                x_percent: dragXY?.x ?? selectedHotspot.x_percent,
+                y_percent: dragXY?.y ?? selectedHotspot.y_percent,
+              }),
         }),
       });
       if (!res.ok) {
@@ -183,7 +214,7 @@ export function HotspotEditor({
 
   const handleCreateHotspot = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPin) return;
+    if (is3D ? !pendingAnchorJson : !newPin) return;
     setSaving(true);
 
     const cleanAudioId = audioFileId.trim();
@@ -198,8 +229,9 @@ export function HotspotEditor({
         credentials: 'include',
         body: JSON.stringify({
           artwork_id: artwork.id,
-          x_percent: newPin.x,
-          y_percent: newPin.y,
+          ...(is3D
+            ? { anchor_3d_json: pendingAnchorJson }
+            : { x_percent: newPin!.x, y_percent: newPin!.y }),
           title: title.trim() || 'Detail Hotspot',
           description: description.trim(),
           audio_timestamp_seconds: audioTimestamp.trim()
@@ -221,6 +253,7 @@ export function HotspotEditor({
       onHotspotsUpdated([...hotspots, created]);
       toast.success(`Đã thêm điểm chi tiết "${created.title || 'Detail'}".`);
       setNewPin(null);
+      setPendingAnchorJson(null);
       setTitle('');
       setDescription('');
       setAudioTimestamp('');
@@ -381,8 +414,17 @@ export function HotspotEditor({
         </div>
 
         <div className="hotspot-editor-layout">
-          {/* Visual Image View with Pins */}
+          {/* Visual Image/Model View with Pins */}
           <div className="hotspot-canvas-container">
+            {is3D ? (
+              <Model3DHotspotEditor
+                fullModelFileId={artwork.media_file_id ?? ''}
+                version={artwork.updated_at}
+                existingAnchors={hotspots}
+                onDropHotspot={handleDropHotspot3D}
+              />
+            ) : (
+              <>
             <p className="canvas-instruction">
               Click anywhere on the artwork image to drop a new interpretive hotspot pin.
             </p>
@@ -481,6 +523,8 @@ export function HotspotEditor({
             ) : (
               <p>No image file associated with this artwork.</p>
             )}
+              </>
+            )}
 
             {/* Done button lives under the canvas (matches mockup .done) */}
             <button type="button" className="hotspot-done-btn" onClick={onClose}>
@@ -490,11 +534,41 @@ export function HotspotEditor({
 
           {/* Hotspot Form & Details Panel */}
           <div className="hotspot-sidebar">
-            {newPin && (
+            {/* MODEL_3D has no clickable pin overlay on the 3D canvas (unlike the 2D
+                image view), so existing hotspots are picked from a list instead. */}
+            {is3D && hotspots.length > 0 && !pendingAnchorJson && (
+              <div className="hotspot-3d-list" style={{ marginBottom: '1rem' }}>
+                <h3>Existing Hotspots</h3>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {hotspots.map((h) => (
+                    <li key={h.id}>
+                      <button
+                        type="button"
+                        className={`hotspot-3d-list-item ${selectedHotspot?.id === h.id ? 'selected' : ''}`}
+                        onClick={() => setSelectedHotspot(h)}
+                        style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '6px 10px',
+                          borderRadius: 'var(--reda-radius)',
+                          border: '1px solid var(--reda-parch-border)',
+                          background: selectedHotspot?.id === h.id ? 'var(--reda-parch-2)' : 'transparent',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {h.title || 'Untitled hotspot'}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {(is3D ? pendingAnchorJson : newPin) && (
               <form onSubmit={handleCreateHotspot} className="hotspot-pin-form">
                 <h3>New Hotspot Pin</h3>
                 <p className="coords-readout">
-                  Location: X: {newPin.x}%, Y: {newPin.y}%
+                  {is3D ? 'Location: dropped on 3D model surface' : `Location: X: ${newPin!.x}%, Y: ${newPin!.y}%`}
                 </p>
 
                 <div className="form-group">
@@ -586,7 +660,7 @@ export function HotspotEditor({
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => setNewPin(null)}
+                    onClick={() => { setNewPin(null); setPendingAnchorJson(null); }}
                     style={{ borderRadius: 'var(--reda-radius-pill)' }}
                   >
                     Cancel
@@ -603,14 +677,18 @@ export function HotspotEditor({
               </form>
             )}
 
-            {selectedHotspot && !newPin && (
+            {selectedHotspot && !(is3D ? pendingAnchorJson : newPin) && (
               <form onSubmit={handleUpdateHotspot} className="hotspot-pin-form">
                 <h3>Edit Hotspot</h3>
                 <p className="coords-readout">
-                  Pin at: X: {dragXY?.x ?? selectedHotspot.x_percent}%, Y: {dragXY?.y ?? selectedHotspot.y_percent}%
+                  {is3D
+                    ? 'Pin anchored to 3D model surface'
+                    : `Pin at: X: ${dragXY?.x ?? selectedHotspot.x_percent}%, Y: ${dragXY?.y ?? selectedHotspot.y_percent}%`}
                 </p>
                 <p className="hint" style={{ marginTop: '-2px' }}>
-                  Drag the highlighted pin on the image to reposition it, then Save Changes.
+                  {is3D
+                    ? 'Click a new spot on the 3D model to move this pin, then Save Changes.'
+                    : 'Drag the highlighted pin on the image to reposition it, then Save Changes.'}
                 </p>
 
                 <div className="form-group">
@@ -726,9 +804,13 @@ export function HotspotEditor({
               </form>
             )}
 
-            {!newPin && !selectedHotspot && (
+            {!(is3D ? pendingAnchorJson : newPin) && !selectedHotspot && (
               <div className="hotspot-empty-state">
-                <p>Click on the image to place a new pin, or click an existing pin to edit or delete it.</p>
+                <p>
+                  {is3D
+                    ? 'Click on the 3D model to place a new pin, or select an existing pin to edit or delete it.'
+                    : 'Click on the image to place a new pin, or click an existing pin to edit or delete it.'}
+                </p>
                 <p>Total hotspots on this artwork: {hotspots.length}</p>
               </div>
             )}
