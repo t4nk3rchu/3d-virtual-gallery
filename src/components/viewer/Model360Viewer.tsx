@@ -1,0 +1,335 @@
+/**
+ * Task 7: 360° inspect viewer for MODEL_3D artworks
+ *
+ * A parallel, full-screen sibling to `InspectLightbox` (2D). Owns its own
+ * Babylon engine + scene + ArcRotateCamera, loads the FULL-resolution model
+ * (not the roam proxy) on demand, and projects the artwork's 3D-anchored
+ * hotspots to absolutely-positioned DOM pins each frame. Everything Babylon
+ * owns is disposed on close so the transient WebGL context + textures are
+ * released.
+ */
+import { useEffect, useRef, useState, useCallback } from 'react';
+import {
+  Vector3,
+  Matrix,
+  Animation,
+  ArcRotateCamera,
+  type AbstractMesh,
+} from '@babylonjs/core';
+import '@babylonjs/loaders/glTF';
+import { SceneLoader } from '@babylonjs/core';
+import type { Artwork, ArtworkHotspot } from '../../types/schema';
+import { proxyMediaUrl } from '../../lib/media/gdrive';
+import { initScene, type SceneHandle } from '../../lib/babylon/engine';
+import { isWebGLSupported } from './FallbackCatalog';
+import { parseAnchor } from '../../lib/babylon/model-hotspot-anchor';
+import { pinScaleForRadius, isPointFacingCamera } from '../../lib/babylon/model-hotspot-math';
+import { InspectDesktopSidebar } from './InspectDesktopSidebar';
+import { Icon } from '../ui';
+import '../../styles/model-360.css';
+
+interface Model360ViewerProps {
+  artwork: Artwork;
+  hotspots: ArtworkHotspot[];
+  onClose(): void;
+  onAudioSeek?(seconds: number, endSeconds?: number | null): void;
+}
+
+interface ParsedHotspot {
+  hotspot: ArtworkHotspot;
+  p: Vector3;
+  n: Vector3;
+}
+
+const PIN_MIN_PX = 14;
+const PIN_MAX_PX = 40;
+
+export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek }: Model360ViewerProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [showHotspotList, setShowHotspotList] = useState(false);
+  const [activeHotspotIndex, setActiveHotspotIndex] = useState<number>(-1);
+
+  const pinRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const rootMeshRef = useRef<AbstractMesh | null>(null);
+  const cameraRef = useRef<ArcRotateCamera | null>(null);
+
+  const activeHotspot = activeHotspotIndex >= 0 ? hotspots[activeHotspotIndex] : null;
+
+  const setPinRef = useCallback((id: string, el: HTMLButtonElement | null) => {
+    if (el) pinRefs.current.set(id, el);
+    else pinRefs.current.delete(id);
+  }, []);
+
+  // Fly the camera so the hotspot's surface normal faces the viewer, then open its card.
+  const focusHotspot = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= hotspots.length) {
+        setActiveHotspotIndex(-1);
+        return;
+      }
+      const h = hotspots[index];
+      setActiveHotspotIndex(index);
+
+      const camera = cameraRef.current;
+      const parsed = parseAnchor(h.anchor_3d_json);
+      if (camera && parsed) {
+        // Face the camera toward the outward normal direction.
+        const targetAlpha = Math.atan2(parsed.n.z, parsed.n.x);
+        const horizLen = Math.sqrt(parsed.n.x * parsed.n.x + parsed.n.z * parsed.n.z);
+        const targetBeta = Math.atan2(horizLen, parsed.n.y);
+        const scene = camera.getScene();
+        Animation.CreateAndStartAnimation(
+          'model360-focus-alpha', camera, 'alpha', 60, 30, camera.alpha, targetAlpha, Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        Animation.CreateAndStartAnimation(
+          'model360-focus-beta', camera, 'beta', 60, 30,
+          camera.beta,
+          Math.max(0.1, Math.min(Math.PI - 0.1, targetBeta)),
+          Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        void scene;
+      }
+
+      if (h.audio_timestamp_seconds != null && onAudioSeek) {
+        onAudioSeek(h.audio_timestamp_seconds, h.audio_timestamp_end_seconds);
+      }
+    },
+    [hotspots, onAudioSeek]
+  );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !isWebGLSupported()) return;
+
+    let disposed = false;
+    let sceneHandle: SceneHandle | null = null;
+    let camera: ArcRotateCamera | null = null;
+    let renderObserver: (() => void) | null = null;
+
+    sceneHandle = initScene(canvas);
+    const { scene, engine } = sceneHandle;
+
+    camera = new ArcRotateCamera('model360Camera', -Math.PI / 2, Math.PI / 2.4, 5, Vector3.Zero(), scene);
+    camera.attachControl(canvas, true);
+    camera.wheelPrecision = 40;
+    camera.panningSensibility = 0;
+    cameraRef.current = camera;
+
+    const url = artwork.media_file_id ? proxyMediaUrl(artwork.media_file_id, artwork.updated_at) : '';
+
+    if (!url) {
+      setLoadError('No model file available.');
+      setLoading(false);
+    } else {
+      SceneLoader.ImportMesh(
+        '', url, '', scene,
+        (meshes) => {
+          if (disposed) return;
+          const root = meshes[0] ?? null;
+          rootMeshRef.current = root;
+          if (root) {
+            root.computeWorldMatrix(true);
+            const { min, max } = root.getHierarchyBoundingVectors(true);
+            const center = min.add(max).scale(0.5);
+            const size = max.subtract(min).length();
+            const boundRadius = Math.max(0.5, size * 0.75);
+            camera!.setTarget(center);
+            camera!.radius = boundRadius * 2;
+            camera!.lowerRadiusLimit = boundRadius * 0.5;
+            camera!.upperRadiusLimit = boundRadius * 4;
+            for (const m of meshes) m.isPickable = false;
+          }
+          setLoading(false);
+        },
+        undefined,
+        (_s, msg) => {
+          if (disposed) return;
+          setLoadError(msg || 'Failed to load 3D model.');
+          setLoading(false);
+        }
+      );
+    }
+
+    // Pre-parse anchors once; re-parsed only if hotspots list identity changes (effect deps).
+    const parsedHotspots: ParsedHotspot[] = hotspots
+      .map((hotspot) => {
+        const a = parseAnchor(hotspot.anchor_3d_json);
+        return a ? { hotspot, p: a.p, n: a.n } : null;
+      })
+      .filter((v): v is ParsedHotspot => v !== null);
+
+    const observer = scene.onBeforeRenderObservable.add(() => {
+      const root = rootMeshRef.current;
+      const cam = cameraRef.current;
+      if (!root || !cam) return;
+
+      root.computeWorldMatrix();
+      const world = root.getWorldMatrix();
+      const normalMatrix = Matrix.Transpose(Matrix.Invert(world));
+
+      const viewport = cam.viewport.toGlobal(engine.getRenderWidth(), engine.getRenderHeight());
+      const identity = Matrix.Identity();
+      const transformMatrix = scene.getTransformMatrix();
+
+      const lower = cam.lowerRadiusLimit ?? cam.radius * 0.5;
+      const upper = cam.upperRadiusLimit ?? cam.radius * 2;
+      const diameter = pinScaleForRadius(cam.radius, lower, upper, PIN_MIN_PX, PIN_MAX_PX);
+
+      for (const { hotspot, p, n } of parsedHotspots) {
+        const el = pinRefs.current.get(hotspot.id);
+        if (!el) continue;
+
+        const worldPoint = Vector3.TransformCoordinates(p, world);
+        const worldNormal = Vector3.TransformNormal(n, normalMatrix).normalize();
+
+        const screen = Vector3.Project(worldPoint, identity, transformMatrix, viewport);
+        el.style.left = `${screen.x}px`;
+        el.style.top = `${screen.y}px`;
+        el.style.width = `${diameter}px`;
+        el.style.height = `${diameter}px`;
+
+        const facing = isPointFacingCamera(worldPoint, worldNormal, cam.position) && screen.z < 1;
+        el.style.opacity = facing ? '1' : '0';
+        el.style.pointerEvents = facing ? 'auto' : 'none';
+      }
+    });
+    renderObserver = () => scene.onBeforeRenderObservable.remove(observer);
+
+    return () => {
+      disposed = true;
+      renderObserver?.();
+      cameraRef.current = null;
+      rootMeshRef.current = null;
+      sceneHandle?.dispose();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artwork.media_file_id, artwork.updated_at]);
+
+  return (
+    <div className="model-360-viewer" role="dialog" aria-modal="true" aria-label={`360° inspect: ${artwork.title}`}>
+      <header className="model-360-viewer__header">
+        <div className="model-360-viewer__title-info">
+          <span className="eyebrow">360&deg; Inspect</span>
+          <h2 className="model-360-viewer__title">{artwork.title}</h2>
+        </div>
+        <div className="model-360-viewer__header-actions">
+          {hotspots.length > 0 && (
+            <button
+              type="button"
+              className={`btn btn--sm ${showHotspotList ? 'btn--primary' : 'btn--secondary'}`}
+              onClick={() => setShowHotspotList((prev) => !prev)}
+              title="Toggle Hotspots Directory"
+            >
+              <Icon name="pin" size={13} /> Hotspots List ({hotspots.length})
+            </button>
+          )}
+          <button
+            type="button"
+            className="model-360-viewer__close"
+            onClick={onClose}
+            aria-label="Close 360 inspect"
+            title="Exit 360 Inspect"
+          >
+            <Icon name="close" size={16} />
+          </button>
+        </div>
+      </header>
+
+      <div className="model-360-viewer__stage">
+        <canvas
+          ref={canvasRef}
+          className="model-360-viewer__canvas"
+          onContextMenu={(e) => e.preventDefault()}
+        />
+
+        {loading && !loadError && (
+          <div className="model-360-viewer__loading">
+            <p>Loading 3D model&hellip;</p>
+          </div>
+        )}
+        {loadError && (
+          <div className="model-360-viewer__error">
+            <p>Failed to load 3D model: {loadError}</p>
+          </div>
+        )}
+
+        {!loading && !loadError && hotspots.map((h, i) => {
+          const parsed = parseAnchor(h.anchor_3d_json);
+          if (!parsed) return null;
+          return (
+            <button
+              key={h.id}
+              type="button"
+              ref={(el) => setPinRef(h.id, el)}
+              className={`hotspot-pin model-360-pin ${activeHotspotIndex === i ? 'active' : ''} ${h.audio_file_id ? 'audio' : ''}`}
+              aria-label={`Hotspot: ${h.title}`}
+              onClick={() => {
+                focusHotspot(i);
+                setShowHotspotList(false);
+              }}
+            >
+              <span className="hotspot-pin__tooltip">{h.title}</span>
+            </button>
+          );
+        })}
+
+        {showHotspotList && (
+          <aside className="inspect-lightbox__drawer model-360-viewer__drawer" role="dialog" aria-label="Hotspots Directory">
+            <div className="sidebar-header">
+              <h3><Icon name="pin" size={15} /> Hotspots Directory</h3>
+              <button
+                type="button"
+                className="sidebar-close"
+                onClick={() => setShowHotspotList(false)}
+                aria-label="Close directory"
+              >
+                <Icon name="close" size={15} />
+              </button>
+            </div>
+            <p className="sidebar-subtitle">Click any detail point to orbit and inspect.</p>
+            <div className="hotspots-list-items">
+              {hotspots.map((h, i) => (
+                <button
+                  key={h.id}
+                  type="button"
+                  className={`hotspot-list-item ${activeHotspotIndex === i ? 'active' : ''}`}
+                  onClick={() => {
+                    focusHotspot(i);
+                    setShowHotspotList(false);
+                  }}
+                >
+                  <span className="item-badge">{String(i + 1).padStart(2, '0')}</span>
+                  <div className="item-content">
+                    <h4>{h.title}</h4>
+                    <p>{h.description}</p>
+                    {(h.audio_file_id || h.audio_timestamp_seconds != null) && (
+                      <span className="item-audio-indicator"><Icon name="audio" size={12} /> Audio Attached</span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </aside>
+        )}
+
+        {activeHotspot && (
+          <InspectDesktopSidebar
+            key={activeHotspot.id}
+            activeHotspot={activeHotspot}
+            activeHotspotIndex={activeHotspotIndex}
+            totalHotspots={hotspots.length}
+            onClose={() => setActiveHotspotIndex(-1)}
+            onNavigate={(idx) => focusHotspot(idx)}
+            onAudioSeek={onAudioSeek}
+          />
+        )}
+      </div>
+
+      <footer className="model-360-viewer__hint">
+        Left-drag to orbit &middot; Scroll to zoom
+      </footer>
+    </div>
+  );
+}
