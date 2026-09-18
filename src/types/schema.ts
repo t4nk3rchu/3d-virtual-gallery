@@ -74,8 +74,7 @@ export interface Artist {
 export type ArtistInput = Omit<Artist, 'id' | 'created_at'>;
 
 // ─── Artworks ─────────────────────────────────────────────────────────────────
-export type ArtworkType = 'IMAGE_2D' | 'VIDEO';
-// SCULPTURE_3D and AUDIO deliberately excluded from phase 1
+export type ArtworkType = 'IMAGE_2D' | 'VIDEO' | 'MODEL_3D';
 
 export interface Artwork {
   id: string;
@@ -89,6 +88,7 @@ export interface Artwork {
   description: string | null;
   artwork_type: ArtworkType;
   media_file_id: string | null;     // Drive file ID (image / audio)
+  model_proxy_file_id: string | null;  // decimated low-poly .glb for roam (MODEL_3D)
   youtube_video_id: string | null;  // for VIDEO type
   audio_guide_file_id: string | null;
   transform_json: string;           // JSON: { position:[x,y,z], rotation:[x,y,z], scale:[x,y,z] }
@@ -122,6 +122,7 @@ export interface ArtworkHotspot {
   artwork_id: string;
   x_percent: number;   // 0–100
   y_percent: number;   // 0–100
+  anchor_3d_json: string | null;  // MODEL_3D: JSON { p:[x,y,z], n:[x,y,z] } in model-local space
   title: string;
   description: string;
   audio_timestamp_seconds: number | null;

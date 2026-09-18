@@ -39,6 +39,7 @@ async function makeTestDb(): Promise<D1Database> {
         '0005_artists_and_intro_video.sql',
         '0006_users_team_flag.sql',
         '0007_hotspot_audio_end.sql',
+        '0008_model_3d.sql',
       ];
 
       for (const file of migrationFiles) {
@@ -292,6 +293,47 @@ describe('db.ts helpers & column whitelisting', () => {
     const byId = Object.fromEntries(detail!.artworks.map((a) => [a.id, a]));
     expect(byId[a1.id].hotspots.map((h) => h.title)).toEqual(['h1']);
     expect(byId[a2.id].hotspots.map((h) => h.title)).toEqual(['h2']);
+  });
+
+  it('persists model_proxy_file_id on artworks and anchor_3d_json on hotspots', async () => {
+    const db = await makeTestDb();
+    const user = await createUser(db, {
+      email: `model3d-${Date.now()}@test.com`,
+      full_name: 'Model Curator',
+      auth_provider: 'password',
+      password_hash: 'hash',
+      role: 'curator',
+    });
+    const room = await createRoom(db, {
+      owner_user_id: user.id,
+      name: 'Model Room',
+      description: null,
+      thumbnail_url: null,
+      glb_file_id: 'glb-modern',
+      glb_source: 'curator_drive',
+      spawn_json: null,
+      is_public: 0,
+    });
+    const ex = await createExhibition(db, {
+      room_id: room.id, title: 'M', slug: `m-${Date.now()}`, user_id: user.id,
+      description: null, curator_name: null, start_date: null, end_date: null,
+      is_published: 0, cover_image_url: null, settings_json: null,
+    } as any);
+    const art = await createArtworkRecord(db, {
+      exhibition_id: ex.id, title: 'Statue', artist: 'A', year: null, medium: null,
+      dimensions: null, description: null, artwork_type: 'MODEL_3D',
+      media_file_id: 'full-glb', model_proxy_file_id: 'proxy-glb', youtube_video_id: null,
+      audio_guide_file_id: null, transform_json: '{}', frame_config_json: '{}',
+      order_index: 0, artist_id: null,
+    } as any);
+    expect(art.model_proxy_file_id).toBe('proxy-glb');
+
+    const hs = await createHotspot(db, {
+      artwork_id: art.id, x_percent: 0, y_percent: 0, title: 'Head', description: '',
+      audio_timestamp_seconds: null, audio_timestamp_end_seconds: null, audio_file_id: null,
+      anchor_3d_json: JSON.stringify({ p: [0, 1, 0], n: [0, 0, 1] }),
+    } as any);
+    expect(JSON.parse(hs.anchor_3d_json!).p).toEqual([0, 1, 0]);
   });
 });
 

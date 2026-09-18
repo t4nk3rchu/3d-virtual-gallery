@@ -21,7 +21,7 @@ const EXHIBITION_UPDATE_COLS = new Set([
 ]); // NOTE: slug and user_id are intentionally NOT updatable
 const ARTWORK_UPDATE_COLS = new Set([
   'title', 'artist', 'year', 'medium', 'dimensions', 'description',
-  'artwork_type', 'media_file_id', 'youtube_video_id', 'audio_guide_file_id',
+  'artwork_type', 'media_file_id', 'model_proxy_file_id', 'youtube_video_id', 'audio_guide_file_id',
   'transform_json', 'frame_config_json', 'order_index', 'artist_id',
 ]);
 const ARTIST_UPDATE_COLS = new Set([
@@ -330,15 +330,15 @@ export async function createArtworkRecord(
     .prepare(
       `INSERT INTO artworks
          (id, exhibition_id, title, artist, year, medium, dimensions, description,
-          artwork_type, media_file_id, youtube_video_id, audio_guide_file_id,
+          artwork_type, media_file_id, model_proxy_file_id, youtube_video_id, audio_guide_file_id,
           transform_json, frame_config_json, order_index, updated_at, artist_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       id, input.exhibition_id, input.title, input.artist,
       input.year ?? null, input.medium ?? null, input.dimensions ?? null,
       input.description ?? null, input.artwork_type,
-      input.media_file_id ?? null, input.youtube_video_id ?? null,
+      input.media_file_id ?? null, input.model_proxy_file_id ?? null, input.youtube_video_id ?? null,
       input.audio_guide_file_id ?? null, input.transform_json,
       input.frame_config_json, input.order_index, now,
       input.artist_id ?? null
@@ -391,18 +391,19 @@ export async function createHotspot(
   await db
     .prepare(
       `INSERT INTO artwork_hotspots
-         (id, artwork_id, x_percent, y_percent, title, description, audio_timestamp_seconds, audio_timestamp_end_seconds, audio_file_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         (id, artwork_id, x_percent, y_percent, title, description, audio_timestamp_seconds, audio_timestamp_end_seconds, audio_file_id, anchor_3d_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       id, input.artwork_id, input.x_percent, input.y_percent,
       input.title, input.description, input.audio_timestamp_seconds ?? null,
       input.audio_timestamp_end_seconds ?? null,
-      input.audio_file_id ?? null
+      input.audio_file_id ?? null,
+      input.anchor_3d_json ?? null
     )
     .run();
 
-  return { id, ...input, audio_file_id: input.audio_file_id ?? null };
+  return { id, ...input, audio_file_id: input.audio_file_id ?? null, anchor_3d_json: input.anchor_3d_json ?? null };
 }
 
 export async function updateHotspot(
@@ -416,6 +417,7 @@ export async function updateHotspot(
     ['audio_timestamp_seconds', input.audio_timestamp_seconds ?? null],
     ['audio_timestamp_end_seconds', input.audio_timestamp_end_seconds ?? null],
     ['audio_file_id', input.audio_file_id ?? null],
+    ['anchor_3d_json', input.anchor_3d_json ?? null],
   ];
   // Position is optional — only updated when provided, so a text-only save doesn't move the pin.
   if (input.x_percent !== undefined) fields.push(['x_percent', input.x_percent]);
