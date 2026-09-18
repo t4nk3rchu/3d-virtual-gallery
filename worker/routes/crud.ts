@@ -220,6 +220,7 @@ export async function handleArtworks(
       description: (body.description as string) ?? null,
       artwork_type: (body.artwork_type as 'IMAGE_2D' | 'VIDEO') ?? 'IMAGE_2D',
       media_file_id: (body.media_file_id as string) ?? null,
+      model_proxy_file_id: (body.model_proxy_file_id as string) ?? null,
       youtube_video_id: (body.youtube_video_id as string) ?? null,
       audio_guide_file_id: (body.audio_guide_file_id as string) ?? null,
       transform_json: (body.transform_json as string) ?? '{"position":[0,1,0],"rotation":[0,0,0],"scale":[1,1,1]}',

@@ -199,6 +199,50 @@ export function getCachedDriveToken(): string | null {
   return cachedAccessToken && Date.now() < cachedTokenExpiry ? cachedAccessToken : null;
 }
 
+/**
+ * Upload bytes to Drive as a new file via multipart upload, using the picker's
+ * cached `drive.file` token. Returns the new file's id.
+ */
+export async function uploadDriveFile(
+  bytes: Uint8Array,
+  name: string,
+  mimeType: string = 'model/gltf-binary'
+): Promise<string> {
+  const token = getCachedDriveToken();
+  if (!token) throw new Error('Drive authorization expired — re-open the picker and try again.');
+
+  const boundary = `-------reda-upload-${crypto.randomUUID()}`;
+  const metadata = JSON.stringify({ name, mimeType });
+  const bodyParts = [
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,
+    `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`,
+  ];
+  const closing = `\r\n--${boundary}--`;
+
+  const encoder = new TextEncoder();
+  const head = encoder.encode(bodyParts.join(''));
+  const tail = encoder.encode(closing);
+  const body = new Uint8Array(head.length + bytes.length + tail.length);
+  body.set(head, 0);
+  body.set(bytes, head.length);
+  body.set(tail, head.length + bytes.length);
+
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': `multipart/related; boundary=${boundary}`,
+    },
+    body,
+  });
+  if (!res.ok) {
+    throw new Error(`Uploading file to Drive failed (${res.status}): ${await res.text()}`);
+  }
+  const data = (await res.json()) as { id?: string };
+  if (!data.id) throw new Error('Drive upload response did not include a file id');
+  return data.id;
+}
+
 let cachedSaEmail: string | null = null;
 
 async function getServiceAccountEmail(): Promise<string> {

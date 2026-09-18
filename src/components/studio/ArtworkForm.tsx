@@ -6,6 +6,8 @@ import { isArtworkPlaced, setArtworkPlacement } from '../../lib/studio/artwork-p
 import { DriveFilePicker } from './DriveFilePicker';
 import { Icon, Button } from '../ui';
 import { useToast } from '../../context/ToastContext';
+import { generateAndUploadProxy } from '../../lib/studio/model-upload';
+import { uploadDriveFile, shareFileWithServiceAccount } from '../../lib/studio/google-picker';
 
 interface ArtworkFormProps {
   exhibitionId: string;
@@ -53,6 +55,11 @@ export function ArtworkForm({
   const [audioGuideInput, setAudioGuideInput] = useState(
     activeArtwork?.audio_guide_file_id ?? ''
   );
+  const [modelProxyFileId, setModelProxyFileId] = useState<string | null>(
+    activeArtwork?.model_proxy_file_id ?? null
+  );
+  const [proxyStatus, setProxyStatus] = useState<'idle' | 'generating' | 'done' | 'error'>('idle');
+  const [proxyError, setProxyError] = useState<string | null>(null);
 
   // Frame config
   let initialFrameConfig: FrameConfig = {
@@ -89,6 +96,9 @@ export function ArtworkForm({
       setDriveInput(activeArtwork.media_file_id || '');
       setYoutubeInput(activeArtwork.youtube_video_id ? `https://youtu.be/${activeArtwork.youtube_video_id}` : '');
       setAudioGuideInput(activeArtwork.audio_guide_file_id || '');
+      setModelProxyFileId(activeArtwork.model_proxy_file_id ?? null);
+      setProxyStatus(activeArtwork.model_proxy_file_id ? 'done' : 'idle');
+      setProxyError(null);
       setIsPlaced(isArtworkPlaced(activeArtwork));
 
       let cfg: FrameConfig = {
@@ -117,6 +127,9 @@ export function ArtworkForm({
       setDriveInput('');
       setYoutubeInput('');
       setAudioGuideInput('');
+      setModelProxyFileId(null);
+      setProxyStatus('idle');
+      setProxyError(null);
       setIsPlaced(true);
       setFrameConfig({
         frameType: 'wood',
@@ -191,6 +204,18 @@ export function ArtworkForm({
       }
     }
 
+    if (artworkType === 'MODEL_3D') {
+      mediaFileId = extractGoogleDriveFileId(driveInput.trim()) || driveInput.trim() || null;
+      if (!mediaFileId) {
+        toast.error('Vui lòng chọn một tệp mô hình 3D (.glb) từ Google Drive.');
+        return;
+      }
+      if (proxyStatus === 'generating') {
+        toast.error('Đang tạo bản proxy 3D, vui lòng đợi trước khi lưu.');
+        return;
+      }
+    }
+
     const selectedArtistObj = artists.find((a) => a.id === artistId);
     const resolvedArtistName = artist.trim() || selectedArtistObj?.name || 'Untitled Artist';
 
@@ -205,6 +230,7 @@ export function ArtworkForm({
       description: description.trim() || null,
       artwork_type: artworkType,
       media_file_id: mediaFileId,
+      model_proxy_file_id: artworkType === 'MODEL_3D' ? modelProxyFileId : null,
       youtube_video_id: youtubeVideoId,
       audio_guide_file_id: parsedAudioGuideId,
       frame_config_json: JSON.stringify(frameConfig),
@@ -250,6 +276,24 @@ export function ArtworkForm({
       toast.error('Lỗi kết nối khi lưu tác phẩm.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleModelPicked = async (fileId: string) => {
+    setDriveInput(fileId);
+    setModelProxyFileId(null);
+    setProxyStatus('generating');
+    setProxyError(null);
+    try {
+      const proxyId = await generateAndUploadProxy(fileId, (bytes, name) =>
+        uploadDriveFile(bytes, name).then((id) => shareFileWithServiceAccount(id).then(() => id))
+      );
+      setModelProxyFileId(proxyId);
+      setProxyStatus('done');
+    } catch (err) {
+      console.error('Failed to generate 3D proxy:', err);
+      setProxyError(err instanceof Error ? err.message : 'Failed to generate low-poly proxy.');
+      setProxyStatus('error');
     }
   };
 
@@ -460,13 +504,12 @@ export function ArtworkForm({
             </button>
             <button
               type="button"
-              className="med dis"
-              disabled
-              title="3D Object Model — coming in a future update"
+              className={`med ${artworkType === 'MODEL_3D' ? 'on active' : ''}`}
+              onClick={() => setArtworkType('MODEL_3D')}
             >
               <div className="g"><Icon name="cube" size={15} /></div>
               <div className="t">3D Model</div>
-              <div className="s">Coming Soon</div>
+              <div className="s">.glb</div>
             </button>
           </div>
         </div>
@@ -520,6 +563,44 @@ export function ArtworkForm({
                   alt="YouTube Video Preview"
                   style={{ width: '100%', maxHeight: '160px', objectFit: 'cover', display: 'block' }}
                 />
+              </div>
+            )}
+          </div>
+        )}
+
+        {artworkType === 'MODEL_3D' && (
+          <div style={{ marginTop: '12px' }}>
+            <div className="flabel">
+              <span>3D Model (.glb) Google Drive Link or File ID</span>
+              <DriveFilePicker
+                mimeTypes="model/gltf-binary,.glb"
+                isTeam={isTeam}
+                buttonLabel="Pick from Drive"
+                className="tinybtn"
+                onPicked={handleModelPicked}
+              />
+            </div>
+            <input
+              id="art-drive-model"
+              type="text"
+              value={driveInput}
+              onChange={(e) => setDriveInput(e.target.value)}
+              placeholder="https://drive.google.com/file/d/... or bare file ID"
+              required
+              className="input mono"
+            />
+            <div className="hint">
+              Ensure the file is shared with the Reda Service Account in Google Drive.
+            </div>
+            {proxyStatus === 'generating' && (
+              <div className="hint" role="status">Generating low-poly proxy…</div>
+            )}
+            {proxyStatus === 'done' && modelProxyFileId && (
+              <div className="hint" role="status">Proxy ready ({modelProxyFileId}).</div>
+            )}
+            {proxyStatus === 'error' && (
+              <div className="hint" role="alert" style={{ color: 'var(--reda-danger, #b3261e)' }}>
+                {proxyError || 'Failed to generate low-poly proxy.'}
               </div>
             )}
           </div>
