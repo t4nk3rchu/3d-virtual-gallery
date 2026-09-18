@@ -13,6 +13,8 @@ import type { CameraController } from '../../lib/babylon/camera-controller';
 import { isWebGLSupported, FallbackCatalog } from './FallbackCatalog';
 import { FocusPanel } from './FocusPanel';
 import { InspectLightbox } from './InspectLightbox';
+import { Model360Viewer } from './Model360Viewer';
+import { is3DModel } from './model3d-inspect-routing';
 import { ArtistDetailModal } from './ArtistDetailModal';
 import { IntroVideoLoader } from './IntroVideoLoader';
 import { ArtworkHoverTooltip } from './ArtworkHoverTooltip';
@@ -584,42 +586,72 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
         />
       )}
 
-      {/* Inspect lightbox */}
+      {/* Inspect lightbox / 360 inspect viewer */}
       {inspectedArtwork && (
-        <InspectLightbox
-          artwork={inspectedArtwork}
-          hotspots={inspectedHotspots}
-          settings={settings}
-          onOpenArtist={(artist) => setActiveArtistProfile(artist)}
-          onClose={() => {
-            interactionRef.current?.leaveInspect();
-            setInspectedArtwork(null);
-            // If user was in FPS mode before focus, re-engage pointer lock when returning to focus panel
-            // (leaveFocus will eventually restore it fully when they close the focus panel too)
-          }}
-          onAudioStop={stopSeekAudio}
-          onAudioSeek={(seconds, endSeconds) => {
-            const audio = audioRef.current;
-            if (!audio || !inspectedArtwork) return;
-            const audioSrc = inspectedArtwork.audio_guide_file_id;
-            if (!audioSrc) return;
-            const url = proxyMediaUrl(audioSrc, inspectedArtwork.updated_at);
-            if (!audio.src.endsWith(url)) audio.src = url;
-            // Drop any previous end-of-segment watcher before starting a new segment
-            seekEndCleanupRef.current?.();
-            seekEndCleanupRef.current = null;
-            audio.currentTime = seconds;
-            audio.play().catch(() => {});
-            // Stop at the segment end if one was configured
-            if (endSeconds != null && endSeconds > seconds) {
-              const onTime = () => {
-                if (audio.currentTime >= endSeconds) stopSeekAudio();
-              };
-              audio.addEventListener('timeupdate', onTime);
-              seekEndCleanupRef.current = () => audio.removeEventListener('timeupdate', onTime);
-            }
-          }}
-        />
+        is3DModel(inspectedArtwork) ? (
+          <Model360Viewer
+            artwork={inspectedArtwork}
+            hotspots={inspectedHotspots}
+            onClose={() => {
+              interactionRef.current?.leaveInspect();
+              setInspectedArtwork(null);
+            }}
+            onAudioSeek={(seconds, endSeconds) => {
+              const audio = audioRef.current;
+              if (!audio || !inspectedArtwork) return;
+              const audioSrc = inspectedArtwork.audio_guide_file_id;
+              if (!audioSrc) return;
+              const url = proxyMediaUrl(audioSrc, inspectedArtwork.updated_at);
+              if (!audio.src.endsWith(url)) audio.src = url;
+              seekEndCleanupRef.current?.();
+              seekEndCleanupRef.current = null;
+              audio.currentTime = seconds;
+              audio.play().catch(() => {});
+              if (endSeconds != null && endSeconds > seconds) {
+                const onTime = () => {
+                  if (audio.currentTime >= endSeconds) stopSeekAudio();
+                };
+                audio.addEventListener('timeupdate', onTime);
+                seekEndCleanupRef.current = () => audio.removeEventListener('timeupdate', onTime);
+              }
+            }}
+          />
+        ) : (
+          <InspectLightbox
+            artwork={inspectedArtwork}
+            hotspots={inspectedHotspots}
+            settings={settings}
+            onOpenArtist={(artist) => setActiveArtistProfile(artist)}
+            onClose={() => {
+              interactionRef.current?.leaveInspect();
+              setInspectedArtwork(null);
+              // If user was in FPS mode before focus, re-engage pointer lock when returning to focus panel
+              // (leaveFocus will eventually restore it fully when they close the focus panel too)
+            }}
+            onAudioStop={stopSeekAudio}
+            onAudioSeek={(seconds, endSeconds) => {
+              const audio = audioRef.current;
+              if (!audio || !inspectedArtwork) return;
+              const audioSrc = inspectedArtwork.audio_guide_file_id;
+              if (!audioSrc) return;
+              const url = proxyMediaUrl(audioSrc, inspectedArtwork.updated_at);
+              if (!audio.src.endsWith(url)) audio.src = url;
+              // Drop any previous end-of-segment watcher before starting a new segment
+              seekEndCleanupRef.current?.();
+              seekEndCleanupRef.current = null;
+              audio.currentTime = seconds;
+              audio.play().catch(() => {});
+              // Stop at the segment end if one was configured
+              if (endSeconds != null && endSeconds > seconds) {
+                const onTime = () => {
+                  if (audio.currentTime >= endSeconds) stopSeekAudio();
+                };
+                audio.addEventListener('timeupdate', onTime);
+                seekEndCleanupRef.current = () => audio.removeEventListener('timeupdate', onTime);
+              }
+            }}
+          />
+        )
       )}
 
       {/* Fullscreen Artist Detail Profile Modal */}

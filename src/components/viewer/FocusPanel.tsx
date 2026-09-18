@@ -3,6 +3,7 @@ import type { Artwork, Artist } from '../../types/schema';
 import { proxyMediaUrl } from '../../lib/media/gdrive';
 import { Icon } from '../ui';
 import { AudioGuidePlayer } from './AudioGuidePlayer';
+import { is3DModel } from './model3d-inspect-routing';
 
 interface FocusPanelProps {
   artwork: Artwork & { artist_profile?: Artist | null };
@@ -209,7 +210,8 @@ export function FocusPanel({
               )}
 
               {((artwork.artwork_type === 'IMAGE_2D' && artwork.media_file_id) ||
-                (artwork.artwork_type === 'VIDEO' && artwork.youtube_video_id)) && (
+                (artwork.artwork_type === 'VIDEO' && artwork.youtube_video_id) ||
+                (artwork.artwork_type === 'MODEL_3D' && artwork.media_file_id)) && (
                 <button
                   type="button"
                   className="focus-info-modal__inspect-btn"
@@ -217,6 +219,8 @@ export function FocusPanel({
                 >
                   {artwork.artwork_type === 'VIDEO'
                     ? (<><Icon name="film" size={14} /> Open Cinema Mode</>)
+                    : is3DModel(artwork)
+                    ? (<><Icon name="search" size={14} /> Inspect in 360</>)
                     : (<><Icon name="search" size={14} /> Inspect Full Resolution</>)}
                 </button>
               )}
