@@ -33,6 +33,7 @@ interface Model360ViewerProps {
   hotspots: ArtworkHotspot[];
   onClose(): void;
   onAudioSeek?(seconds: number, endSeconds?: number | null): void;
+  onAudioStop?(): void;
 }
 
 interface ParsedHotspot {
@@ -44,7 +45,7 @@ interface ParsedHotspot {
 const PIN_MIN_PX = 14;
 const PIN_MAX_PX = 40;
 
-export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek }: Model360ViewerProps) {
+export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek, onAudioStop }: Model360ViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -54,6 +55,7 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek }: Mode
   const pinRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const rootMeshRef = useRef<AbstractMesh | null>(null);
   const cameraRef = useRef<ArcRotateCamera | null>(null);
+  const parsedHotspotsRef = useRef<ParsedHotspot[]>([]);
 
   const activeHotspot = activeHotspotIndex >= 0 ? hotspots[activeHotspotIndex] : null;
 
@@ -103,10 +105,24 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek }: Mode
 
       if (h.audio_timestamp_seconds != null && onAudioSeek) {
         onAudioSeek(h.audio_timestamp_seconds, h.audio_timestamp_end_seconds);
+      } else {
+        onAudioStop?.();
       }
     },
-    [hotspots, onAudioSeek]
+    [hotspots, onAudioSeek, onAudioStop]
   );
+
+  // Re-parse hotspot anchors whenever the hotspots prop changes, independent of the
+  // engine/model setup effect below — so the render loop never reads a stale snapshot
+  // without forcing a model reload.
+  useEffect(() => {
+    parsedHotspotsRef.current = hotspots
+      .map((hotspot) => {
+        const a = parseAnchor(hotspot.anchor_3d_json);
+        return a ? { hotspot, p: a.p, n: a.n } : null;
+      })
+      .filter((v): v is ParsedHotspot => v !== null);
+  }, [hotspots]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -161,14 +177,6 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek }: Mode
       );
     }
 
-    // Pre-parse anchors once; re-parsed only if hotspots list identity changes (effect deps).
-    const parsedHotspots: ParsedHotspot[] = hotspots
-      .map((hotspot) => {
-        const a = parseAnchor(hotspot.anchor_3d_json);
-        return a ? { hotspot, p: a.p, n: a.n } : null;
-      })
-      .filter((v): v is ParsedHotspot => v !== null);
-
     const observer = scene.onBeforeRenderObservable.add(() => {
       const root = rootMeshRef.current;
       const cam = cameraRef.current;
@@ -186,7 +194,7 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek }: Mode
       const upper = cam.upperRadiusLimit ?? cam.radius * 2;
       const diameter = pinScaleForRadius(cam.radius, lower, upper, PIN_MIN_PX, PIN_MAX_PX);
 
-      for (const { hotspot, p, n } of parsedHotspots) {
+      for (const { hotspot, p, n } of parsedHotspotsRef.current) {
         const el = pinRefs.current.get(hotspot.id);
         if (!el) continue;
 
@@ -237,7 +245,10 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek }: Mode
           <button
             type="button"
             className="model-360-viewer__close"
-            onClick={onClose}
+            onClick={() => {
+              onAudioStop?.();
+              onClose();
+            }}
             aria-label="Close 360 inspect"
             title="Exit 360 Inspect"
           >

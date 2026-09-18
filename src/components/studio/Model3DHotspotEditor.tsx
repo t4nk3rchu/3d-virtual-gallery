@@ -18,7 +18,7 @@ interface Model3DHotspotEditorProps {
   fullModelFileId: string;
   /** Version cache-buster (e.g. artwork.updated_at) so edits don't serve stale bytes. */
   version?: string | number;
-  /** Existing hotspot anchors to render as reference markers (local-space). */
+  /** Existing hotspot anchors, shown only as a text count (not rendered as in-scene markers). */
   existingAnchors?: Array<{ id: string; anchor_3d_json: string | null }>;
   onDropHotspot(anchorJson: string): void;
 }

@@ -596,6 +596,7 @@ export function ExhibitionViewer({ slug }: ExhibitionViewerProps) {
               interactionRef.current?.leaveInspect();
               setInspectedArtwork(null);
             }}
+            onAudioStop={stopSeekAudio}
             onAudioSeek={(seconds, endSeconds) => {
               const audio = audioRef.current;
               if (!audio || !inspectedArtwork) return;

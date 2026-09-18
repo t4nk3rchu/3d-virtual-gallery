@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
 import type { Artwork, ArtworkType, FrameConfig, Artist } from '../../types/schema';
 import { extractGoogleDriveFileId, getImageUrl } from '../../lib/media/gdrive';
 import { parseYouTubeVideoId, getYouTubeThumbnailUrl } from '../../lib/media/youtube';
@@ -59,6 +59,8 @@ export function ArtworkForm({
     activeArtwork?.model_proxy_file_id ?? null
   );
   const [proxyStatus, setProxyStatus] = useState<'idle' | 'generating' | 'done' | 'error'>('idle');
+  // Guards against a stale async proxy-generation result overwriting a newer pick's state.
+  const modelPickGenerationRef = useRef(0);
   const [proxyError, setProxyError] = useState<string | null>(null);
 
   // Frame config
@@ -280,6 +282,10 @@ export function ArtworkForm({
   };
 
   const handleModelPicked = async (fileId: string) => {
+    // Ignore re-picks while a previous proxy generation is still in flight, so
+    // model B's media file can never get paired with model A's stale proxy result.
+    if (proxyStatus === 'generating') return;
+    const generationId = ++modelPickGenerationRef.current;
     setDriveInput(fileId);
     setModelProxyFileId(null);
     setProxyStatus('generating');
@@ -288,9 +294,11 @@ export function ArtworkForm({
       const proxyId = await generateAndUploadProxy(fileId, (bytes, name) =>
         uploadDriveFile(bytes, name).then((id) => shareFileWithServiceAccount(id).then(() => id))
       );
+      if (modelPickGenerationRef.current !== generationId) return;
       setModelProxyFileId(proxyId);
       setProxyStatus('done');
     } catch (err) {
+      if (modelPickGenerationRef.current !== generationId) return;
       console.error('Failed to generate 3D proxy:', err);
       setProxyError(err instanceof Error ? err.message : 'Failed to generate low-poly proxy.');
       setProxyStatus('error');

@@ -417,11 +417,11 @@ export async function updateHotspot(
     ['audio_timestamp_seconds', input.audio_timestamp_seconds ?? null],
     ['audio_timestamp_end_seconds', input.audio_timestamp_end_seconds ?? null],
     ['audio_file_id', input.audio_file_id ?? null],
-    ['anchor_3d_json', input.anchor_3d_json ?? null],
   ];
   // Position is optional — only updated when provided, so a text-only save doesn't move the pin.
   if (input.x_percent !== undefined) fields.push(['x_percent', input.x_percent]);
   if (input.y_percent !== undefined) fields.push(['y_percent', input.y_percent]);
+  if (input.anchor_3d_json !== undefined) fields.push(['anchor_3d_json', input.anchor_3d_json]);
   const sets = fields.map(([col]) => `${col} = ?`).join(', ');
   const values = fields.map(([, v]) => v);
   await db.prepare(`UPDATE artwork_hotspots SET ${sets} WHERE id = ?`).bind(...values, id).run();
