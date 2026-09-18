@@ -73,12 +73,21 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek }: Mode
       setActiveHotspotIndex(index);
 
       const camera = cameraRef.current;
+      const root = rootMeshRef.current;
       const parsed = parseAnchor(h.anchor_3d_json);
       if (camera && parsed) {
-        // Face the camera toward the outward normal direction.
-        const targetAlpha = Math.atan2(parsed.n.z, parsed.n.x);
-        const horizLen = Math.sqrt(parsed.n.x * parsed.n.x + parsed.n.z * parsed.n.z);
-        const targetBeta = Math.atan2(horizLen, parsed.n.y);
+        // Face the camera toward the outward normal direction, transformed into
+        // world space the same way the render loop does (root may carry a baked
+        // Y-up/Z-up correction, scale, or authored rotation).
+        let n = parsed.n;
+        if (root) {
+          root.computeWorldMatrix();
+          const normalMatrix = Matrix.Transpose(Matrix.Invert(root.getWorldMatrix()));
+          n = Vector3.TransformNormal(parsed.n, normalMatrix).normalize();
+        }
+        const targetAlpha = Math.atan2(n.z, n.x);
+        const horizLen = Math.sqrt(n.x * n.x + n.z * n.z);
+        const targetBeta = Math.atan2(horizLen, n.y);
         const scene = camera.getScene();
         Animation.CreateAndStartAnimation(
           'model360-focus-alpha', camera, 'alpha', 60, 30, camera.alpha, targetAlpha, Animation.ANIMATIONLOOPMODE_CONSTANT

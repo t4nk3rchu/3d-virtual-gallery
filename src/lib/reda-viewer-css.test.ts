@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const css = readFileSync(resolve(__dirname, '../styles/reda-viewer.css'), 'utf8');
+const model360Css = readFileSync(resolve(__dirname, '../styles/model-360.css'), 'utf8');
 
 describe('reda-viewer.css', () => {
   it('defines every viewer component region', () => {
@@ -34,5 +35,13 @@ describe('reda-viewer.css', () => {
     expect(nextBlock).toContain('.focus-info-modal');
     expect(nextBlock).toContain('.inspect-lightbox__drawer');
     expect(nextBlock).toContain('border-radius: 0');
+  });
+});
+
+describe('model-360.css', () => {
+  it('uses REDA tokens and contains no raw hex colors', () => {
+    expect(model360Css).toContain('var(--reda-');
+    // no #rgb / #rrggbb anywhere (tokens only)
+    expect(model360Css).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
   });
 });
