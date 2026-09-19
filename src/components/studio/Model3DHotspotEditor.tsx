@@ -18,6 +18,7 @@ import {
   MeshBuilder,
   StandardMaterial,
   Color3,
+  Color4,
   type AbstractMesh,
   type Scene,
   type Mesh,
@@ -78,6 +79,10 @@ export function Model3DHotspotEditor({
     const sceneHandle = initScene(canvas);
     const { scene } = sceneHandle;
     sceneRef.current = scene;
+    // Studio is the light "giấy-điệp" paper world; override the dark viewer
+    // clearColor so dark models (bronze, wood, stone) read against the parchment
+    // ground (--reda-parch #EDE4CC) instead of blending into black.
+    scene.clearColor = new Color4(0.929, 0.894, 0.8, 1);
 
     const camera = new ArcRotateCamera('HotspotEditorCamera', -Math.PI / 2, Math.PI / 2.5, 3, Vector3.Zero(), scene);
     camera.attachControl(canvas, true);
