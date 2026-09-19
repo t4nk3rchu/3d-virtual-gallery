@@ -186,7 +186,13 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek, onAudi
       const world = root.getWorldMatrix();
       const normalMatrix = Matrix.Transpose(Matrix.Invert(world));
 
-      const viewport = cam.viewport.toGlobal(engine.getRenderWidth(), engine.getRenderHeight());
+      // Project into the canvas's CSS-pixel space, not the render buffer. The
+      // ResolutionScaler / devicePixelRatio make the WebGL buffer a different
+      // size than the CSS box, and the DOM pins are positioned in CSS px — using
+      // render px offsets every pin from the top-left origin.
+      const cssW = canvas.clientWidth || engine.getRenderWidth();
+      const cssH = canvas.clientHeight || engine.getRenderHeight();
+      const viewport = cam.viewport.toGlobal(cssW, cssH);
       const identity = Matrix.Identity();
       const transformMatrix = scene.getTransformMatrix();
 
