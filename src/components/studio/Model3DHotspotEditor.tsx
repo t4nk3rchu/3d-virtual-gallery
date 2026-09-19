@@ -102,8 +102,7 @@ export function Model3DHotspotEditor({
     const camera = new ArcRotateCamera('HotspotEditorCamera', -Math.PI / 2, Math.PI / 2.5, 3, Vector3.Zero(), scene);
     camera.attachControl(canvas, true);
     camera.wheelPrecision = 40;
-    camera.lowerRadiusLimit = 0.1;
-    camera.upperRadiusLimit = 50;
+    // Radius limits are set from the model bounds after load (below).
 
     // Key + rim lights (same as the 360 viewer) so surface detail reads clearly
     // while placing hotspots. Shadowless — negligible cost.
@@ -127,8 +126,13 @@ export function Model3DHotspotEditor({
         const center = min.add(max).scale(0.5);
         const size = max.subtract(min).length();
         markerDiaRef.current = Math.max(0.02, size * 0.03);
+        // Keep the camera outside the model surface (a distance boundary, like the
+        // room walls) so it can't clip through / dive inside when zooming.
+        const boundRadius = Math.max(0.5, size * 0.75);
         camera.setTarget(center);
-        camera.radius = Math.max(0.5, size * 1.5);
+        camera.radius = boundRadius * 2;
+        camera.lowerRadiusLimit = boundRadius; // don't get closer than the bounding sphere
+        camera.upperRadiusLimit = boundRadius * 4;
       }
       setLoading(false);
       setModelReady(true);
