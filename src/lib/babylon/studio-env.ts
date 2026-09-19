@@ -12,7 +12,7 @@ import { RawCubeTexture, Texture, Constants, type Scene } from '@babylonjs/core'
  * texture, O(1) regardless of how many models are in the room. A few KB in
  * memory; nothing is fetched.
  */
-export function applyStudioEnvironment(scene: Scene, intensity = 0.85): void {
+export function applyStudioEnvironment(scene: Scene, intensity = 0.5): void {
   const size = 32;
   const rowRGBA = size * 4;
 
