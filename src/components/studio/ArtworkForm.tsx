@@ -8,6 +8,7 @@ import { Icon, Button } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { generateAndUploadProxy } from '../../lib/studio/model-upload';
 import { uploadDriveFile, shareFileWithServiceAccount } from '../../lib/studio/google-picker';
+import { fetchAndRegisterToken } from '../../lib/media/media-tokens';
 
 interface ArtworkFormProps {
   exhibitionId: string;
@@ -296,6 +297,9 @@ export function ArtworkForm({
         uploadDriveFile(bytes, name).then((id) => shareFileWithServiceAccount(id).then(() => id))
       );
       if (modelPickGenerationRef.current !== generationId) return;
+      // Mint a token so the proxy renders immediately, before the save/refetch
+      // that supplies exhibition media tokens.
+      await fetchAndRegisterToken(proxyId).catch(() => {});
       setModelProxyFileId(proxyId);
       setProxyStatus('done');
       toast.success('Mô hình 3D đã sẵn sàng — proxy nhẹ đã được tạo và tải lên.', {

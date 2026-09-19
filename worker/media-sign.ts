@@ -67,7 +67,7 @@ export async function tokensForExhibition(
     backgroundAudioFileId,
   ];
   for (const a of detail.artworks ?? []) {
-    ids.push(a.media_file_id, a.audio_guide_file_id);
+    ids.push(a.media_file_id, a.model_proxy_file_id, a.audio_guide_file_id);
     for (const h of a.hotspots ?? []) ids.push(h.audio_file_id);
   }
   for (const artist of detail.artists ?? []) ids.push(artist.portrait_file_id);
