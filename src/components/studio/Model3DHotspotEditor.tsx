@@ -106,7 +106,8 @@ export function Model3DHotspotEditor({
     // Radius limits are set from the model bounds after load (below).
 
     // Key + rim lights so surface detail reads clearly while placing hotspots.
-    addKeyRimLights(scene);
+    // Key follows the camera so the viewed side stays lit as you orbit.
+    addKeyRimLights(scene, camera);
 
     const url = proxyMediaUrl(fullModelFileId, version);
 

@@ -179,8 +179,9 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek, onAudi
     cameraRef.current = camera;
 
     // Key + rim lights so dark artifacts (bronze, lacquer) read against the
-    // dark sơn-mài backdrop instead of blending in.
-    addKeyRimLights(scene);
+    // dark sơn-mài backdrop instead of blending in. Key follows the camera so
+    // the viewed side stays lit as the visitor orbits.
+    addKeyRimLights(scene, camera);
 
     const url = artwork.media_file_id ? proxyMediaUrl(artwork.media_file_id, artwork.updated_at) : '';
 
