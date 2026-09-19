@@ -413,27 +413,27 @@ export function HotspotEditor({
           <HotspotTransitionPreview transition={transitionStyle} />
         </div>
 
-        {/* MODEL_3D: existing hotspots live in a scrollable strip ABOVE the
-            preview, so the right sidebar is only for editing one hotspot's info. */}
-        {is3D && hotspots.length > 0 && (
-          <div className="hotspot-3d-strip">
-            <span className="hotspot-3d-strip__label">Existing Hotspots ({hotspots.length})</span>
-            <div className="hotspot-3d-strip__chips">
-              {hotspots.map((h) => (
-                <button
-                  key={h.id}
-                  type="button"
-                  className={`hotspot-3d-chip ${selectedHotspot?.id === h.id ? 'selected' : ''}`}
-                  onClick={() => { setSelectedHotspot(h); setPendingAnchorJson(null); setNewPin(null); }}
-                >
-                  {h.title || 'Untitled hotspot'}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="hotspot-editor-layout">
+          {/* Left column: existing-hotspots strip (3D) stacked above the preview,
+              so the right sidebar is only for editing one hotspot's info. */}
+          <div className="hotspot-preview-col">
+            {is3D && hotspots.length > 0 && (
+              <div className="hotspot-3d-strip">
+                <span className="hotspot-3d-strip__label">Existing Hotspots ({hotspots.length})</span>
+                <div className="hotspot-3d-strip__chips">
+                  {hotspots.map((h) => (
+                    <button
+                      key={h.id}
+                      type="button"
+                      className={`hotspot-3d-chip ${selectedHotspot?.id === h.id ? 'selected' : ''}`}
+                      onClick={() => { setSelectedHotspot(h); setPendingAnchorJson(null); setNewPin(null); }}
+                    >
+                      {h.title || 'Untitled hotspot'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           {/* Visual Image/Model View with Pins */}
           <div className="hotspot-canvas-container">
             {is3D ? (
@@ -550,6 +550,7 @@ export function HotspotEditor({
             <button type="button" className="hotspot-done-btn" onClick={onClose}>
               Done Editing Hotspots
             </button>
+          </div>
           </div>
 
           {/* Hotspot Form & Details Panel */}

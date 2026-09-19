@@ -864,8 +864,17 @@
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04), inset 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 
-.hotspot-canvas-container {
+/* Left column of the editor: the 3D strip stacked above the preview. */
+.hotspot-preview-col {
   flex: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.hotspot-canvas-container {
+  flex: 1 1 auto; /* fill the column height below the strip */
   background: transparent;
   border: 1px solid var(--reda-parch-border);
   border-radius: var(--reda-radius);
@@ -992,7 +1001,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 16px;
+  flex: 0 0 auto;
 }
 .hotspot-3d-strip__label {
   font-family: var(--reda-ui);
