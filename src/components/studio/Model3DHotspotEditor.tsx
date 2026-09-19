@@ -23,6 +23,7 @@ import {
   StandardMaterial,
   Color3,
   Color4,
+  DirectionalLight,
   type AbstractMesh,
   type Scene,
   type Mesh,
@@ -103,6 +104,13 @@ export function Model3DHotspotEditor({
     camera.wheelPrecision = 40;
     camera.lowerRadiusLimit = 0.1;
     camera.upperRadiusLimit = 50;
+
+    // Key + rim lights (same as the 360 viewer) so surface detail reads clearly
+    // while placing hotspots. Shadowless — negligible cost.
+    const key = new DirectionalLight('editorKey', new Vector3(-0.4, -1, -0.6), scene);
+    key.intensity = 1.1;
+    const rim = new DirectionalLight('editorRim', new Vector3(0.5, 0.35, 1), scene);
+    rim.intensity = 0.6;
 
     const url = proxyMediaUrl(fullModelFileId, version);
 
