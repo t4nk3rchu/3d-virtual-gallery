@@ -838,6 +838,15 @@
   display: flex;
   gap: 24px;
   min-height: 480px;
+  align-items: flex-start; /* don't stretch the preview to match a tall sidebar */
+}
+
+/* Framed 3D preview viewport so it reads as its own panel, not the modal. */
+.model3d-hotspot-canvas-wrapper {
+  border: 1px solid var(--reda-parch-border);
+  border-radius: var(--reda-radius);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04), inset 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 
 .hotspot-canvas-container {
@@ -946,6 +955,10 @@
   padding-left: 20px;
   display: flex;
   flex-direction: column;
+  /* Scroll the form/list on its own so a tall Edit panel never stretches the
+     preview beside it. */
+  max-height: 62vh;
+  overflow-y: auto;
 }
 
 .coords-readout {

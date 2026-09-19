@@ -79,10 +79,11 @@ export function Model3DHotspotEditor({
     const sceneHandle = initScene(canvas);
     const { scene } = sceneHandle;
     sceneRef.current = scene;
-    // Studio is the light "giấy-điệp" paper world; override the dark viewer
-    // clearColor so dark models (bronze, wood, stone) read against the parchment
-    // ground (--reda-parch #EDE4CC) instead of blending into black.
-    scene.clearColor = new Color4(0.929, 0.894, 0.8, 1);
+    // A neutral warm-grey studio backdrop (#C7C4BC) — light enough that dark
+    // models (bronze, wood, stone) read clearly, but distinctly deeper/cooler
+    // than the parchment modal card so the canvas reads as its own preview
+    // viewport rather than washing into the surrounding panel.
+    scene.clearColor = new Color4(0.78, 0.769, 0.737, 1);
 
     const camera = new ArcRotateCamera('HotspotEditorCamera', -Math.PI / 2, Math.PI / 2.5, 3, Vector3.Zero(), scene);
     camera.attachControl(canvas, true);

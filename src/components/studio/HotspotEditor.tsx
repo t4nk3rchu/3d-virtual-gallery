@@ -552,7 +552,8 @@ export function HotspotEditor({
                           padding: '6px 10px',
                           borderRadius: 'var(--reda-radius)',
                           border: '1px solid var(--reda-parch-border)',
-                          background: selectedHotspot?.id === h.id ? 'var(--reda-parch-2)' : 'transparent',
+                          background: selectedHotspot?.id === h.id ? 'var(--reda-parch-2)' : 'var(--reda-parch-field)',
+                          color: 'var(--reda-ink)',
                           cursor: 'pointer',
                         }}
                       >

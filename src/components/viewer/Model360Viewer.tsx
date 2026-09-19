@@ -14,6 +14,9 @@ import {
   Matrix,
   Animation,
   ArcRotateCamera,
+  CubicEase,
+  ElasticEase,
+  EasingFunction,
   type AbstractMesh,
 } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
@@ -23,6 +26,7 @@ import { proxyMediaUrl } from '../../lib/media/gdrive';
 import { initScene, type SceneHandle } from '../../lib/babylon/engine';
 import { isWebGLSupported } from './FallbackCatalog';
 import { parseAnchor } from '../../lib/babylon/model-hotspot-anchor';
+import { getHotspotAnimation, type HotspotTransition } from '../../lib/viewer/hotspot-animations';
 import { pinScaleForRadius, isPointFacingCamera } from '../../lib/babylon/model-hotspot-math';
 import { InspectDesktopSidebar } from './InspectDesktopSidebar';
 import { Icon } from '../ui';
@@ -45,6 +49,20 @@ interface ParsedHotspot {
 const PIN_MIN_PX = 14;
 const PIN_MAX_PX = 40;
 
+/** Map a hotspot transition preset to a Babylon easing for the 3D orbit fly-to.
+ *  instant_cut -> no easing (1-frame jump); spring_overshoot -> elastic; else cubic in/out. */
+function easingForTransition(id: HotspotTransition): EasingFunction | undefined {
+  if (id === 'instant_cut') return undefined;
+  if (id === 'spring_overshoot') {
+    const e = new ElasticEase(1, 3);
+    e.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
+    return e;
+  }
+  const e = new CubicEase();
+  e.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
+  return e;
+}
+
 export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek, onAudioStop }: Model360ViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loading, setLoading] = useState(true);
@@ -58,6 +76,16 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek, onAudi
   const parsedHotspotsRef = useRef<ParsedHotspot[]>([]);
 
   const activeHotspot = activeHotspotIndex >= 0 ? hotspots[activeHotspotIndex] : null;
+
+  // The curator-chosen camera transition, stored per artwork (same field the 2D
+  // inspect reads). Drives the fly-to duration + easing below.
+  const hotspotTransition: HotspotTransition = (() => {
+    try {
+      return (JSON.parse(artwork.frame_config_json || '{}').hotspotTransition as HotspotTransition) || 'arc_dip';
+    } catch {
+      return 'arc_dip';
+    }
+  })();
 
   const setPinRef = useCallback((id: string, el: HTMLButtonElement | null) => {
     if (el) pinRefs.current.set(id, el);
@@ -89,18 +117,24 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek, onAudi
         }
         const targetAlpha = Math.atan2(n.z, n.x);
         const horizLen = Math.sqrt(n.x * n.x + n.z * n.z);
-        const targetBeta = Math.atan2(horizLen, n.y);
-        const scene = camera.getScene();
-        Animation.CreateAndStartAnimation(
-          'model360-focus-alpha', camera, 'alpha', 60, 30, camera.alpha, targetAlpha, Animation.ANIMATIONLOOPMODE_CONSTANT
-        );
-        Animation.CreateAndStartAnimation(
-          'model360-focus-beta', camera, 'beta', 60, 30,
-          camera.beta,
-          Math.max(0.1, Math.min(Math.PI - 0.1, targetBeta)),
-          Animation.ANIMATIONLOOPMODE_CONSTANT
-        );
-        void scene;
+        const targetBeta = Math.max(0.1, Math.min(Math.PI - 0.1, Math.atan2(horizLen, n.y)));
+
+        // Zoom in toward the hotspot (the 3D equivalent of the 2D inspect zoom):
+        // move to ~1.7x the closest allowed radius.
+        const lower = camera.lowerRadiusLimit ?? camera.radius * 0.5;
+        const targetRadius = Math.max(lower, lower * 1.7);
+
+        // Honor the curator's chosen transition: its duration + an easing that
+        // matches its character (so different presets actually feel different).
+        const preset = getHotspotAnimation(hotspotTransition);
+        const fps = 60;
+        const frames = preset.durationMs <= 0 ? 1 : Math.max(1, Math.round((preset.durationMs / 1000) * fps));
+        const ease = easingForTransition(hotspotTransition);
+        const LOOP = Animation.ANIMATIONLOOPMODE_CONSTANT;
+
+        Animation.CreateAndStartAnimation('model360-focus-alpha', camera, 'alpha', fps, frames, camera.alpha, targetAlpha, LOOP, ease);
+        Animation.CreateAndStartAnimation('model360-focus-beta', camera, 'beta', fps, frames, camera.beta, targetBeta, LOOP, ease);
+        Animation.CreateAndStartAnimation('model360-focus-radius', camera, 'radius', fps, frames, camera.radius, targetRadius, LOOP, ease);
       }
 
       if (h.audio_timestamp_seconds != null && onAudioSeek) {
@@ -109,7 +143,7 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek, onAudi
         onAudioStop?.();
       }
     },
-    [hotspots, onAudioSeek, onAudioStop]
+    [hotspots, onAudioSeek, onAudioStop, hotspotTransition]
   );
 
   // Re-parse hotspot anchors whenever the hotspots prop changes, independent of the
