@@ -87,6 +87,13 @@
 .model-360-viewer__stage {
   position: absolute;
   inset: 0;
+  /* Studio backdrop: a soft warm glow behind the object fading to deep char at
+     the edges, so the artifact pops off the background (the canvas clears
+     transparent over this). */
+  background: radial-gradient(ellipse 80% 80% at 50% 42%,
+    rgba(58, 52, 42, 0.55) 0%,
+    rgba(20, 17, 12, 0.9) 48%,
+    var(--reda-char) 100%);
 }
 
 .model-360-viewer__canvas {

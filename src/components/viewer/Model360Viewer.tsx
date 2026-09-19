@@ -12,6 +12,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Vector3,
   Matrix,
+  Color4,
   Animation,
   ArcRotateCamera,
   CubicEase,
@@ -171,6 +172,9 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek, onAudi
 
     sceneHandle = initScene(canvas);
     const { scene, engine } = sceneHandle;
+    // Clear transparent so the CSS radial studio backdrop (on __stage) shows
+    // through and the object reads against a soft glow instead of flat black.
+    scene.clearColor = new Color4(0, 0, 0, 0);
 
     camera = new ArcRotateCamera('model360Camera', -Math.PI / 2, Math.PI / 2.4, 5, Vector3.Zero(), scene);
     camera.attachControl(canvas, true);
