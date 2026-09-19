@@ -14,6 +14,7 @@ import {
 } from '@babylonjs/core';
 import { DracoCompression } from '@babylonjs/core/Meshes/Compression/dracoCompression';
 import { ResolutionScaler } from './resolution-scaler';
+import { applyStudioEnvironment } from './studio-env';
 
 export interface SceneHandle {
   engine: Engine;
@@ -85,6 +86,10 @@ export function initScene(canvas: HTMLCanvasElement, opts: InitSceneOptions = {}
 
   // Base ambient light (spec §5.2)
   new HemisphericLight('ambient', new Vector3(0, 1, 0), scene);
+
+  // Procedural studio IBL so PBR models (glTF) — especially metals — are lit and
+  // reflective instead of near-black. One shared env, O(1) for any model count.
+  applyStudioEnvironment(scene);
 
   // FXAA post-process pipeline (spec §5.2)
   const pipeline = new DefaultRenderingPipeline('default', true, scene);
