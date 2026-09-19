@@ -441,6 +441,12 @@ export function HotspotEditor({
                 fullModelFileId={artwork.media_file_id ?? ''}
                 version={artwork.updated_at}
                 existingAnchors={hotspots}
+                selectedId={selectedHotspot?.id ?? null}
+                draftAnchorJson={selectedHotspot ? editAnchorJson : pendingAnchorJson}
+                onSelectHotspot={(id) => {
+                  const h = hotspots.find((x) => x.id === id);
+                  if (h) { setSelectedHotspot(h); setPendingAnchorJson(null); setNewPin(null); }
+                }}
                 onDropHotspot={handleDropHotspot3D}
               />
             ) : (
