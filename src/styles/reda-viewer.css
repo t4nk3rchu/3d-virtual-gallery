@@ -1691,7 +1691,12 @@
   position: fixed;
   inset: 0;
   z-index: 2000;
-  background: var(--reda-wall-deepest);
+  /* Studio backdrop (matches the 360 viewer): soft warm glow behind the plate
+     fading to deep char at the edges, so the artwork pops off the background. */
+  background: radial-gradient(ellipse 80% 80% at 50% 42%,
+    rgba(58, 52, 42, 0.55) 0%,
+    rgba(20, 17, 12, 0.9) 48%,
+    var(--reda-char) 100%);
   overflow: hidden;
   touch-action: none;
   user-select: none;
