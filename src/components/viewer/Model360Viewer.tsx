@@ -199,7 +199,9 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek, onAudi
             const boundRadius = Math.max(0.5, size * 0.75);
             camera!.setTarget(center);
             camera!.radius = boundRadius * 2;
-            camera!.lowerRadiusLimit = boundRadius * 0.5;
+            // Keep the camera outside the model surface so zooming can't clip
+            // through it (matches the studio editor's boundary).
+            camera!.lowerRadiusLimit = boundRadius;
             camera!.upperRadiusLimit = boundRadius * 4;
             for (const m of meshes) m.isPickable = false;
           }
