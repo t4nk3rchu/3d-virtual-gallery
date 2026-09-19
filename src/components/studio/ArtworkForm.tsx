@@ -290,6 +290,7 @@ export function ArtworkForm({
     setModelProxyFileId(null);
     setProxyStatus('generating');
     setProxyError(null);
+    toast.info('Đang tạo bản proxy nhẹ cho mô hình 3D…', { title: 'Xử lý mô hình 3D' });
     try {
       const proxyId = await generateAndUploadProxy(fileId, (bytes, name) =>
         uploadDriveFile(bytes, name).then((id) => shareFileWithServiceAccount(id).then(() => id))
@@ -297,11 +298,16 @@ export function ArtworkForm({
       if (modelPickGenerationRef.current !== generationId) return;
       setModelProxyFileId(proxyId);
       setProxyStatus('done');
+      toast.success('Mô hình 3D đã sẵn sàng — proxy nhẹ đã được tạo và tải lên.', {
+        title: 'Tải mô hình thành công',
+      });
     } catch (err) {
       if (modelPickGenerationRef.current !== generationId) return;
       console.error('Failed to generate 3D proxy:', err);
-      setProxyError(err instanceof Error ? err.message : 'Failed to generate low-poly proxy.');
+      const msg = err instanceof Error ? err.message : 'Không thể tạo bản proxy nhẹ.';
+      setProxyError(msg);
       setProxyStatus('error');
+      toast.error(msg, { title: 'Lỗi xử lý mô hình 3D', duration: 8000 });
     }
   };
 

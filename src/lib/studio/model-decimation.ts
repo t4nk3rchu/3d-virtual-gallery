@@ -1,29 +1,17 @@
 import { WebIO } from '@gltf-transform/core';
 import { KHRONOS_EXTENSIONS } from '@gltf-transform/extensions';
-import { weld, simplify, draco, prune, dedup } from '@gltf-transform/functions';
+import { weld, simplify, prune, dedup } from '@gltf-transform/functions';
 import { MeshoptSimplifier } from 'meshoptimizer';
-import draco3d from 'draco3dgltf';
 
-let ioPromise: Promise<WebIO> | null = null;
-
-/** WebIO with the Draco encoder/decoder registered (memoised — the WASM loads once). */
-async function getIO(): Promise<WebIO> {
-  if (!ioPromise) {
-    ioPromise = (async () => {
-      const [decoder, encoder] = await Promise.all([
-        draco3d.createDecoderModule(),
-        draco3d.createEncoderModule(),
-      ]);
-      return new WebIO()
-        .registerExtensions(KHRONOS_EXTENSIONS)
-        .registerDependencies({ 'draco3d.decoder': decoder, 'draco3d.encoder': encoder });
-    })().catch((err) => {
-      ioPromise = null;
-      throw err;
-    });
-  }
-  return ioPromise;
-}
+// NOTE on Draco: gltf-transform's Draco encode/decode needs `draco3dgltf`, whose
+// npm entry is a Node-only Emscripten build (it require()s ./draco_*_nodejs,
+// which use fs/__dirname). It cannot run in the browser — under a bundler its
+// wasm load fails with "CompileError: failed to match magic number". So this
+// proxy pipeline intentionally does NOT Draco-compress: the proxy's real win is
+// triangle reduction (meshopt `simplify`, whose wasm is base64-embedded and
+// browser-safe), and a low-poly mesh is small enough uncompressed. A
+// Draco-compressed *input* .glb therefore can't be read here — see the catch
+// below. ponytail: add a browser Draco decoder only if real sources need it.
 
 export interface DecimateOptions {
   /** Target fraction of triangles to keep (0-1). Default 0.5. */
@@ -33,20 +21,31 @@ export interface DecimateOptions {
 }
 
 /**
- * Turn a full-detail GLB (ArrayBuffer) into a small, Draco-compressed low-poly
- * proxy GLB (Uint8Array). Runs entirely in the browser via WASM.
+ * Turn a full-detail GLB (ArrayBuffer) into a smaller low-poly proxy GLB
+ * (Uint8Array). Runs entirely in the browser via meshopt WASM. The proxy is
+ * uncompressed (no Draco) so it loads with no decoder in roam.
  */
 export async function decimateGlb(input: ArrayBuffer, opts: DecimateOptions = {}): Promise<Uint8Array> {
-  const io = await getIO();
   await MeshoptSimplifier.ready;
 
-  const doc = await io.readBinary(new Uint8Array(input));
+  const io = new WebIO().registerExtensions(KHRONOS_EXTENSIONS);
+
+  let doc;
+  try {
+    doc = await io.readBinary(new Uint8Array(input));
+  } catch {
+    throw new Error(
+      'Could not read this .glb. If it uses Draco or meshopt compression, ' +
+        'please export an uncompressed .glb — compressed sources are not supported yet.'
+    );
+  }
+
   await doc.transform(
     dedup(),
     weld(),
     simplify({ simplifier: MeshoptSimplifier, ratio: opts.ratio ?? 0.5, error: opts.error ?? 0.001 }),
     prune(),
-    draco(),
   );
+
   return io.writeBinary(doc);
 }

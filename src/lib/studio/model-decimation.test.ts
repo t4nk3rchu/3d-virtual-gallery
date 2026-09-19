@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Document, WebIO } from '@gltf-transform/core';
 import { KHRONOS_EXTENSIONS } from '@gltf-transform/extensions';
-import draco3d from 'draco3dgltf';
 import { decimateGlb } from './model-decimation';
 
 async function makeDenseGlb(): Promise<ArrayBuffer> {
@@ -31,12 +30,8 @@ describe('decimateGlb', () => {
     const dense = await makeDenseGlb();
     const proxy = await decimateGlb(dense, { ratio: 0.5, error: 0.01 });
     expect(proxy.byteLength).toBeGreaterThan(0);
-    // Re-read the proxy to confirm it is a valid GLB. The proxy is
-    // Draco-compressed, so the reading WebIO needs the Draco decoder too.
-    const decoder = await draco3d.createDecoderModule();
-    const readIO = new WebIO()
-      .registerExtensions(KHRONOS_EXTENSIONS)
-      .registerDependencies({ 'draco3d.decoder': decoder });
+    // Re-read the proxy to confirm it is a valid, uncompressed GLB (no Draco).
+    const readIO = new WebIO().registerExtensions(KHRONOS_EXTENSIONS);
     const doc = await readIO.readBinary(proxy);
     const totalIndices = doc.getRoot().listMeshes()
       .flatMap((m) => m.listPrimitives())
