@@ -855,10 +855,6 @@
   flex: 1 1 auto;
   align-items: stretch;
 }
-/* The preview keeps its natural height (top-aligned); it never stretches. */
-.hotspot-canvas-container {
-  align-self: flex-start;
-}
 
 /* Framed 3D preview viewport so it reads as its own panel, not the modal. */
 .model3d-hotspot-canvas-wrapper {
@@ -877,7 +873,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* preview at top; Done button pushed to the bottom */
   overflow: hidden;
 }
 
@@ -890,7 +886,7 @@
 /* "Done Editing Hotspots" — flat dark button under the canvas (mockup .done) */
 .hotspot-done-btn {
   align-self: flex-start;
-  margin-top: 16px;
+  margin-top: auto; /* drop to the bottom so it aligns with the sidebar's actions */
   font-family: var(--reda-ui);
   font-size: 12.5px;
   font-weight: 600;
