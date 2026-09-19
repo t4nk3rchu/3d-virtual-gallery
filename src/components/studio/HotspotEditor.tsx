@@ -330,7 +330,7 @@ export function HotspotEditor({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-card modal-card--lg" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-card modal-card--lg hotspot-editor-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div>
             <h2>Interactive Hotspot Editor</h2>

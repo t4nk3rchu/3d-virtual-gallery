@@ -834,11 +834,30 @@
 }
 
 /* ─── Hotspot Editor Layout ───────────────────────────────────────────────── */
+/* Hotspot editor: only the sidebar scrolls, not the whole modal. The card is a
+   fixed-height flex column; header/transition/strip are fixed, the layout fills
+   the rest, and the sidebar scrolls inside it. */
+.modal-card.hotspot-editor-card {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.hotspot-editor-card .modal-header,
+.hotspot-editor-card .hotspot-transition-bar,
+.hotspot-editor-card .hotspot-3d-strip {
+  flex: 0 0 auto;
+}
+
 .hotspot-editor-layout {
   display: flex;
   gap: 24px;
-  min-height: 480px;
-  align-items: flex-start; /* don't stretch the preview to match a tall sidebar */
+  min-height: 0;      /* allow the flex child to shrink so the sidebar can scroll */
+  flex: 1 1 auto;
+  align-items: stretch;
+}
+/* The preview keeps its natural height (top-aligned); it never stretches. */
+.hotspot-canvas-container {
+  align-self: flex-start;
 }
 
 /* Framed 3D preview viewport so it reads as its own panel, not the modal. */
@@ -955,9 +974,10 @@
   padding-left: 20px;
   display: flex;
   flex-direction: column;
-  /* Scroll the form/list on its own so a tall Edit panel never stretches the
-     preview beside it. */
-  max-height: 62vh;
+  /* Scroll the form on its own (stretched to the layout height) so a tall Edit
+     panel never stretches the preview beside it and the modal itself never
+     scrolls. */
+  min-height: 0;
   overflow-y: auto;
 }
 
