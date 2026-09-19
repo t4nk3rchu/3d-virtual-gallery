@@ -23,7 +23,6 @@ import {
   StandardMaterial,
   Color3,
   Color4,
-  DirectionalLight,
   type AbstractMesh,
   type Scene,
   type Mesh,
@@ -32,6 +31,8 @@ import '@babylonjs/loaders/glTF';
 import { initScene } from '../../lib/babylon/engine';
 import { proxyMediaUrl } from '../../lib/media/gdrive';
 import { serializeAnchor, parseAnchor } from '../../lib/babylon/model-hotspot-anchor';
+import { addKeyRimLights } from '../../lib/babylon/model-lights';
+import { getModelBounds } from '../../lib/babylon/model-bounds';
 
 interface Model3DHotspotEditorProps {
   fullModelFileId: string;
@@ -104,12 +105,8 @@ export function Model3DHotspotEditor({
     camera.wheelPrecision = 40;
     // Radius limits are set from the model bounds after load (below).
 
-    // Key + rim lights (same as the 360 viewer) so surface detail reads clearly
-    // while placing hotspots. Shadowless — negligible cost.
-    const key = new DirectionalLight('editorKey', new Vector3(-0.4, -1, -0.6), scene);
-    key.intensity = 1.1;
-    const rim = new DirectionalLight('editorRim', new Vector3(0.5, 0.35, 1), scene);
-    rim.intensity = 0.6;
+    // Key + rim lights so surface detail reads clearly while placing hotspots.
+    addKeyRimLights(scene);
 
     const url = proxyMediaUrl(fullModelFileId, version);
 
@@ -121,10 +118,7 @@ export function Model3DHotspotEditor({
       const root = meshes[0];
       if (root) {
         rootRef.current = root;
-        root.computeWorldMatrix(true);
-        const { min, max } = root.getHierarchyBoundingVectors(true);
-        const center = min.add(max).scale(0.5);
-        const size = max.subtract(min).length();
+        const { center, size } = getModelBounds(root);
         markerDiaRef.current = Math.max(0.02, size * 0.03);
         // Keep the camera outside the model surface (a distance boundary, like the
         // room walls) so it can't clip through / dive inside when zooming.

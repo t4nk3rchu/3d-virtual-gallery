@@ -17,7 +17,6 @@ import {
   CubicEase,
   ElasticEase,
   EasingFunction,
-  DirectionalLight,
   type AbstractMesh,
 } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
@@ -27,6 +26,8 @@ import { proxyMediaUrl } from '../../lib/media/gdrive';
 import { initScene, type SceneHandle } from '../../lib/babylon/engine';
 import { isWebGLSupported } from './FallbackCatalog';
 import { parseAnchor } from '../../lib/babylon/model-hotspot-anchor';
+import { addKeyRimLights } from '../../lib/babylon/model-lights';
+import { getModelBounds } from '../../lib/babylon/model-bounds';
 import { getHotspotAnimation, type HotspotTransition } from '../../lib/viewer/hotspot-animations';
 import { pinScaleForRadius, isPointFacingCamera } from '../../lib/babylon/model-hotspot-math';
 import { InspectDesktopSidebar } from './InspectDesktopSidebar';
@@ -178,11 +179,8 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek, onAudi
     cameraRef.current = camera;
 
     // Key + rim lights so dark artifacts (bronze, lacquer) read against the
-    // dark sơn-mài backdrop instead of blending in. Shadowless — negligible cost.
-    const key = new DirectionalLight('model360Key', new Vector3(-0.4, -1, -0.6), scene);
-    key.intensity = 1.1;
-    const rim = new DirectionalLight('model360Rim', new Vector3(0.5, 0.35, 1), scene);
-    rim.intensity = 0.6;
+    // dark sơn-mài backdrop instead of blending in.
+    addKeyRimLights(scene);
 
     const url = artwork.media_file_id ? proxyMediaUrl(artwork.media_file_id, artwork.updated_at) : '';
 
@@ -197,10 +195,7 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek, onAudi
           const root = meshes[0] ?? null;
           rootMeshRef.current = root;
           if (root) {
-            root.computeWorldMatrix(true);
-            const { min, max } = root.getHierarchyBoundingVectors(true);
-            const center = min.add(max).scale(0.5);
-            const size = max.subtract(min).length();
+            const { center, size } = getModelBounds(root);
             const boundRadius = Math.max(0.5, size * 0.75);
             camera!.setTarget(center);
             camera!.radius = boundRadius * 2;

@@ -213,19 +213,14 @@ export async function uploadDriveFile(
 
   const boundary = `-------reda-upload-${crypto.randomUUID()}`;
   const metadata = JSON.stringify({ name, mimeType });
-  const bodyParts = [
+  // Drive's uploadType=multipart needs multipart/related (not FormData's
+  // multipart/form-data). A Blob concatenates the string + binary parts for us.
+  const body = new Blob([
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,
     `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`,
-  ];
-  const closing = `\r\n--${boundary}--`;
-
-  const encoder = new TextEncoder();
-  const head = encoder.encode(bodyParts.join(''));
-  const tail = encoder.encode(closing);
-  const body = new Uint8Array(head.length + bytes.length + tail.length);
-  body.set(head, 0);
-  body.set(bytes, head.length);
-  body.set(tail, head.length + bytes.length);
+    bytes as BlobPart,
+    `\r\n--${boundary}--`,
+  ]);
 
   const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
     method: 'POST',

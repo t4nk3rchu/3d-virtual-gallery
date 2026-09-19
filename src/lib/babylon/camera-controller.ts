@@ -14,6 +14,7 @@ import {
   Vector3,
   Ray,
 } from '@babylonjs/core';
+import { getModelBounds } from './model-bounds';
 
 // ─── CAMERA & MOVEMENT CONFIGURATION (Tweak these values) ─────────────────────
 export const CAMERA_CONFIG = {
@@ -534,11 +535,9 @@ export class CameraController {
     // Resolve the top-level anchor (submeshes are what get picked).
     let root: AbstractMesh = picked;
     while (root.parent) root = root.parent as AbstractMesh;
-    root.computeWorldMatrix(true);
 
-    const { min, max } = root.getHierarchyBoundingVectors(true);
-    const center = min.add(max).scale(0.5);
-    const radius = Math.max(0.25, max.subtract(min).length() / 2);
+    const { center, size } = getModelBounds(root);
+    const radius = Math.max(0.25, size / 2);
 
     const fovV = this.camera.fov;
     const fitDist = (radius / Math.tan(fovV / 2)) * 1.1;
