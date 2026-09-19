@@ -961,6 +961,62 @@
   overflow-y: auto;
 }
 
+/* Action buttons stay pinned to the bottom of the scrolling sidebar. */
+.hotspot-sidebar .form-actions {
+  position: sticky;
+  bottom: 0;
+  background: var(--reda-parch-card);
+  border-top: 1px solid var(--reda-parch-border);
+  padding: 12px 0 4px;
+  z-index: 2;
+}
+
+/* MODEL_3D existing-hotspots strip above the preview (horizontally scrollable). */
+.hotspot-3d-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.hotspot-3d-strip__label {
+  font-family: var(--reda-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--reda-oxblood);
+}
+.hotspot-3d-strip__chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.hotspot-3d-chip {
+  flex: 0 0 auto;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 7px 14px;
+  border-radius: var(--reda-radius-pill);
+  border: 1px solid var(--reda-parch-border);
+  background: var(--reda-parch-field);
+  color: var(--reda-ink);
+  font-family: var(--reda-ui);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.hotspot-3d-chip:hover {
+  background: var(--reda-parch-2);
+}
+.hotspot-3d-chip.selected {
+  background: var(--reda-parch-2);
+  border-color: var(--reda-gold);
+  font-weight: 600;
+}
+
 .coords-readout {
   font-family: var(--reda-mono);
   font-size: 11px;

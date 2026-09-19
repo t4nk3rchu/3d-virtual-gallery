@@ -17,6 +17,7 @@ import {
   CubicEase,
   ElasticEase,
   EasingFunction,
+  DirectionalLight,
   type AbstractMesh,
 } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
@@ -175,6 +176,13 @@ export function Model360Viewer({ artwork, hotspots, onClose, onAudioSeek, onAudi
     camera.wheelPrecision = 40;
     camera.panningSensibility = 0;
     cameraRef.current = camera;
+
+    // Key + rim lights so dark artifacts (bronze, lacquer) read against the
+    // dark sơn-mài backdrop instead of blending in. Shadowless — negligible cost.
+    const key = new DirectionalLight('model360Key', new Vector3(-0.4, -1, -0.6), scene);
+    key.intensity = 1.1;
+    const rim = new DirectionalLight('model360Rim', new Vector3(0.5, 0.35, 1), scene);
+    rim.intensity = 0.6;
 
     const url = artwork.media_file_id ? proxyMediaUrl(artwork.media_file_id, artwork.updated_at) : '';
 

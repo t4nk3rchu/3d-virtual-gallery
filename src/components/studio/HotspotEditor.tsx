@@ -413,6 +413,26 @@ export function HotspotEditor({
           <HotspotTransitionPreview transition={transitionStyle} />
         </div>
 
+        {/* MODEL_3D: existing hotspots live in a scrollable strip ABOVE the
+            preview, so the right sidebar is only for editing one hotspot's info. */}
+        {is3D && hotspots.length > 0 && (
+          <div className="hotspot-3d-strip">
+            <span className="hotspot-3d-strip__label">Existing Hotspots ({hotspots.length})</span>
+            <div className="hotspot-3d-strip__chips">
+              {hotspots.map((h) => (
+                <button
+                  key={h.id}
+                  type="button"
+                  className={`hotspot-3d-chip ${selectedHotspot?.id === h.id ? 'selected' : ''}`}
+                  onClick={() => { setSelectedHotspot(h); setPendingAnchorJson(null); setNewPin(null); }}
+                >
+                  {h.title || 'Untitled hotspot'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="hotspot-editor-layout">
           {/* Visual Image/Model View with Pins */}
           <div className="hotspot-canvas-container">
@@ -534,37 +554,6 @@ export function HotspotEditor({
 
           {/* Hotspot Form & Details Panel */}
           <div className="hotspot-sidebar">
-            {/* MODEL_3D has no clickable pin overlay on the 3D canvas (unlike the 2D
-                image view), so existing hotspots are picked from a list instead. */}
-            {is3D && hotspots.length > 0 && !pendingAnchorJson && (
-              <div className="hotspot-3d-list" style={{ marginBottom: '1rem' }}>
-                <h3>Existing Hotspots</h3>
-                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {hotspots.map((h) => (
-                    <li key={h.id}>
-                      <button
-                        type="button"
-                        className={`hotspot-3d-list-item ${selectedHotspot?.id === h.id ? 'selected' : ''}`}
-                        onClick={() => setSelectedHotspot(h)}
-                        style={{
-                          width: '100%',
-                          textAlign: 'left',
-                          padding: '6px 10px',
-                          borderRadius: 'var(--reda-radius)',
-                          border: '1px solid var(--reda-parch-border)',
-                          background: selectedHotspot?.id === h.id ? 'var(--reda-parch-2)' : 'var(--reda-parch-field)',
-                          color: 'var(--reda-ink)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {h.title || 'Untitled hotspot'}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
             {(is3D ? pendingAnchorJson : newPin) && (
               <form onSubmit={handleCreateHotspot} className="hotspot-pin-form">
                 <h3>New Hotspot Pin</h3>
