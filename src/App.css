@@ -1002,6 +1002,7 @@
   flex-direction: column;
   gap: 8px;
   flex: 0 0 auto;
+  min-width: 0; /* let the chip row scroll instead of widening the column */
 }
 .hotspot-3d-strip__label {
   font-family: var(--reda-ui);
@@ -1014,8 +1015,22 @@
 .hotspot-3d-strip__chips {
   display: flex;
   gap: 8px;
+  min-width: 0;
   overflow-x: auto;
-  padding-bottom: 4px;
+  overflow-y: hidden;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--reda-parch-border) transparent;
+}
+.hotspot-3d-strip__chips::-webkit-scrollbar {
+  height: 8px;
+}
+.hotspot-3d-strip__chips::-webkit-scrollbar-thumb {
+  background: var(--reda-parch-border);
+  border-radius: var(--reda-radius-pill);
+}
+.hotspot-3d-strip__chips::-webkit-scrollbar-track {
+  background: transparent;
 }
 .hotspot-3d-chip {
   flex: 0 0 auto;
