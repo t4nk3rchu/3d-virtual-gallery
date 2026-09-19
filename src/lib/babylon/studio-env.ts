@@ -86,7 +86,7 @@ function makeFace(f: number): Uint8Array {
   return data;
 }
 
-export function applyStudioEnvironment(scene: Scene, intensity = 0.55): void {
+export function applyStudioEnvironment(scene: Scene, intensity = 0.5): void {
   const faces = [makeFace(0), makeFace(1), makeFace(2), makeFace(3), makeFace(4), makeFace(5)];
   const env = new RawCubeTexture(
     scene,
