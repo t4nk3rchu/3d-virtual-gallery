@@ -379,7 +379,8 @@ export function ArtworkForm({
       </div>
 
       {/* Pinned / Top Quick Actions: Live Frame Preview & Hotspots */}
-      {(previewImageSrc || (isEditing && artworkType === 'IMAGE_2D' && activeArtwork)) && (
+      {(previewImageSrc ||
+        (isEditing && (artworkType === 'IMAGE_2D' || artworkType === 'MODEL_3D') && activeArtwork)) && (
         <div
           className="wb-insp-top-pinned"
           style={{
