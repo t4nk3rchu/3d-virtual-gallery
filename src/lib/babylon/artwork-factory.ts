@@ -296,8 +296,9 @@ export function createArtworkMesh(scene: Scene, artwork: Artwork, onTextureLoade
     case 'VIDEO':
       return createVideoArtwork(scene, artwork, onTextureLoaded);
     case 'MODEL_3D':
-      createModel3DArtwork(scene, artwork, onTextureLoaded);
-      return null;
+      // Returns the anchor mesh synchronously so the studio can track it for the
+      // gizmo/selection; the GLB parents to the anchor once loaded.
+      return createModel3DArtwork(scene, artwork, onTextureLoaded);
     default:
       console.warn(`[artwork-factory] Unknown artwork type: ${(artwork as Artwork).artwork_type}`);
       onTextureLoaded?.();

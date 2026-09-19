@@ -457,7 +457,7 @@ export function ArtworkForm({
           )}
 
           {/* Hotspots Quick Action Banner */}
-          {isEditing && artworkType === 'IMAGE_2D' && activeArtwork && (
+          {isEditing && (artworkType === 'IMAGE_2D' || artworkType === 'MODEL_3D') && activeArtwork && (
             <div
               style={{
                 padding: '10px 12px',
@@ -483,7 +483,7 @@ export function ArtworkForm({
                   Interactive Hotspots
                 </div>
                 <div style={{ fontFamily: 'var(--reda-text)', fontSize: '12px', color: 'var(--reda-ink-2)', marginTop: '2px' }}>
-                  {(activeArtwork as unknown as { hotspots?: unknown[] }).hotspots?.length || 0} details pinned on canvas
+                  {(activeArtwork as unknown as { hotspots?: unknown[] }).hotspots?.length || 0} details pinned {artworkType === 'MODEL_3D' ? 'on the model' : 'on canvas'}
                 </div>
               </div>
               <Button

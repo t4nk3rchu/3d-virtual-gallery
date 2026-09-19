@@ -177,7 +177,9 @@ export function wireInteraction(
         }
         focusArtwork(artworkId, mesh);
       } else if (state === 'FOCUS') {
-        if (cameraController.focusedMesh === mesh) {
+        // Compare by artwork id, not mesh identity: a 3D model's focused mesh is
+        // its root, but the click picks a submesh — identity would never match.
+        if (cameraController.focusedMesh?.metadata?.artworkId === artworkId) {
           // Focus → Inspect (click the same artwork again)
           inspectArtwork(artworkId);
         } else {

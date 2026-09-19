@@ -443,6 +443,15 @@ export class CameraController {
    * Dynamically adapts distance based on artwork size and camera FOV, and checks wall clearance.
    */
   focusOnArtwork(mesh: AbstractMesh, defaultViewDistance?: number): void {
+    // 3D models are a mesh hierarchy, not a flat plane: the picked mesh is a
+    // submesh and the root has no geometry, so the plane framing below collapses
+    // to the minimum distance and drops the camera inside the model. Frame by the
+    // whole model's bounds instead.
+    if (mesh.metadata?.isModel3D) {
+      this._focusOnModel(mesh);
+      return;
+    }
+
     this._focusedMesh = mesh;
 
     // 1. Calculate mesh world matrix and center
@@ -517,6 +526,33 @@ export class CameraController {
     // 6. Smoothly glide position and track target so camera ends up facing artwork at 90°
     const startPos = this.camera.position.clone();
     this._animateCamera(startPos, targetPos, lookAtTarget, 600);
+  }
+
+  /** Frame a MODEL_3D artwork by its whole-hierarchy bounds so the camera sits
+   *  outside the model, looking at its center from the visitor's current side. */
+  private _focusOnModel(picked: AbstractMesh): void {
+    // Resolve the top-level anchor (submeshes are what get picked).
+    let root: AbstractMesh = picked;
+    while (root.parent) root = root.parent as AbstractMesh;
+    root.computeWorldMatrix(true);
+
+    const { min, max } = root.getHierarchyBoundingVectors(true);
+    const center = min.add(max).scale(0.5);
+    const radius = Math.max(0.25, max.subtract(min).length() / 2);
+
+    const fovV = this.camera.fov;
+    const fitDist = (radius / Math.tan(fovV / 2)) * 1.1;
+    const dist = Math.max(1.2, Math.min(15, fitDist));
+
+    // Approach from the visitor's current side (flattened to horizontal).
+    let dir = center.subtract(this.camera.position);
+    dir.y = 0;
+    if (dir.lengthSquared() < 1e-4) dir = new Vector3(0, 0, 1);
+    dir.normalize();
+
+    const targetPos = new Vector3(center.x - dir.x * dist, center.y, center.z - dir.z * dist);
+    this._focusedMesh = root;
+    this._animateCamera(this.camera.position.clone(), targetPos, center, 600);
   }
 
   private _animateCamera(
